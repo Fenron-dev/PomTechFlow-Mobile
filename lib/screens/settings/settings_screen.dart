@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/settings_provider.dart'
-    hide AppSettings;
+import 'package:go_router/go_router.dart';
+import '../../providers/settings_provider.dart' hide AppSettings;
 import '../../providers/settings_provider.dart' as sp;
+import '../../providers/database_provider.dart';
+import '../../services/backup_service.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -37,6 +39,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late int _pomodoroMinutes;
   late int _shortBreakMinutes;
   late int _longBreakMinutes;
+  bool _backupLoading = false;
 
   @override
   void initState() {
@@ -74,11 +77,69 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     }
   }
 
+  Future<void> _exportBackup() async {
+    setState(() => _backupLoading = true);
+    try {
+      final db = ref.read(databaseProvider);
+      await BackupService.exportBackup(db);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Fehler: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _backupLoading = false);
+    }
+  }
+
+  Future<void> _importBackup() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Backup importieren?'),
+        content: const Text(
+            'Alle aktuellen Daten werden überschrieben. Fortfahren?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Abbrechen')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Importieren')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _backupLoading = true);
+    try {
+      final db = ref.read(databaseProvider);
+      final result = await BackupService.importBackup(db);
+      if (!mounted) return;
+      if (result == 'OK') {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Backup erfolgreich importiert')));
+        ref.invalidate(settingsProvider);
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Fehler: $result')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Import Fehler: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _backupLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // ── Stammdaten ──────────────────────────────────────────────
         _SectionHeader('Firma'),
         TextField(
           controller: _companyCtrl,
@@ -91,6 +152,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         ),
         const SizedBox(height: 24),
 
+        // ── AE ──────────────────────────────────────────────────────
         _SectionHeader('Arbeitseinheiten (AE)'),
         _StepperField(
           label: 'Minuten pro AE',
@@ -101,6 +163,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         ),
         const SizedBox(height: 24),
 
+        // ── Timer ────────────────────────────────────────────────────
         _SectionHeader('Timer'),
         _StepperField(
           label: 'Fokuszeit (Minuten)',
@@ -130,8 +193,68 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         FilledButton.icon(
           onPressed: _save,
           icon: const Icon(Icons.save),
-          label: const Text('Speichern'),
+          label: const Text('Einstellungen speichern'),
         ),
+        const SizedBox(height: 32),
+
+        // ── Stammdaten ───────────────────────────────────────────────
+        _SectionHeader('Stammdaten'),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.business),
+                title: const Text('Kunden'),
+                subtitle: const Text('Kunden verwalten'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/customers'),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.folder_copy_outlined),
+                title: const Text('Workflows'),
+                subtitle: const Text('Checklisten-Vorlagen'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/workflows'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // ── Backup ───────────────────────────────────────────────────
+        _SectionHeader('Backup & Wiederherstellung'),
+        Text(
+          'Sichere alle Daten als JSON-Datei. Beim App-Update oder Neuinstall bleiben die Daten erhalten wenn du vorher ein Backup erstellst.',
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.outline),
+        ),
+        const SizedBox(height: 12),
+        if (_backupLoading)
+          const Center(child: CircularProgressIndicator())
+        else
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _exportBackup,
+                  icon: const Icon(Icons.upload),
+                  label: const Text('Backup erstellen'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _importBackup,
+                  icon: const Icon(Icons.download),
+                  label: const Text('Backup laden'),
+                ),
+              ),
+            ],
+          ),
+        const SizedBox(height: 32),
       ],
     );
   }

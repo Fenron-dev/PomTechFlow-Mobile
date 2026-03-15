@@ -6,7 +6,6 @@ import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/tasks/task_list_screen.dart';
 import 'screens/tasks/task_detail_screen.dart';
 import 'screens/tasks/task_form_screen.dart';
-import 'screens/timer/timer_screen.dart';
 import 'screens/customers/customers_screen.dart';
 import 'screens/workflows/workflows_screen.dart';
 import 'screens/settings/settings_screen.dart';
@@ -21,7 +20,7 @@ final _router = GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AppShell(shell: shell),
       branches: [
-        // 0 - Dashboard (Startseite)
+        // 0 - Dashboard
         StatefulShellBranch(routes: [
           GoRoute(
               path: '/dashboard',
@@ -52,27 +51,17 @@ final _router = GoRouter(
             ],
           ),
         ]),
-        // 2 - Timer
-        StatefulShellBranch(routes: [
-          GoRoute(path: '/timer', builder: (_, __) => const TimerScreen()),
-        ]),
-        // 3 - Kunden
-        StatefulShellBranch(routes: [
-          GoRoute(
-              path: '/customers',
-              builder: (_, __) => const CustomersScreen()),
-        ]),
-        // 4 - Workflows
-        StatefulShellBranch(routes: [
-          GoRoute(
-              path: '/workflows',
-              builder: (_, __) => const WorkflowsScreen()),
-        ]),
-        // 5 - Einstellungen
+        // 2 - Einstellungen (inkl. Kunden, Workflows, Backup)
         StatefulShellBranch(routes: [
           GoRoute(
               path: '/settings',
               builder: (_, __) => const SettingsScreen()),
+          GoRoute(
+              path: '/customers',
+              builder: (_, __) => const CustomersScreen()),
+          GoRoute(
+              path: '/workflows',
+              builder: (_, __) => const WorkflowsScreen()),
         ]),
       ],
     ),
@@ -116,21 +105,6 @@ class AppShell extends StatelessWidget {
             icon: Icon(Icons.checklist_outlined),
             selectedIcon: Icon(Icons.checklist),
             label: 'Tasks',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.timer_outlined),
-            selectedIcon: Icon(Icons.timer),
-            label: 'Timer',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.business_outlined),
-            selectedIcon: Icon(Icons.business),
-            label: 'Kunden',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'Workflows',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

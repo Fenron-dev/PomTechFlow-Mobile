@@ -42,7 +42,7 @@ class PdfService {
     final fontBold = await PdfGoogleFonts.nunitoBold();
 
     final task = data.taskDetail.task;
-    final ae = task.totalMinutes / data.aeMinutes;
+    final ae = task.totalMinutes == 0 ? 0.0 : (task.totalMinutes / data.aeMinutes).ceilToDouble();
     final dateStr =
         DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now().toLocal());
 

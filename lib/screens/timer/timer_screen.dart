@@ -224,7 +224,7 @@ class _TaskPickerSheet extends StatelessWidget {
               subtitle: tasks[i].customer != null
                   ? Text(tasks[i].customer!.name)
                   : null,
-              trailing: Text('${tasks[i].aeCount.toStringAsFixed(1)} AE'),
+              trailing: Text('${tasks[i].aeCount()} AE'),
               onTap: () => Navigator.pop(context, tasks[i].task.id),
             ),
           ),

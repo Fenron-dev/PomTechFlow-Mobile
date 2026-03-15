@@ -19,7 +19,9 @@ class TaskWithDetails {
     this.sessionCount = 0,
   });
 
-  double get aeCount => task.totalMinutes / 10.0;
+  // AE pro angefangene 10 Min (aufrunden), konfigurierbar via aeMinutes
+  int aeCount([int aeMinutes = 10]) =>
+      task.totalMinutes == 0 ? 0 : (task.totalMinutes / aeMinutes).ceil();
 }
 
 // Alle Tasks laden

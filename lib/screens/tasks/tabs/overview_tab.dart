@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../providers/tasks_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../providers/timer_provider.dart';
 import '../../../services/pdf_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -67,14 +68,18 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider).valueOrNull;
     final detail = widget.detail;
-    final isActiveTask = widget.isActiveTask;
-    final onStartTimer = widget.onStartTimer;
     final onMarkDone = widget.onMarkDone;
     final task = detail.task;
-    final ae = detail.aeCount;
+    final aeMin = settings?.aeMinutes ?? 10;
+    final ae = detail.aeCount(aeMin);
     final cs = Theme.of(context).colorScheme;
-
+    final timer = ref.watch(timerProvider);
+    final timerNotifier = ref.read(timerProvider.notifier);
+    final isThisTask = timer.activeTaskId == task.id;
+    final isRunning = isThisTask && timer.status == TimerStatus.running;
+    final isPaused = isThisTask && timer.status == TimerStatus.paused;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -83,24 +88,23 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         _StatusBanner(status: task.status),
         const SizedBox(height: 16),
 
-        // Timer-Aktionen
+        // ── Timer-Widget ──────────────────────────────────────────────
         if (task.status != 'COMPLETED')
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onStartTimer,
-                  icon: Icon(isActiveTask ? Icons.timer : Icons.play_arrow),
-                  label: Text(isActiveTask ? 'Timer läuft' : 'Timer starten'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: onMarkDone,
-                icon: const Icon(Icons.check),
-                label: const Text('Erledigt'),
-              ),
-            ],
+          _TaskTimerWidget(
+            taskId: task.id,
+            timer: timer,
+            isThisTask: isThisTask,
+            isRunning: isRunning,
+            isPaused: isPaused,
+            onStart: () => timerNotifier.start(task.id),
+            onPause: () => timerNotifier.pause(),
+            onResume: () => timerNotifier.resume(),
+            onStop: () async {
+              await timerNotifier.stop();
+              // Task-Daten neu laden
+              if (mounted) setState(() {});
+            },
+            onMarkDone: onMarkDone,
           ),
         const SizedBox(height: 8),
         // PDF Bericht
@@ -125,7 +129,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
             Expanded(
               child: _StatCard(
                 label: 'Arbeitseinheiten',
-                value: ae.toStringAsFixed(1),
+                value: ae.toString(),
                 unit: 'AE',
                 icon: Icons.timer_outlined,
                 color: cs.primaryContainer,
@@ -271,6 +275,113 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
+
+// ─── Timer Widget ────────────────────────────────────────────────────────────
+
+class _TaskTimerWidget extends StatelessWidget {
+  final String taskId;
+  final TimerState timer;
+  final bool isThisTask;
+  final bool isRunning;
+  final bool isPaused;
+  final VoidCallback onStart;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+  final VoidCallback onStop;
+  final VoidCallback onMarkDone;
+
+  const _TaskTimerWidget({
+    required this.taskId,
+    required this.timer,
+    required this.isThisTask,
+    required this.isRunning,
+    required this.isPaused,
+    required this.onStart,
+    required this.onPause,
+    required this.onResume,
+    required this.onStop,
+    required this.onMarkDone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Card(
+      color: isRunning
+          ? cs.primaryContainer
+          : isPaused
+              ? cs.tertiaryContainer
+              : cs.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Zeitanzeige
+            if (isThisTask) ...[
+              Text(
+                timer.timeString,
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isRunning ? cs.primary : cs.tertiary,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              LinearProgressIndicator(
+                value: timer.progress,
+                backgroundColor: cs.surfaceContainerHighest,
+              ),
+              const SizedBox(height: 12),
+            ],
+            // Buttons
+            Row(
+              children: [
+                if (!isThisTask)
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: onStart,
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Timer starten'),
+                    ),
+                  )
+                else ...[
+                  if (isRunning)
+                    IconButton.filled(
+                      onPressed: onPause,
+                      icon: const Icon(Icons.pause),
+                      tooltip: 'Pausieren',
+                    )
+                  else
+                    IconButton.filled(
+                      onPressed: onResume,
+                      icon: const Icon(Icons.play_arrow),
+                      tooltip: 'Fortsetzen',
+                    ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onStop,
+                      icon: const Icon(Icons.stop),
+                      label: const Text('Stoppen & speichern'),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: onMarkDone,
+                  icon: const Icon(Icons.check),
+                  label: const Text('Erledigt'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _InfoRow extends StatelessWidget {
   final IconData icon;

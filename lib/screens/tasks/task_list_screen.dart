@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/tasks_provider.dart';
 import '../../providers/database_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../widgets/task_card.dart';
 
@@ -29,6 +30,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   Widget build(BuildContext context) {
     final tasksAsync = ref.watch(tasksProvider);
     final timer = ref.watch(timerProvider);
+    final aeMinutes = ref.watch(settingsProvider).valueOrNull?.aeMinutes ?? 10;
 
     return Scaffold(
       appBar: AppBar(
@@ -130,6 +132,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               itemBuilder: (_, i) => TaskCard(
                 task: filtered[i],
                 isTimerRunning: timer.activeTaskId == filtered[i].task.id,
+                aeMinutes: aeMinutes,
                 onTap: () async {
                   await context.push('/tasks/${filtered[i].task.id}');
                   ref.invalidate(tasksProvider);

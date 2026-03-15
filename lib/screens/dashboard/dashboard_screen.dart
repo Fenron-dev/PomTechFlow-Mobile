@@ -39,7 +39,8 @@ class DashboardScreen extends ConsumerWidget {
           final planned = tasks.where((t) => t.task.status == 'PLANNED').length;
           final totalMinutes = tasks.fold<int>(0, (s, t) => s + t.task.totalMinutes);
           final aeMin = settings?.aeMinutes ?? 10;
-          final totalAE = totalMinutes / aeMin;
+          // Summe der aufgerundeten AE pro Task
+          final totalAE = tasks.fold<int>(0, (s, t) => s + t.aeCount(aeMin));
 
           // Task mit laufendem Timer
           final activeTimerTask = timer.activeTaskId != null
@@ -72,8 +73,8 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     _StatCard(
                       label: 'Gesamt AE',
-                      value: totalAE.toStringAsFixed(1),
-                      sub: '${totalMinutes} Min',
+                      value: totalAE.toString(),
+                      sub: '$totalMinutes Min',
                       icon: Icons.timer_outlined,
                       color: cs.primaryContainer,
                     ),
@@ -313,7 +314,7 @@ class _TaskRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ae = task.task.totalMinutes / aeMin;
+    final ae = task.aeCount(aeMin);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -326,7 +327,7 @@ class _TaskRow extends StatelessWidget {
         title: Text(task.task.title,
             maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: task.customer != null ? Text(task.customer!.name) : null,
-        trailing: Text('${ae.toStringAsFixed(1)} AE',
+        trailing: Text('$ae AE',
             style: Theme.of(context).textTheme.labelMedium),
       ),
     );
