@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tzdata;
@@ -6,8 +7,13 @@ class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
+  // Notifications werden nur auf Mobile-Plattformen unterstützt
+  static bool get _supported =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
   static Future<void> initialize() async {
-    if (_initialized) return;
+    if (!_supported || _initialized) return;
     tzdata.initializeTimeZones();
 
     const androidSettings =
@@ -36,6 +42,7 @@ class NotificationService {
     String title,
     DateTime plannedDate,
   ) async {
+    if (!_supported) return;
     if (plannedDate.isBefore(DateTime.now())) return;
     await initialize();
 
@@ -67,6 +74,7 @@ class NotificationService {
   }
 
   static Future<void> cancelTaskReminder(String taskId) async {
+    if (!_supported) return;
     await _plugin.cancel(taskId.hashCode.abs() % 100000);
   }
 }

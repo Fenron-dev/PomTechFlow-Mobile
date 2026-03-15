@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:drift/drift.dart' show OrderingTerm, OrderingMode;
@@ -66,21 +68,59 @@ class PhotosTab extends ConsumerWidget {
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FloatingActionButton.small(
-            heroTag: 'gallery',
-            onPressed: () => _addPhoto(context, ref, ImageSource.gallery),
-            tooltip: 'Aus Galerie',
-            child: const Icon(Icons.photo_library_outlined),
-          ),
-          const SizedBox(height: 8),
-          FloatingActionButton(
-            heroTag: 'camera',
-            onPressed: () => _addPhoto(context, ref, ImageSource.camera),
-            child: const Icon(Icons.camera_alt),
-          ),
+          if (!_isDesktop) ...[
+            FloatingActionButton.small(
+              heroTag: 'gallery',
+              onPressed: () => _addPhoto(context, ref, ImageSource.gallery),
+              tooltip: 'Aus Galerie',
+              child: const Icon(Icons.photo_library_outlined),
+            ),
+            const SizedBox(height: 8),
+            FloatingActionButton(
+              heroTag: 'camera',
+              onPressed: () => _addPhoto(context, ref, ImageSource.camera),
+              child: const Icon(Icons.camera_alt),
+            ),
+          ] else
+            FloatingActionButton(
+              heroTag: 'file',
+              onPressed: () => _addPhotoDesktop(context, ref),
+              tooltip: 'Bild hinzufügen',
+              child: const Icon(Icons.add_photo_alternate_outlined),
+            ),
         ],
       ),
     );
+  }
+
+  bool get _isDesktop =>
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
+  Future<void> _addPhotoDesktop(BuildContext context, WidgetRef ref) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final path = result.files.first.path;
+    if (path == null) return;
+
+    final appDir = await getApplicationDocumentsDirectory();
+    final photoDir = Directory('${appDir.path}/photos');
+    await photoDir.create(recursive: true);
+    final ext = path.contains('.') ? '.${path.split('.').last}' : '.jpg';
+    final fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}$ext';
+    final dest = File('${photoDir.path}/$fileName');
+    await File(path).copy(dest.path);
+
+    final db = ref.read(databaseProvider);
+    await db.into(db.photos).insert(PhotosCompanion.insert(
+          taskId: taskId,
+          filePath: dest.path,
+        ));
+    ref.invalidate(_photosProvider(taskId));
   }
 
   Future<void> _addPhoto(

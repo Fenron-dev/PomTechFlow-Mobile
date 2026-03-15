@@ -13,6 +13,7 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/statistics/statistics_screen.dart';
 import 'services/notification_service.dart';
+import 'widgets/adaptive_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +33,7 @@ final _router = GoRouter(
       builder: (_, __) => const StatisticsScreen(),
     ),
     StatefulShellRoute.indexedStack(
-      builder: (context, state, shell) => AppShell(shell: shell),
+      builder: (context, state, shell) => AdaptiveShell(shell: shell),
       branches: [
         // 0 - Dashboard
         StatefulShellBranch(routes: [
@@ -102,50 +103,6 @@ class PomTechFlowApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: _router,
       debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-class AppShell extends ConsumerWidget {
-  final StatefulNavigationShell shell;
-  const AppShell({super.key, required this.shell});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) {
-          if (i == 3) {
-            context.push('/search');
-          } else {
-            shell.goBranch(i);
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.checklist_outlined),
-            selectedIcon: Icon(Icons.checklist),
-            label: 'Tasks',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Einstellungen',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
-            label: 'Suche',
-          ),
-        ],
-      ),
     );
   }
 }
