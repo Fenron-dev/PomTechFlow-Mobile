@@ -90,6 +90,7 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
           ),
           const Divider(height: 1),
           ...workflows.map((wf) => ListTile(
+                leading: const Icon(Icons.folder_outlined),
                 title: Text(wf.workflow.name),
                 subtitle: Text('${wf.items.length} Punkte'),
                 onTap: () {
@@ -109,7 +110,6 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
 
     return Column(
       children: [
-        // Eingabe
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Row(
@@ -126,10 +126,7 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton.filled(
-                icon: const Icon(Icons.add),
-                onPressed: _addTodo,
-              ),
+              IconButton.filled(icon: const Icon(Icons.add), onPressed: _addTodo),
               IconButton(
                 icon: const Icon(Icons.folder_open_outlined),
                 tooltip: 'Workflow anwenden',
@@ -139,44 +136,69 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
           ),
         ),
         const Divider(height: 1),
-        // Liste
         Expanded(
           child: todosAsync.when(
-            loading: () =>
-                const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Fehler: $e')),
             data: (todos) {
               if (todos.isEmpty) {
                 return Center(
-                  child: Text(
-                    'Noch keine Checklistenpunkte',
-                    style: TextStyle(
-                        color: Theme.of(context).colorScheme.outline),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.checklist,
+                          size: 48,
+                          color: Theme.of(context).colorScheme.outlineVariant),
+                      const SizedBox(height: 12),
+                      Text('Noch keine Checklistenpunkte',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.outline)),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: _showWorkflowPicker,
+                        icon: const Icon(Icons.folder_open_outlined),
+                        label: const Text('Workflow anwenden'),
+                      ),
+                    ],
                   ),
                 );
               }
 
-              // Gruppieren nach workflowName
-              final grouped = <String?, List<Todo>>{};
-              for (final todo in todos) {
-                grouped.putIfAbsent(todo.workflowName, () => []).add(todo);
+              // Aufteilen: ohne Workflow vs. pro Workflow
+              final ungrouped =
+                  todos.where((t) => t.workflowId == null).toList();
+              final grouped = <String, _WorkflowGroup>{};
+              for (final todo in todos.where((t) => t.workflowId != null)) {
+                grouped.putIfAbsent(
+                  todo.workflowId!,
+                  () => _WorkflowGroup(
+                    id: todo.workflowId!,
+                    name: todo.workflowName ?? 'Workflow',
+                    todos: [],
+                  ),
+                ).todos.add(todo);
               }
 
-              final sections = <Widget>[];
-              grouped.forEach((groupName, groupTodos) {
-                if (groupName != null) {
-                  sections.add(_GroupHeader(name: groupName, todos: groupTodos));
-                }
-                sections.addAll(groupTodos.map((todo) => _TodoItem(
-                      todo: todo,
-                      onToggle: () => _toggleTodo(todo),
-                      onDelete: () => _deleteTodo(todo.id),
-                    )));
-              });
-
               return ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                children: sections,
+                padding: const EdgeInsets.all(12),
+                children: [
+                  if (ungrouped.isNotEmpty)
+                    _UngroupedSection(
+                      todos: ungrouped,
+                      onToggle: _toggleTodo,
+                      onDelete: _deleteTodo,
+                    ),
+                  if (ungrouped.isNotEmpty && grouped.isNotEmpty)
+                    const SizedBox(height: 8),
+                  ...grouped.values.map((group) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _WorkflowGroupCard(
+                          group: group,
+                          onToggle: _toggleTodo,
+                          onDelete: _deleteTodo,
+                        ),
+                      )),
+                ],
               );
             },
           ),
@@ -186,40 +208,170 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
   }
 }
 
-class _GroupHeader extends StatelessWidget {
+class _WorkflowGroup {
+  final String id;
   final String name;
   final List<Todo> todos;
-  const _GroupHeader({required this.name, required this.todos});
+  _WorkflowGroup({required this.id, required this.name, required this.todos});
+  int get done => todos.where((t) => t.completed).length;
+  bool get allDone => done == todos.length && todos.isNotEmpty;
+}
+
+class _UngroupedSection extends StatelessWidget {
+  final List<Todo> todos;
+  final ValueChanged<Todo> onToggle;
+  final ValueChanged<String> onDelete;
+  const _UngroupedSection(
+      {required this.todos, required this.onToggle, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    final done = todos.where((t) => t.completed).length;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 4),
+          child: Text('Allgemein',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelMedium
+                  ?.copyWith(color: Theme.of(context).colorScheme.outline)),
+        ),
+        ...todos.map((todo) => _TodoTile(
+              todo: todo,
+              onToggle: () => onToggle(todo),
+              onDelete: () => onDelete(todo.id),
+            )),
+      ],
+    );
+  }
+}
+
+class _WorkflowGroupCard extends StatefulWidget {
+  final _WorkflowGroup group;
+  final ValueChanged<Todo> onToggle;
+  final ValueChanged<String> onDelete;
+  const _WorkflowGroupCard(
+      {required this.group, required this.onToggle, required this.onDelete});
+
+  @override
+  State<_WorkflowGroupCard> createState() => _WorkflowGroupCardState();
+}
+
+class _WorkflowGroupCardState extends State<_WorkflowGroupCard> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = !widget.group.allDone;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final group = widget.group;
+    final progress =
+        group.todos.isEmpty ? 0.0 : group.done / group.todos.length;
+    final allDone = group.allDone;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: allDone ? 0 : 1,
+      color: allDone ? cs.secondaryContainer.withValues(alpha: 0.4) : null,
+      child: Column(
         children: [
-          const Icon(Icons.folder_outlined, size: 16),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(name,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.bold)),
+          // ── Header ──────────────────────────────────────────────
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.vertical(
+              top: const Radius.circular(12),
+              bottom: _expanded ? Radius.zero : const Radius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+              child: Row(
+                children: [
+                  Icon(
+                    allDone ? Icons.folder : Icons.folder_open,
+                    size: 20,
+                    color: allDone ? cs.secondary : cs.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          group.name,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                decoration: allDone
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: allDone ? cs.outline : null,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 5,
+                                  backgroundColor: cs.surfaceContainerHighest,
+                                  color:
+                                      allDone ? cs.secondary : cs.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${group.done}/${group.todos.length}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(color: cs.outline),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    color: cs.outline,
+                  ),
+                ],
+              ),
+            ),
           ),
-          Text('$done/${todos.length}',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.outline)),
+          // ── Todos ────────────────────────────────────────────────
+          if (_expanded) ...[
+            const Divider(height: 1, indent: 14, endIndent: 14),
+            ...group.todos.map((todo) => _TodoTile(
+                  todo: todo,
+                  onToggle: () => widget.onToggle(todo),
+                  onDelete: () => widget.onDelete(todo.id),
+                )),
+            const SizedBox(height: 4),
+          ],
         ],
       ),
     );
   }
 }
 
-class _TodoItem extends StatelessWidget {
+class _TodoTile extends StatelessWidget {
   final Todo todo;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
-
-  const _TodoItem(
+  const _TodoTile(
       {required this.todo, required this.onToggle, required this.onDelete});
 
   @override

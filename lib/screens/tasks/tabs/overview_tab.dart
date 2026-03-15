@@ -5,6 +5,7 @@ import '../../../providers/database_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/timer_provider.dart';
 import '../../../services/pdf_service.dart';
+import '../../../widgets/timer_session_dialogs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class OverviewTab extends ConsumerStatefulWidget {
@@ -96,13 +97,25 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
             isThisTask: isThisTask,
             isRunning: isRunning,
             isPaused: isPaused,
-            onStart: () => timerNotifier.start(task.id),
+            onStart: () async {
+              final go = await showTimerStartDialog(context, ref, task.id);
+              if (go && context.mounted) await timerNotifier.start(task.id);
+            },
             onPause: () => timerNotifier.pause(),
             onResume: () => timerNotifier.resume(),
             onStop: () async {
-              await timerNotifier.stop();
-              // Task-Daten neu laden
-              if (mounted) setState(() {});
+              final elapsed = timer.totalSeconds - timer.secondsLeft;
+              final mins = (elapsed / 60).ceil();
+              final result = await showTimerStopDialog(
+                  context, ref, task.id, mins);
+              if (result != null) {
+                final db = ref.read(databaseProvider);
+                await applyTimerStopResult(db, task.id, result);
+                await timerNotifier.stop();
+                ref.invalidate(todosProvider(task.id));
+                ref.invalidate(notesProvider(task.id));
+                ref.invalidate(tasksProvider);
+              }
             },
             onMarkDone: onMarkDone,
           ),
