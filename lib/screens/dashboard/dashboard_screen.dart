@@ -37,6 +37,15 @@ class DashboardScreen extends ConsumerWidget {
           final active = tasks.where((t) => t.task.status == 'ACTIVE').toList();
           final completed = tasks.where((t) => t.task.status == 'COMPLETED').length;
           final planned = tasks.where((t) => t.task.status == 'PLANNED').length;
+          final today = DateTime.now();
+          final todayTasks = tasks.where((t) {
+            final d = t.task.plannedDate;
+            if (d == null) return false;
+            return d.year == today.year &&
+                d.month == today.month &&
+                d.day == today.day;
+          }).toList()
+            ..sort((a, b) => a.task.plannedDate!.compareTo(b.task.plannedDate!));
           final totalMinutes = tasks.fold<int>(0, (s, t) => s + t.task.totalMinutes);
           final aeMin = settings?.aeMinutes ?? 10;
           // Summe der aufgerundeten AE pro Task
@@ -104,12 +113,28 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
+                // ── Heute geplant ───────────────────────────────────────
+                if (todayTasks.isNotEmpty) ...[
+                  _SectionHeader(
+                    title: 'Heute geplant',
+                    icon: Icons.today,
+                    count: todayTasks.length,
+                  ),
+                  const SizedBox(height: 8),
+                  ...todayTasks.map((t) => _PlannedTaskRow(
+                        task: t,
+                        aeMin: aeMin,
+                        onTap: () => context.push('/tasks/${t.task.id}'),
+                      )),
+                  const SizedBox(height: 16),
+                ],
+
                 // Aktive Tasks
                 if (active.isNotEmpty) ...[
                   Row(
                     children: [
-                      Text('Aktive Tasks',
-                          style: Theme.of(context).textTheme.titleMedium),
+                      _SectionHeader(
+                          title: 'Aktiv', icon: Icons.play_circle_outline, count: active.length),
                       const Spacer(),
                       TextButton(
                           onPressed: () => context.go('/tasks'),
@@ -131,8 +156,8 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Text('Geplant',
-                          style: Theme.of(context).textTheme.titleMedium),
+                      _SectionHeader(
+                          title: 'Geplant', icon: Icons.checklist_outlined, count: planned),
                       const Spacer(),
                       TextButton(
                           onPressed: () => context.go('/tasks'),
@@ -250,6 +275,89 @@ class _TimerBanner extends StatelessWidget {
 }
 
 // ─── Widgets ──────────────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final int count;
+  const _SectionHeader(
+      {required this.title, required this.icon, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 6),
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text('$count',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary)),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlannedTaskRow extends StatelessWidget {
+  final TaskWithDetails task;
+  final int aeMin;
+  final VoidCallback onTap;
+  const _PlannedTaskRow(
+      {required this.task, required this.aeMin, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final d = task.task.plannedDate!;
+    final timeStr = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    return Card(
+      margin: const EdgeInsets.only(bottom: 6),
+      child: ListTile(
+        onTap: onTap,
+        leading: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(timeStr,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold)),
+        ),
+        title: Text(task.task.title,
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: task.customer != null ? Text(task.customer!.name) : null,
+        trailing: _StatusDot(status: task.task.status),
+      ),
+    );
+  }
+}
+
+class _StatusDot extends StatelessWidget {
+  final String status;
+  const _StatusDot({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status) {
+      'ACTIVE' => Colors.blue,
+      'COMPLETED' => Colors.green,
+      _ => Theme.of(context).colorScheme.outline,
+    };
+    return Container(
+      width: 10, height: 10,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+}
 
 class _StatCard extends StatelessWidget {
   final String label;

@@ -10,6 +10,7 @@ import 'tabs/overview_tab.dart';
 import 'tabs/checklist_tab.dart';
 import 'tabs/hardware_tab.dart';
 import 'tabs/notes_tab.dart';
+import 'tabs/photos_tab.dart';
 
 class TaskDetailScreen extends ConsumerWidget {
   final String taskId;
@@ -32,7 +33,7 @@ class TaskDetailScreen extends ConsumerWidget {
         final isActiveTask = timer.activeTaskId == taskId;
 
         return DefaultTabController(
-          length: 4,
+          length: 5,
           child: Scaffold(
             appBar: AppBar(
               title: Text(
@@ -55,6 +56,7 @@ class TaskDetailScreen extends ConsumerWidget {
                   Tab(icon: Icon(Icons.checklist), text: 'Checkliste'),
                   Tab(icon: Icon(Icons.computer_outlined), text: 'Hardware'),
                   Tab(icon: Icon(Icons.notes), text: 'Notizen'),
+                  Tab(icon: Icon(Icons.photo_library_outlined), text: 'Fotos'),
                 ],
               ),
             ),
@@ -72,6 +74,7 @@ class TaskDetailScreen extends ConsumerWidget {
                 ChecklistTab(taskId: taskId),
                 HardwareTab(taskId: taskId),
                 NotesTab(taskId: taskId),
+                PhotosTab(taskId: taskId),
               ],
             ),
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../providers/tasks_provider.dart';
+import '../../../providers/hardware_bundle_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../db/database.dart';
 
@@ -61,9 +62,23 @@ class HardwareTab extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddDialog(context, ref),
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Bundle anwenden
+          FloatingActionButton.small(
+            heroTag: 'bundle',
+            onPressed: () => _applyBundle(context, ref),
+            tooltip: 'Bundle anwenden',
+            child: const Icon(Icons.inventory_2_outlined),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'add',
+            onPressed: () => _showAddDialog(context, ref),
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
@@ -74,6 +89,54 @@ class HardwareTab extends ConsumerWidget {
       isScrollControlled: true,
       builder: (_) => _HardwareForm(taskId: taskId, ref: ref),
     );
+    ref.invalidate(hardwareProvider(taskId));
+  }
+
+  Future<void> _applyBundle(BuildContext context, WidgetRef ref) async {
+    final bundles = ref.read(hardwareBundlesProvider).valueOrNull ?? [];
+    if (bundles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keine Bundles vorhanden. Erst in Einstellungen anlegen.')),
+      );
+      return;
+    }
+    final selected = await showModalBottomSheet<BundleWithItems>(
+      context: context,
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Bundle anwenden',
+                style: Theme.of(context).textTheme.titleLarge),
+          ),
+          const Divider(height: 1),
+          ...bundles.map((b) => ListTile(
+                leading: const Icon(Icons.inventory_2_outlined),
+                title: Text(b.bundle.name),
+                subtitle: Text('${b.items.length} Geräte'),
+                onTap: () => Navigator.pop(context, b),
+              )),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    final db = ref.read(databaseProvider);
+    final existing = await (db.select(db.hardware)
+          ..where((h) => h.taskId.equals(taskId)))
+        .get();
+    int sortBase = existing.length;
+    for (final item in selected.items) {
+      await db.into(db.hardware).insert(HardwareCompanion.insert(
+            taskId: taskId,
+            type: item.type,
+            name: drift.Value(item.name),
+            serial: drift.Value(item.serial),
+            notes: drift.Value(item.notes),
+            sortOrder: drift.Value(sortBase++),
+          ));
+    }
     ref.invalidate(hardwareProvider(taskId));
   }
 }

@@ -26,6 +26,7 @@ class Tasks extends Table {
   TextColumn get status => text().withDefault(const Constant('PLANNED'))();
   // Status: PLANNED | ACTIVE | PAUSED | COMPLETED
   IntColumn get totalMinutes => integer().withDefault(const Constant(0))();
+  DateTimeColumn get plannedDate => dateTime().nullable()(); // NEU v2
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -111,6 +112,40 @@ class WorkflowCustomers extends Table {
   Set<Column> get primaryKey => {workflowId, customerId};
 }
 
+class Photos extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get taskId => text().references(Tasks, #id, onDelete: KeyAction.cascade)();
+  TextColumn get filePath => text()();
+  TextColumn get caption => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class HardwareBundles extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get name => text()();
+  TextColumn get description => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class HardwareBundleItems extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get bundleId => text().references(HardwareBundles, #id, onDelete: KeyAction.cascade)();
+  TextColumn get type => text()();
+  TextColumn get name => text().nullable()();
+  TextColumn get serial => text().nullable()();
+  TextColumn get notes => text().nullable()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class AppSettings extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
@@ -128,16 +163,33 @@ class AppSettings extends Table {
   Todos,
   Hardware,
   Notes,
+  Photos,
   Workflows,
   WorkflowItems,
   WorkflowCustomers,
+  HardwareBundles,
+  HardwareBundleItems,
   AppSettings,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        // v1 → v2: plannedDate, Photos, HardwareBundles, HardwareBundleItems
+        await m.addColumn(tasks, tasks.plannedDate);
+        await m.createTable(photos);
+        await m.createTable(hardwareBundles);
+        await m.createTable(hardwareBundleItems);
+      }
+    },
+  );
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'pomtechflow.db');

@@ -523,6 +523,17 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _plannedDateMeta = const VerificationMeta(
+    'plannedDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> plannedDate = GeneratedColumn<DateTime>(
+    'planned_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -555,6 +566,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     customerId,
     status,
     totalMinutes,
+    plannedDate,
     createdAt,
     updatedAt,
   ];
@@ -611,6 +623,15 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         ),
       );
     }
+    if (data.containsKey('planned_date')) {
+      context.handle(
+        _plannedDateMeta,
+        plannedDate.isAcceptableOrUnknown(
+          data['planned_date']!,
+          _plannedDateMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -656,6 +677,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.int,
         data['${effectivePrefix}total_minutes'],
       )!,
+      plannedDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}planned_date'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -680,6 +705,7 @@ class Task extends DataClass implements Insertable<Task> {
   final String? customerId;
   final String status;
   final int totalMinutes;
+  final DateTime? plannedDate;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Task({
@@ -689,6 +715,7 @@ class Task extends DataClass implements Insertable<Task> {
     this.customerId,
     required this.status,
     required this.totalMinutes,
+    this.plannedDate,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -705,6 +732,9 @@ class Task extends DataClass implements Insertable<Task> {
     }
     map['status'] = Variable<String>(status);
     map['total_minutes'] = Variable<int>(totalMinutes);
+    if (!nullToAbsent || plannedDate != null) {
+      map['planned_date'] = Variable<DateTime>(plannedDate);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -722,6 +752,9 @@ class Task extends DataClass implements Insertable<Task> {
           : Value(customerId),
       status: Value(status),
       totalMinutes: Value(totalMinutes),
+      plannedDate: plannedDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plannedDate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -739,6 +772,7 @@ class Task extends DataClass implements Insertable<Task> {
       customerId: serializer.fromJson<String?>(json['customerId']),
       status: serializer.fromJson<String>(json['status']),
       totalMinutes: serializer.fromJson<int>(json['totalMinutes']),
+      plannedDate: serializer.fromJson<DateTime?>(json['plannedDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -753,6 +787,7 @@ class Task extends DataClass implements Insertable<Task> {
       'customerId': serializer.toJson<String?>(customerId),
       'status': serializer.toJson<String>(status),
       'totalMinutes': serializer.toJson<int>(totalMinutes),
+      'plannedDate': serializer.toJson<DateTime?>(plannedDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -765,6 +800,7 @@ class Task extends DataClass implements Insertable<Task> {
     Value<String?> customerId = const Value.absent(),
     String? status,
     int? totalMinutes,
+    Value<DateTime?> plannedDate = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Task(
@@ -774,6 +810,7 @@ class Task extends DataClass implements Insertable<Task> {
     customerId: customerId.present ? customerId.value : this.customerId,
     status: status ?? this.status,
     totalMinutes: totalMinutes ?? this.totalMinutes,
+    plannedDate: plannedDate.present ? plannedDate.value : this.plannedDate,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -791,6 +828,9 @@ class Task extends DataClass implements Insertable<Task> {
       totalMinutes: data.totalMinutes.present
           ? data.totalMinutes.value
           : this.totalMinutes,
+      plannedDate: data.plannedDate.present
+          ? data.plannedDate.value
+          : this.plannedDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -805,6 +845,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('customerId: $customerId, ')
           ..write('status: $status, ')
           ..write('totalMinutes: $totalMinutes, ')
+          ..write('plannedDate: $plannedDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -819,6 +860,7 @@ class Task extends DataClass implements Insertable<Task> {
     customerId,
     status,
     totalMinutes,
+    plannedDate,
     createdAt,
     updatedAt,
   );
@@ -832,6 +874,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.customerId == this.customerId &&
           other.status == this.status &&
           other.totalMinutes == this.totalMinutes &&
+          other.plannedDate == this.plannedDate &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -843,6 +886,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String?> customerId;
   final Value<String> status;
   final Value<int> totalMinutes;
+  final Value<DateTime?> plannedDate;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -853,6 +897,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.customerId = const Value.absent(),
     this.status = const Value.absent(),
     this.totalMinutes = const Value.absent(),
+    this.plannedDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -864,6 +909,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.customerId = const Value.absent(),
     this.status = const Value.absent(),
     this.totalMinutes = const Value.absent(),
+    this.plannedDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -875,6 +921,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? customerId,
     Expression<String>? status,
     Expression<int>? totalMinutes,
+    Expression<DateTime>? plannedDate,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -886,6 +933,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (customerId != null) 'customer_id': customerId,
       if (status != null) 'status': status,
       if (totalMinutes != null) 'total_minutes': totalMinutes,
+      if (plannedDate != null) 'planned_date': plannedDate,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -899,6 +947,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String?>? customerId,
     Value<String>? status,
     Value<int>? totalMinutes,
+    Value<DateTime?>? plannedDate,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -910,6 +959,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       customerId: customerId ?? this.customerId,
       status: status ?? this.status,
       totalMinutes: totalMinutes ?? this.totalMinutes,
+      plannedDate: plannedDate ?? this.plannedDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -937,6 +987,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (totalMinutes.present) {
       map['total_minutes'] = Variable<int>(totalMinutes.value);
     }
+    if (plannedDate.present) {
+      map['planned_date'] = Variable<DateTime>(plannedDate.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -958,6 +1011,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('customerId: $customerId, ')
           ..write('status: $status, ')
           ..write('totalMinutes: $totalMinutes, ')
+          ..write('plannedDate: $plannedDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -2592,6 +2646,365 @@ class NotesCompanion extends UpdateCompanion<Note> {
   }
 }
 
+class $PhotosTable extends Photos with TableInfo<$PhotosTable, Photo> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PhotosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => _uuid(),
+  );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tasks (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _captionMeta = const VerificationMeta(
+    'caption',
+  );
+  @override
+  late final GeneratedColumn<String> caption = GeneratedColumn<String>(
+    'caption',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    taskId,
+    filePath,
+    caption,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'photos';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Photo> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taskIdMeta);
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('caption')) {
+      context.handle(
+        _captionMeta,
+        caption.isAcceptableOrUnknown(data['caption']!, _captionMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Photo map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Photo(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      )!,
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      )!,
+      caption: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}caption'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PhotosTable createAlias(String alias) {
+    return $PhotosTable(attachedDatabase, alias);
+  }
+}
+
+class Photo extends DataClass implements Insertable<Photo> {
+  final String id;
+  final String taskId;
+  final String filePath;
+  final String? caption;
+  final DateTime createdAt;
+  const Photo({
+    required this.id,
+    required this.taskId,
+    required this.filePath,
+    this.caption,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['task_id'] = Variable<String>(taskId);
+    map['file_path'] = Variable<String>(filePath);
+    if (!nullToAbsent || caption != null) {
+      map['caption'] = Variable<String>(caption);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  PhotosCompanion toCompanion(bool nullToAbsent) {
+    return PhotosCompanion(
+      id: Value(id),
+      taskId: Value(taskId),
+      filePath: Value(filePath),
+      caption: caption == null && nullToAbsent
+          ? const Value.absent()
+          : Value(caption),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Photo.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Photo(
+      id: serializer.fromJson<String>(json['id']),
+      taskId: serializer.fromJson<String>(json['taskId']),
+      filePath: serializer.fromJson<String>(json['filePath']),
+      caption: serializer.fromJson<String?>(json['caption']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'taskId': serializer.toJson<String>(taskId),
+      'filePath': serializer.toJson<String>(filePath),
+      'caption': serializer.toJson<String?>(caption),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Photo copyWith({
+    String? id,
+    String? taskId,
+    String? filePath,
+    Value<String?> caption = const Value.absent(),
+    DateTime? createdAt,
+  }) => Photo(
+    id: id ?? this.id,
+    taskId: taskId ?? this.taskId,
+    filePath: filePath ?? this.filePath,
+    caption: caption.present ? caption.value : this.caption,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Photo copyWithCompanion(PhotosCompanion data) {
+    return Photo(
+      id: data.id.present ? data.id.value : this.id,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      caption: data.caption.present ? data.caption.value : this.caption,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Photo(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('filePath: $filePath, ')
+          ..write('caption: $caption, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, taskId, filePath, caption, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Photo &&
+          other.id == this.id &&
+          other.taskId == this.taskId &&
+          other.filePath == this.filePath &&
+          other.caption == this.caption &&
+          other.createdAt == this.createdAt);
+}
+
+class PhotosCompanion extends UpdateCompanion<Photo> {
+  final Value<String> id;
+  final Value<String> taskId;
+  final Value<String> filePath;
+  final Value<String?> caption;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const PhotosCompanion({
+    this.id = const Value.absent(),
+    this.taskId = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.caption = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PhotosCompanion.insert({
+    this.id = const Value.absent(),
+    required String taskId,
+    required String filePath,
+    this.caption = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : taskId = Value(taskId),
+       filePath = Value(filePath);
+  static Insertable<Photo> custom({
+    Expression<String>? id,
+    Expression<String>? taskId,
+    Expression<String>? filePath,
+    Expression<String>? caption,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (taskId != null) 'task_id': taskId,
+      if (filePath != null) 'file_path': filePath,
+      if (caption != null) 'caption': caption,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PhotosCompanion copyWith({
+    Value<String>? id,
+    Value<String>? taskId,
+    Value<String>? filePath,
+    Value<String?>? caption,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return PhotosCompanion(
+      id: id ?? this.id,
+      taskId: taskId ?? this.taskId,
+      filePath: filePath ?? this.filePath,
+      caption: caption ?? this.caption,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (caption.present) {
+      map['caption'] = Variable<String>(caption.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhotosCompanion(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('filePath: $filePath, ')
+          ..write('caption: $caption, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $WorkflowsTable extends Workflows
     with TableInfo<$WorkflowsTable, Workflow> {
   @override
@@ -3442,6 +3855,766 @@ class WorkflowCustomersCompanion extends UpdateCompanion<WorkflowCustomer> {
   }
 }
 
+class $HardwareBundlesTable extends HardwareBundles
+    with TableInfo<$HardwareBundlesTable, HardwareBundle> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HardwareBundlesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => _uuid(),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, description, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hardware_bundles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HardwareBundle> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HardwareBundle map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HardwareBundle(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $HardwareBundlesTable createAlias(String alias) {
+    return $HardwareBundlesTable(attachedDatabase, alias);
+  }
+}
+
+class HardwareBundle extends DataClass implements Insertable<HardwareBundle> {
+  final String id;
+  final String name;
+  final String? description;
+  final DateTime createdAt;
+  const HardwareBundle({
+    required this.id,
+    required this.name,
+    this.description,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  HardwareBundlesCompanion toCompanion(bool nullToAbsent) {
+    return HardwareBundlesCompanion(
+      id: Value(id),
+      name: Value(name),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory HardwareBundle.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HardwareBundle(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      description: serializer.fromJson<String?>(json['description']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'description': serializer.toJson<String?>(description),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  HardwareBundle copyWith({
+    String? id,
+    String? name,
+    Value<String?> description = const Value.absent(),
+    DateTime? createdAt,
+  }) => HardwareBundle(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description.present ? description.value : this.description,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  HardwareBundle copyWithCompanion(HardwareBundlesCompanion data) {
+    return HardwareBundle(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HardwareBundle(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, description, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HardwareBundle &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.description == this.description &&
+          other.createdAt == this.createdAt);
+}
+
+class HardwareBundlesCompanion extends UpdateCompanion<HardwareBundle> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> description;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const HardwareBundlesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.description = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HardwareBundlesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.description = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<HardwareBundle> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? description,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HardwareBundlesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String?>? description,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return HardwareBundlesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HardwareBundlesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HardwareBundleItemsTable extends HardwareBundleItems
+    with TableInfo<$HardwareBundleItemsTable, HardwareBundleItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HardwareBundleItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => _uuid(),
+  );
+  static const VerificationMeta _bundleIdMeta = const VerificationMeta(
+    'bundleId',
+  );
+  @override
+  late final GeneratedColumn<String> bundleId = GeneratedColumn<String>(
+    'bundle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES hardware_bundles (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _serialMeta = const VerificationMeta('serial');
+  @override
+  late final GeneratedColumn<String> serial = GeneratedColumn<String>(
+    'serial',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    bundleId,
+    type,
+    name,
+    serial,
+    notes,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hardware_bundle_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HardwareBundleItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('bundle_id')) {
+      context.handle(
+        _bundleIdMeta,
+        bundleId.isAcceptableOrUnknown(data['bundle_id']!, _bundleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bundleIdMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('serial')) {
+      context.handle(
+        _serialMeta,
+        serial.isAcceptableOrUnknown(data['serial']!, _serialMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HardwareBundleItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HardwareBundleItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      bundleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}bundle_id'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      ),
+      serial: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}serial'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $HardwareBundleItemsTable createAlias(String alias) {
+    return $HardwareBundleItemsTable(attachedDatabase, alias);
+  }
+}
+
+class HardwareBundleItem extends DataClass
+    implements Insertable<HardwareBundleItem> {
+  final String id;
+  final String bundleId;
+  final String type;
+  final String? name;
+  final String? serial;
+  final String? notes;
+  final int sortOrder;
+  const HardwareBundleItem({
+    required this.id,
+    required this.bundleId,
+    required this.type,
+    this.name,
+    this.serial,
+    this.notes,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['bundle_id'] = Variable<String>(bundleId);
+    map['type'] = Variable<String>(type);
+    if (!nullToAbsent || name != null) {
+      map['name'] = Variable<String>(name);
+    }
+    if (!nullToAbsent || serial != null) {
+      map['serial'] = Variable<String>(serial);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  HardwareBundleItemsCompanion toCompanion(bool nullToAbsent) {
+    return HardwareBundleItemsCompanion(
+      id: Value(id),
+      bundleId: Value(bundleId),
+      type: Value(type),
+      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
+      serial: serial == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serial),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory HardwareBundleItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HardwareBundleItem(
+      id: serializer.fromJson<String>(json['id']),
+      bundleId: serializer.fromJson<String>(json['bundleId']),
+      type: serializer.fromJson<String>(json['type']),
+      name: serializer.fromJson<String?>(json['name']),
+      serial: serializer.fromJson<String?>(json['serial']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'bundleId': serializer.toJson<String>(bundleId),
+      'type': serializer.toJson<String>(type),
+      'name': serializer.toJson<String?>(name),
+      'serial': serializer.toJson<String?>(serial),
+      'notes': serializer.toJson<String?>(notes),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  HardwareBundleItem copyWith({
+    String? id,
+    String? bundleId,
+    String? type,
+    Value<String?> name = const Value.absent(),
+    Value<String?> serial = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
+    int? sortOrder,
+  }) => HardwareBundleItem(
+    id: id ?? this.id,
+    bundleId: bundleId ?? this.bundleId,
+    type: type ?? this.type,
+    name: name.present ? name.value : this.name,
+    serial: serial.present ? serial.value : this.serial,
+    notes: notes.present ? notes.value : this.notes,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  HardwareBundleItem copyWithCompanion(HardwareBundleItemsCompanion data) {
+    return HardwareBundleItem(
+      id: data.id.present ? data.id.value : this.id,
+      bundleId: data.bundleId.present ? data.bundleId.value : this.bundleId,
+      type: data.type.present ? data.type.value : this.type,
+      name: data.name.present ? data.name.value : this.name,
+      serial: data.serial.present ? data.serial.value : this.serial,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HardwareBundleItem(')
+          ..write('id: $id, ')
+          ..write('bundleId: $bundleId, ')
+          ..write('type: $type, ')
+          ..write('name: $name, ')
+          ..write('serial: $serial, ')
+          ..write('notes: $notes, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, bundleId, type, name, serial, notes, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HardwareBundleItem &&
+          other.id == this.id &&
+          other.bundleId == this.bundleId &&
+          other.type == this.type &&
+          other.name == this.name &&
+          other.serial == this.serial &&
+          other.notes == this.notes &&
+          other.sortOrder == this.sortOrder);
+}
+
+class HardwareBundleItemsCompanion extends UpdateCompanion<HardwareBundleItem> {
+  final Value<String> id;
+  final Value<String> bundleId;
+  final Value<String> type;
+  final Value<String?> name;
+  final Value<String?> serial;
+  final Value<String?> notes;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const HardwareBundleItemsCompanion({
+    this.id = const Value.absent(),
+    this.bundleId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.name = const Value.absent(),
+    this.serial = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HardwareBundleItemsCompanion.insert({
+    this.id = const Value.absent(),
+    required String bundleId,
+    required String type,
+    this.name = const Value.absent(),
+    this.serial = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : bundleId = Value(bundleId),
+       type = Value(type);
+  static Insertable<HardwareBundleItem> custom({
+    Expression<String>? id,
+    Expression<String>? bundleId,
+    Expression<String>? type,
+    Expression<String>? name,
+    Expression<String>? serial,
+    Expression<String>? notes,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (bundleId != null) 'bundle_id': bundleId,
+      if (type != null) 'type': type,
+      if (name != null) 'name': name,
+      if (serial != null) 'serial': serial,
+      if (notes != null) 'notes': notes,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HardwareBundleItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? bundleId,
+    Value<String>? type,
+    Value<String?>? name,
+    Value<String?>? serial,
+    Value<String?>? notes,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return HardwareBundleItemsCompanion(
+      id: id ?? this.id,
+      bundleId: bundleId ?? this.bundleId,
+      type: type ?? this.type,
+      name: name ?? this.name,
+      serial: serial ?? this.serial,
+      notes: notes ?? this.notes,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (bundleId.present) {
+      map['bundle_id'] = Variable<String>(bundleId.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (serial.present) {
+      map['serial'] = Variable<String>(serial.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HardwareBundleItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('bundleId: $bundleId, ')
+          ..write('type: $type, ')
+          ..write('name: $name, ')
+          ..write('serial: $serial, ')
+          ..write('notes: $notes, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $AppSettingsTable extends AppSettings
     with TableInfo<$AppSettingsTable, AppSetting> {
   @override
@@ -3659,10 +4832,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TodosTable todos = $TodosTable(this);
   late final $HardwareTable hardware = $HardwareTable(this);
   late final $NotesTable notes = $NotesTable(this);
+  late final $PhotosTable photos = $PhotosTable(this);
   late final $WorkflowsTable workflows = $WorkflowsTable(this);
   late final $WorkflowItemsTable workflowItems = $WorkflowItemsTable(this);
   late final $WorkflowCustomersTable workflowCustomers =
       $WorkflowCustomersTable(this);
+  late final $HardwareBundlesTable hardwareBundles = $HardwareBundlesTable(
+    this,
+  );
+  late final $HardwareBundleItemsTable hardwareBundleItems =
+      $HardwareBundleItemsTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -3675,9 +4854,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     todos,
     hardware,
     notes,
+    photos,
     workflows,
     workflowItems,
     workflowCustomers,
+    hardwareBundles,
+    hardwareBundleItems,
     appSettings,
   ];
   @override
@@ -3712,6 +4894,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
+        'tasks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('photos', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
         'workflows',
         limitUpdateKind: UpdateKind.delete,
       ),
@@ -3730,6 +4919,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('workflow_customers', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'hardware_bundles',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('hardware_bundle_items', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -4184,6 +5380,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<String?> customerId,
       Value<String> status,
       Value<int> totalMinutes,
+      Value<DateTime?> plannedDate,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -4196,6 +5393,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String?> customerId,
       Value<String> status,
       Value<int> totalMinutes,
+      Value<DateTime?> plannedDate,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -4296,6 +5494,25 @@ final class $$TasksTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$PhotosTable, List<Photo>> _photosRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.photos,
+    aliasName: $_aliasNameGenerator(db.tasks.id, db.photos.taskId),
+  );
+
+  $$PhotosTableProcessedTableManager get photosRefs {
+    final manager = $$PhotosTableTableManager(
+      $_db,
+      $_db.photos,
+    ).filter((f) => f.taskId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_photosRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
@@ -4328,6 +5545,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<int> get totalMinutes => $composableBuilder(
     column: $table.totalMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get plannedDate => $composableBuilder(
+    column: $table.plannedDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4463,6 +5685,31 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
     );
     return f(composer);
   }
+
+  Expression<bool> photosRefs(
+    Expression<bool> Function($$PhotosTableFilterComposer f) f,
+  ) {
+    final $$PhotosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.photos,
+      getReferencedColumn: (t) => t.taskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhotosTableFilterComposer(
+            $db: $db,
+            $table: $db.photos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TasksTableOrderingComposer
@@ -4496,6 +5743,11 @@ class $$TasksTableOrderingComposer
 
   ColumnOrderings<int> get totalMinutes => $composableBuilder(
     column: $table.totalMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get plannedDate => $composableBuilder(
+    column: $table.plannedDate,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4558,6 +5810,11 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<int> get totalMinutes => $composableBuilder(
     column: $table.totalMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get plannedDate => $composableBuilder(
+    column: $table.plannedDate,
     builder: (column) => column,
   );
 
@@ -4689,6 +5946,31 @@ class $$TasksTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> photosRefs<T extends Object>(
+    Expression<T> Function($$PhotosTableAnnotationComposer a) f,
+  ) {
+    final $$PhotosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.photos,
+      getReferencedColumn: (t) => t.taskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhotosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.photos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TasksTableTableManager
@@ -4710,6 +5992,7 @@ class $$TasksTableTableManager
             bool todosRefs,
             bool hardwareRefs,
             bool notesRefs,
+            bool photosRefs,
           })
         > {
   $$TasksTableTableManager(_$AppDatabase db, $TasksTable table)
@@ -4731,6 +6014,7 @@ class $$TasksTableTableManager
                 Value<String?> customerId = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<int> totalMinutes = const Value.absent(),
+                Value<DateTime?> plannedDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -4741,6 +6025,7 @@ class $$TasksTableTableManager
                 customerId: customerId,
                 status: status,
                 totalMinutes: totalMinutes,
+                plannedDate: plannedDate,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -4753,6 +6038,7 @@ class $$TasksTableTableManager
                 Value<String?> customerId = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<int> totalMinutes = const Value.absent(),
+                Value<DateTime?> plannedDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -4763,6 +6049,7 @@ class $$TasksTableTableManager
                 customerId: customerId,
                 status: status,
                 totalMinutes: totalMinutes,
+                plannedDate: plannedDate,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -4780,6 +6067,7 @@ class $$TasksTableTableManager
                 todosRefs = false,
                 hardwareRefs = false,
                 notesRefs = false,
+                photosRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -4788,6 +6076,7 @@ class $$TasksTableTableManager
                     if (todosRefs) db.todos,
                     if (hardwareRefs) db.hardware,
                     if (notesRefs) db.notes,
+                    if (photosRefs) db.photos,
                   ],
                   addJoins:
                       <
@@ -4887,6 +6176,19 @@ class $$TasksTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (photosRefs)
+                        await $_getPrefetchedData<Task, $TasksTable, Photo>(
+                          currentTable: table,
+                          referencedTable: $$TasksTableReferences
+                              ._photosRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TasksTableReferences(db, table, p0).photosRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.taskId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -4913,6 +6215,7 @@ typedef $$TasksTableProcessedTableManager =
         bool todosRefs,
         bool hardwareRefs,
         bool notesRefs,
+        bool photosRefs,
       })
     >;
 typedef $$SessionsTableCreateCompanionBuilder =
@@ -6259,6 +7562,321 @@ typedef $$NotesTableProcessedTableManager =
       Note,
       PrefetchHooks Function({bool taskId})
     >;
+typedef $$PhotosTableCreateCompanionBuilder =
+    PhotosCompanion Function({
+      Value<String> id,
+      required String taskId,
+      required String filePath,
+      Value<String?> caption,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$PhotosTableUpdateCompanionBuilder =
+    PhotosCompanion Function({
+      Value<String> id,
+      Value<String> taskId,
+      Value<String> filePath,
+      Value<String?> caption,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$PhotosTableReferences
+    extends BaseReferences<_$AppDatabase, $PhotosTable, Photo> {
+  $$PhotosTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TasksTable _taskIdTable(_$AppDatabase db) =>
+      db.tasks.createAlias($_aliasNameGenerator(db.photos.taskId, db.tasks.id));
+
+  $$TasksTableProcessedTableManager get taskId {
+    final $_column = $_itemColumn<String>('task_id')!;
+
+    final manager = $$TasksTableTableManager(
+      $_db,
+      $_db.tasks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_taskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PhotosTableFilterComposer
+    extends Composer<_$AppDatabase, $PhotosTable> {
+  $$PhotosTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get caption => $composableBuilder(
+    column: $table.caption,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TasksTableFilterComposer get taskId {
+    final $$TasksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableFilterComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PhotosTableOrderingComposer
+    extends Composer<_$AppDatabase, $PhotosTable> {
+  $$PhotosTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get caption => $composableBuilder(
+    column: $table.caption,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TasksTableOrderingComposer get taskId {
+    final $$TasksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableOrderingComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PhotosTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PhotosTable> {
+  $$PhotosTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<String> get caption =>
+      $composableBuilder(column: $table.caption, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$TasksTableAnnotationComposer get taskId {
+    final $$TasksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PhotosTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PhotosTable,
+          Photo,
+          $$PhotosTableFilterComposer,
+          $$PhotosTableOrderingComposer,
+          $$PhotosTableAnnotationComposer,
+          $$PhotosTableCreateCompanionBuilder,
+          $$PhotosTableUpdateCompanionBuilder,
+          (Photo, $$PhotosTableReferences),
+          Photo,
+          PrefetchHooks Function({bool taskId})
+        > {
+  $$PhotosTableTableManager(_$AppDatabase db, $PhotosTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PhotosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PhotosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PhotosTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> taskId = const Value.absent(),
+                Value<String> filePath = const Value.absent(),
+                Value<String?> caption = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PhotosCompanion(
+                id: id,
+                taskId: taskId,
+                filePath: filePath,
+                caption: caption,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String taskId,
+                required String filePath,
+                Value<String?> caption = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PhotosCompanion.insert(
+                id: id,
+                taskId: taskId,
+                filePath: filePath,
+                caption: caption,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) =>
+                    (e.readTable(table), $$PhotosTableReferences(db, table, e)),
+              )
+              .toList(),
+          prefetchHooksCallback: ({taskId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (taskId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.taskId,
+                                referencedTable: $$PhotosTableReferences
+                                    ._taskIdTable(db),
+                                referencedColumn: $$PhotosTableReferences
+                                    ._taskIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PhotosTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PhotosTable,
+      Photo,
+      $$PhotosTableFilterComposer,
+      $$PhotosTableOrderingComposer,
+      $$PhotosTableAnnotationComposer,
+      $$PhotosTableCreateCompanionBuilder,
+      $$PhotosTableUpdateCompanionBuilder,
+      (Photo, $$PhotosTableReferences),
+      Photo,
+      PrefetchHooks Function({bool taskId})
+    >;
 typedef $$WorkflowsTableCreateCompanionBuilder =
     WorkflowsCompanion Function({
       Value<String> id,
@@ -7326,6 +8944,688 @@ typedef $$WorkflowCustomersTableProcessedTableManager =
       WorkflowCustomer,
       PrefetchHooks Function({bool workflowId, bool customerId})
     >;
+typedef $$HardwareBundlesTableCreateCompanionBuilder =
+    HardwareBundlesCompanion Function({
+      Value<String> id,
+      required String name,
+      Value<String?> description,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$HardwareBundlesTableUpdateCompanionBuilder =
+    HardwareBundlesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String?> description,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$HardwareBundlesTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $HardwareBundlesTable, HardwareBundle> {
+  $$HardwareBundlesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $HardwareBundleItemsTable,
+    List<HardwareBundleItem>
+  >
+  _hardwareBundleItemsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.hardwareBundleItems,
+        aliasName: $_aliasNameGenerator(
+          db.hardwareBundles.id,
+          db.hardwareBundleItems.bundleId,
+        ),
+      );
+
+  $$HardwareBundleItemsTableProcessedTableManager get hardwareBundleItemsRefs {
+    final manager = $$HardwareBundleItemsTableTableManager(
+      $_db,
+      $_db.hardwareBundleItems,
+    ).filter((f) => f.bundleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _hardwareBundleItemsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$HardwareBundlesTableFilterComposer
+    extends Composer<_$AppDatabase, $HardwareBundlesTable> {
+  $$HardwareBundlesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> hardwareBundleItemsRefs(
+    Expression<bool> Function($$HardwareBundleItemsTableFilterComposer f) f,
+  ) {
+    final $$HardwareBundleItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.hardwareBundleItems,
+      getReferencedColumn: (t) => t.bundleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HardwareBundleItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.hardwareBundleItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$HardwareBundlesTableOrderingComposer
+    extends Composer<_$AppDatabase, $HardwareBundlesTable> {
+  $$HardwareBundlesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HardwareBundlesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HardwareBundlesTable> {
+  $$HardwareBundlesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> hardwareBundleItemsRefs<T extends Object>(
+    Expression<T> Function($$HardwareBundleItemsTableAnnotationComposer a) f,
+  ) {
+    final $$HardwareBundleItemsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.hardwareBundleItems,
+          getReferencedColumn: (t) => t.bundleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$HardwareBundleItemsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.hardwareBundleItems,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$HardwareBundlesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HardwareBundlesTable,
+          HardwareBundle,
+          $$HardwareBundlesTableFilterComposer,
+          $$HardwareBundlesTableOrderingComposer,
+          $$HardwareBundlesTableAnnotationComposer,
+          $$HardwareBundlesTableCreateCompanionBuilder,
+          $$HardwareBundlesTableUpdateCompanionBuilder,
+          (HardwareBundle, $$HardwareBundlesTableReferences),
+          HardwareBundle,
+          PrefetchHooks Function({bool hardwareBundleItemsRefs})
+        > {
+  $$HardwareBundlesTableTableManager(
+    _$AppDatabase db,
+    $HardwareBundlesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HardwareBundlesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HardwareBundlesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HardwareBundlesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HardwareBundlesCompanion(
+                id: id,
+                name: name,
+                description: description,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String name,
+                Value<String?> description = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HardwareBundlesCompanion.insert(
+                id: id,
+                name: name,
+                description: description,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$HardwareBundlesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({hardwareBundleItemsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (hardwareBundleItemsRefs) db.hardwareBundleItems,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (hardwareBundleItemsRefs)
+                    await $_getPrefetchedData<
+                      HardwareBundle,
+                      $HardwareBundlesTable,
+                      HardwareBundleItem
+                    >(
+                      currentTable: table,
+                      referencedTable: $$HardwareBundlesTableReferences
+                          ._hardwareBundleItemsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$HardwareBundlesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).hardwareBundleItemsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.bundleId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$HardwareBundlesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HardwareBundlesTable,
+      HardwareBundle,
+      $$HardwareBundlesTableFilterComposer,
+      $$HardwareBundlesTableOrderingComposer,
+      $$HardwareBundlesTableAnnotationComposer,
+      $$HardwareBundlesTableCreateCompanionBuilder,
+      $$HardwareBundlesTableUpdateCompanionBuilder,
+      (HardwareBundle, $$HardwareBundlesTableReferences),
+      HardwareBundle,
+      PrefetchHooks Function({bool hardwareBundleItemsRefs})
+    >;
+typedef $$HardwareBundleItemsTableCreateCompanionBuilder =
+    HardwareBundleItemsCompanion Function({
+      Value<String> id,
+      required String bundleId,
+      required String type,
+      Value<String?> name,
+      Value<String?> serial,
+      Value<String?> notes,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+typedef $$HardwareBundleItemsTableUpdateCompanionBuilder =
+    HardwareBundleItemsCompanion Function({
+      Value<String> id,
+      Value<String> bundleId,
+      Value<String> type,
+      Value<String?> name,
+      Value<String?> serial,
+      Value<String?> notes,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+
+final class $$HardwareBundleItemsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $HardwareBundleItemsTable,
+          HardwareBundleItem
+        > {
+  $$HardwareBundleItemsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $HardwareBundlesTable _bundleIdTable(_$AppDatabase db) =>
+      db.hardwareBundles.createAlias(
+        $_aliasNameGenerator(
+          db.hardwareBundleItems.bundleId,
+          db.hardwareBundles.id,
+        ),
+      );
+
+  $$HardwareBundlesTableProcessedTableManager get bundleId {
+    final $_column = $_itemColumn<String>('bundle_id')!;
+
+    final manager = $$HardwareBundlesTableTableManager(
+      $_db,
+      $_db.hardwareBundles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_bundleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$HardwareBundleItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $HardwareBundleItemsTable> {
+  $$HardwareBundleItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get serial => $composableBuilder(
+    column: $table.serial,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$HardwareBundlesTableFilterComposer get bundleId {
+    final $$HardwareBundlesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bundleId,
+      referencedTable: $db.hardwareBundles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HardwareBundlesTableFilterComposer(
+            $db: $db,
+            $table: $db.hardwareBundles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HardwareBundleItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $HardwareBundleItemsTable> {
+  $$HardwareBundleItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get serial => $composableBuilder(
+    column: $table.serial,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$HardwareBundlesTableOrderingComposer get bundleId {
+    final $$HardwareBundlesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bundleId,
+      referencedTable: $db.hardwareBundles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HardwareBundlesTableOrderingComposer(
+            $db: $db,
+            $table: $db.hardwareBundles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HardwareBundleItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HardwareBundleItemsTable> {
+  $$HardwareBundleItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get serial =>
+      $composableBuilder(column: $table.serial, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  $$HardwareBundlesTableAnnotationComposer get bundleId {
+    final $$HardwareBundlesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bundleId,
+      referencedTable: $db.hardwareBundles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HardwareBundlesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.hardwareBundles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HardwareBundleItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HardwareBundleItemsTable,
+          HardwareBundleItem,
+          $$HardwareBundleItemsTableFilterComposer,
+          $$HardwareBundleItemsTableOrderingComposer,
+          $$HardwareBundleItemsTableAnnotationComposer,
+          $$HardwareBundleItemsTableCreateCompanionBuilder,
+          $$HardwareBundleItemsTableUpdateCompanionBuilder,
+          (HardwareBundleItem, $$HardwareBundleItemsTableReferences),
+          HardwareBundleItem,
+          PrefetchHooks Function({bool bundleId})
+        > {
+  $$HardwareBundleItemsTableTableManager(
+    _$AppDatabase db,
+    $HardwareBundleItemsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HardwareBundleItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HardwareBundleItemsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$HardwareBundleItemsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> bundleId = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String?> name = const Value.absent(),
+                Value<String?> serial = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HardwareBundleItemsCompanion(
+                id: id,
+                bundleId: bundleId,
+                type: type,
+                name: name,
+                serial: serial,
+                notes: notes,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String bundleId,
+                required String type,
+                Value<String?> name = const Value.absent(),
+                Value<String?> serial = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HardwareBundleItemsCompanion.insert(
+                id: id,
+                bundleId: bundleId,
+                type: type,
+                name: name,
+                serial: serial,
+                notes: notes,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$HardwareBundleItemsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({bundleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (bundleId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.bundleId,
+                                referencedTable:
+                                    $$HardwareBundleItemsTableReferences
+                                        ._bundleIdTable(db),
+                                referencedColumn:
+                                    $$HardwareBundleItemsTableReferences
+                                        ._bundleIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$HardwareBundleItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HardwareBundleItemsTable,
+      HardwareBundleItem,
+      $$HardwareBundleItemsTableFilterComposer,
+      $$HardwareBundleItemsTableOrderingComposer,
+      $$HardwareBundleItemsTableAnnotationComposer,
+      $$HardwareBundleItemsTableCreateCompanionBuilder,
+      $$HardwareBundleItemsTableUpdateCompanionBuilder,
+      (HardwareBundleItem, $$HardwareBundleItemsTableReferences),
+      HardwareBundleItem,
+      PrefetchHooks Function({bool bundleId})
+    >;
 typedef $$AppSettingsTableCreateCompanionBuilder =
     AppSettingsCompanion Function({
       required String key,
@@ -7481,12 +9781,18 @@ class $AppDatabaseManager {
       $$HardwareTableTableManager(_db, _db.hardware);
   $$NotesTableTableManager get notes =>
       $$NotesTableTableManager(_db, _db.notes);
+  $$PhotosTableTableManager get photos =>
+      $$PhotosTableTableManager(_db, _db.photos);
   $$WorkflowsTableTableManager get workflows =>
       $$WorkflowsTableTableManager(_db, _db.workflows);
   $$WorkflowItemsTableTableManager get workflowItems =>
       $$WorkflowItemsTableTableManager(_db, _db.workflowItems);
   $$WorkflowCustomersTableTableManager get workflowCustomers =>
       $$WorkflowCustomersTableTableManager(_db, _db.workflowCustomers);
+  $$HardwareBundlesTableTableManager get hardwareBundles =>
+      $$HardwareBundlesTableTableManager(_db, _db.hardwareBundles);
+  $$HardwareBundleItemsTableTableManager get hardwareBundleItems =>
+      $$HardwareBundleItemsTableTableManager(_db, _db.hardwareBundleItems);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
 }

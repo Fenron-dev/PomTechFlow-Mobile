@@ -10,6 +10,8 @@ class AppSettings {
   final int shortBreakMinutes;
   final int longBreakMinutes;
   final String primaryColor;
+  // 'system' | 'light' | 'dark'
+  final String themeMode;
 
   const AppSettings({
     this.companyName = 'Meine IT-Firma',
@@ -19,6 +21,7 @@ class AppSettings {
     this.shortBreakMinutes = 5,
     this.longBreakMinutes = 15,
     this.primaryColor = '#2563EB',
+    this.themeMode = 'system',
   });
 
   AppSettings copyWith({
@@ -29,6 +32,7 @@ class AppSettings {
     int? shortBreakMinutes,
     int? longBreakMinutes,
     String? primaryColor,
+    String? themeMode,
   }) =>
       AppSettings(
         companyName: companyName ?? this.companyName,
@@ -38,6 +42,7 @@ class AppSettings {
         shortBreakMinutes: shortBreakMinutes ?? this.shortBreakMinutes,
         longBreakMinutes: longBreakMinutes ?? this.longBreakMinutes,
         primaryColor: primaryColor ?? this.primaryColor,
+        themeMode: themeMode ?? this.themeMode,
       );
 }
 
@@ -56,6 +61,7 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       shortBreakMinutes: int.tryParse(map['shortBreakMinutes'] ?? '') ?? 5,
       longBreakMinutes: int.tryParse(map['longBreakMinutes'] ?? '') ?? 15,
       primaryColor: map['primaryColor'] ?? '#2563EB',
+      themeMode: map['themeMode'] ?? 'system',
     );
   }
 
@@ -69,6 +75,7 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       'shortBreakMinutes': settings.shortBreakMinutes.toString(),
       'longBreakMinutes': settings.longBreakMinutes.toString(),
       'primaryColor': settings.primaryColor,
+      'themeMode': settings.themeMode,
     };
     for (final e in entries.entries) {
       await db.into(db.appSettings).insertOnConflictUpdate(

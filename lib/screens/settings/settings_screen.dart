@@ -5,6 +5,7 @@ import '../../providers/settings_provider.dart' hide AppSettings;
 import '../../providers/settings_provider.dart' as sp;
 import '../../providers/database_provider.dart';
 import '../../services/backup_service.dart';
+import 'hardware_bundle_screen.dart' show HardwareBundleScreen;
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -39,6 +40,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late int _pomodoroMinutes;
   late int _shortBreakMinutes;
   late int _longBreakMinutes;
+  late String _themeMode;
   bool _backupLoading = false;
 
   @override
@@ -50,6 +52,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     _pomodoroMinutes = widget.settings.pomodoroMinutes;
     _shortBreakMinutes = widget.settings.shortBreakMinutes;
     _longBreakMinutes = widget.settings.longBreakMinutes;
+    _themeMode = widget.settings.themeMode;
   }
 
   @override
@@ -68,6 +71,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             pomodoroMinutes: _pomodoroMinutes,
             shortBreakMinutes: _shortBreakMinutes,
             longBreakMinutes: _longBreakMinutes,
+            themeMode: _themeMode,
           ),
         );
     if (mounted) {
@@ -188,6 +192,28 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           max: 60,
           onChanged: (v) => setState(() => _longBreakMinutes = v),
         ),
+        const SizedBox(height: 24),
+
+        // ── Darstellung ──────────────────────────────────────────────
+        _SectionHeader('Darstellung'),
+        SegmentedButton<String>(
+          segments: const [
+            ButtonSegment(
+                value: 'system',
+                label: Text('System'),
+                icon: Icon(Icons.brightness_auto)),
+            ButtonSegment(
+                value: 'light',
+                label: Text('Hell'),
+                icon: Icon(Icons.light_mode)),
+            ButtonSegment(
+                value: 'dark',
+                label: Text('Dunkel'),
+                icon: Icon(Icons.dark_mode)),
+          ],
+          selected: {_themeMode},
+          onSelectionChanged: (s) => setState(() => _themeMode = s.first),
+        ),
         const SizedBox(height: 32),
 
         FilledButton.icon(
@@ -216,6 +242,18 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 subtitle: const Text('Checklisten-Vorlagen'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/workflows'),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.inventory_2_outlined),
+                title: const Text('Hardware Bundles'),
+                subtitle: const Text('Geräte-Vorlagen für Tasks'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const HardwareBundleScreen()),
+                ),
               ),
             ],
           ),
