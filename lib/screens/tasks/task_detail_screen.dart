@@ -6,6 +6,7 @@ import '../../providers/tasks_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../db/database.dart';
+import '../../services/task_handover_service.dart';
 import 'tabs/overview_tab.dart';
 import 'tabs/checklist_tab.dart';
 import 'tabs/hardware_tab.dart';
@@ -47,6 +48,22 @@ class TaskDetailScreen extends ConsumerWidget {
                   onPressed: () async {
                     await context.push('/tasks/$taskId/edit'); // nested route: /tasks/:id/edit
                     ref.invalidate(taskDetailProvider(taskId));
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.ios_share_outlined),
+                  tooltip: 'Task übergeben',
+                  onPressed: () async {
+                    try {
+                      final db = ref.read(databaseProvider);
+                      await TaskHandoverService.exportTask(db, taskId);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Fehler: $e')),
+                        );
+                      }
+                    }
                   },
                 ),
               ],

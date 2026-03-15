@@ -6,6 +6,7 @@ import '../../providers/settings_provider.dart' as sp;
 import '../../providers/database_provider.dart';
 import '../../services/backup_service.dart';
 import 'hardware_bundle_screen.dart' show HardwareBundleScreen;
+import 'data_exchange_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -253,6 +254,18 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   context,
                   MaterialPageRoute(
                       builder: (_) => const HardwareBundleScreen()),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.swap_horiz_outlined),
+                title: const Text('Datenaustausch'),
+                subtitle: const Text('Kunden, Workflows, Bundles teilen'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const DataExchangeScreen()),
                 ),
               ),
             ],

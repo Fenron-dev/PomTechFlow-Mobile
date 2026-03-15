@@ -6,6 +6,7 @@ import '../../providers/database_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../widgets/task_card.dart';
+import '../../services/task_handover_service.dart';
 
 class TaskListScreen extends ConsumerStatefulWidget {
   const TaskListScreen({super.key});
@@ -56,6 +57,28 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 _searchCtrl.clear();
               }
             }),
+          ),
+          IconButton(
+            icon: const Icon(Icons.download_outlined),
+            tooltip: 'Task importieren (.ptf)',
+            onPressed: () async {
+              final db = ref.read(databaseProvider);
+              final result =
+                  await TaskHandoverService.importTask(db);
+              if (!context.mounted) return;
+              if (result.isSuccess) {
+                ref.invalidate(tasksProvider);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text(
+                          'Task importiert: ${result.taskTitle}')),
+                );
+              } else if (result.error != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(result.error!)),
+                );
+              }
+            },
           ),
           IconButton(
             icon: const Icon(Icons.add),

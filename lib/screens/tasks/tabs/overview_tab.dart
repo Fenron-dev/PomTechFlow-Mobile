@@ -6,6 +6,7 @@ import '../../../providers/database_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/timer_provider.dart';
 import '../../../services/pdf_service.dart';
+import '../../../services/email_service.dart';
 import '../../../widgets/timer_session_dialogs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -81,6 +82,21 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
     }
   }
 
+  Future<void> _emailReport() async {
+    final settings = ref.read(settingsProvider).valueOrNull;
+    final detail = widget.detail;
+    final aeMin = settings?.aeMinutes ?? 10;
+    await EmailService.sendReportEmail(
+      customerEmail: detail.customer?.email,
+      customerName: detail.customer?.name,
+      taskTitle: detail.task.title,
+      totalMinutes: detail.task.totalMinutes,
+      aeCount: detail.aeCount(aeMin),
+      technicianName: settings?.technicianName ?? '',
+      companyName: settings?.companyName ?? '',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider).valueOrNull;
@@ -135,18 +151,27 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
           ),
         const SizedBox(height: 8),
         // PDF Bericht
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _generatingPdf ? null : _generatePdf,
-            icon: _generatingPdf
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.picture_as_pdf_outlined),
-            label: Text(_generatingPdf ? 'Erstelle PDF...' : 'Bericht erstellen'),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _generatingPdf ? null : _generatePdf,
+                icon: _generatingPdf
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.picture_as_pdf_outlined),
+                label: Text(_generatingPdf ? 'Erstelle PDF...' : 'Bericht erstellen'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: _emailReport,
+              icon: const Icon(Icons.email_outlined),
+              label: const Text('Per Mail'),
+            ),
+          ],
         ),
         // Frühere Berichte
         if (_previousReports.isNotEmpty) ...[
