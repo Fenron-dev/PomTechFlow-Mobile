@@ -5,12 +5,14 @@ class TaskCard extends StatelessWidget {
   final TaskWithDetails task;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final bool isTimerRunning;
 
   const TaskCard({
     super.key,
     required this.task,
     required this.onTap,
     required this.onDelete,
+    this.isTimerRunning = false,
   });
 
   Color _statusColor(BuildContext context, String status) {
@@ -46,6 +48,13 @@ class TaskCard extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  if (isTimerRunning)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Icon(Icons.timer,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary),
+                    ),
                   Expanded(
                     child: Text(
                       t.title,

@@ -21,12 +21,18 @@ final _router = GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AppShell(shell: shell),
       branches: [
+        // 0 - Dashboard (Startseite)
+        StatefulShellBranch(routes: [
+          GoRoute(
+              path: '/dashboard',
+              builder: (_, __) => const DashboardScreen()),
+        ]),
+        // 1 - Tasks
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/tasks',
             builder: (_, __) => const TaskListScreen(),
             routes: [
-              // 'new' muss VOR ':id' stehen damit kein Konflikt entsteht
               GoRoute(
                 path: 'new',
                 builder: (_, __) => const TaskFormScreen(),
@@ -46,24 +52,23 @@ final _router = GoRouter(
             ],
           ),
         ]),
+        // 2 - Timer
         StatefulShellBranch(routes: [
           GoRoute(path: '/timer', builder: (_, __) => const TimerScreen()),
         ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-              path: '/dashboard',
-              builder: (_, __) => const DashboardScreen()),
-        ]),
+        // 3 - Kunden
         StatefulShellBranch(routes: [
           GoRoute(
               path: '/customers',
               builder: (_, __) => const CustomersScreen()),
         ]),
+        // 4 - Workflows
         StatefulShellBranch(routes: [
           GoRoute(
               path: '/workflows',
               builder: (_, __) => const WorkflowsScreen()),
         ]),
+        // 5 - Einstellungen
         StatefulShellBranch(routes: [
           GoRoute(
               path: '/settings',
@@ -103,6 +108,11 @@ class AppShell extends StatelessWidget {
         onDestinationSelected: shell.goBranch,
         destinations: const [
           NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.checklist_outlined),
             selectedIcon: Icon(Icons.checklist),
             label: 'Tasks',
@@ -111,11 +121,6 @@ class AppShell extends StatelessWidget {
             icon: Icon(Icons.timer_outlined),
             selectedIcon: Icon(Icons.timer),
             label: 'Timer',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
           ),
           NavigationDestination(
             icon: Icon(Icons.business_outlined),

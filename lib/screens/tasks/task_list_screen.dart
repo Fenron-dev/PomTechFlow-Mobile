@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:drift/drift.dart' as drift;
 import '../../providers/tasks_provider.dart';
 import '../../providers/database_provider.dart';
-import '../../db/database.dart';
+import '../../providers/timer_provider.dart';
 import '../../widgets/task_card.dart';
 
 class TaskListScreen extends ConsumerStatefulWidget {
@@ -15,16 +14,47 @@ class TaskListScreen extends ConsumerStatefulWidget {
 }
 
 class _TaskListScreenState extends ConsumerState<TaskListScreen> {
-  String _filter = 'ALL'; // ALL | PLANNED | ACTIVE | COMPLETED
+  String _filter = 'ALL';
+  String _search = '';
+  bool _searchVisible = false;
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final tasksAsync = ref.watch(tasksProvider);
+    final timer = ref.watch(timerProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tasks'),
+        title: _searchVisible
+            ? TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Tasks suchen...',
+                  border: InputBorder.none,
+                  isDense: true,
+                ),
+                onChanged: (v) => setState(() => _search = v.toLowerCase()),
+              )
+            : const Text('Tasks'),
         actions: [
+          IconButton(
+            icon: Icon(_searchVisible ? Icons.close : Icons.search),
+            onPressed: () => setState(() {
+              _searchVisible = !_searchVisible;
+              if (!_searchVisible) {
+                _search = '';
+                _searchCtrl.clear();
+              }
+            }),
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () async {
@@ -45,9 +75,17 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Fehler: $e')),
         data: (tasks) {
-          final filtered = _filter == 'ALL'
+          var filtered = _filter == 'ALL'
               ? tasks
               : tasks.where((t) => t.task.status == _filter).toList();
+
+          if (_search.isNotEmpty) {
+            filtered = filtered
+                .where((t) =>
+                    t.task.title.toLowerCase().contains(_search) ||
+                    (t.customer?.name.toLowerCase().contains(_search) ?? false))
+                .toList();
+          }
 
           if (filtered.isEmpty) {
             return Center(
@@ -59,21 +97,25 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                       color: Theme.of(context).colorScheme.outlineVariant),
                   const SizedBox(height: 16),
                   Text(
-                    _filter == 'ALL'
-                        ? 'Noch keine Tasks'
-                        : 'Keine $_filter Tasks',
+                    _search.isNotEmpty
+                        ? 'Keine Ergebnisse für "$_search"'
+                        : _filter == 'ALL'
+                            ? 'Noch keine Tasks'
+                            : 'Keine ${_filterLabel(_filter)} Tasks',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Theme.of(context).colorScheme.outline),
                   ),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    onPressed: () async {
-                      await context.push('/tasks/new');
-                      ref.invalidate(tasksProvider);
-                    }, // go_router: 'new' ist statische Route vor ':id'
-                    icon: const Icon(Icons.add),
-                    label: const Text('Neuer Task'),
-                  ),
+                  if (_search.isEmpty) ...[
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        await context.push('/tasks/new');
+                        ref.invalidate(tasksProvider);
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Neuer Task'),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -87,6 +129,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (_, i) => TaskCard(
                 task: filtered[i],
+                isTimerRunning: timer.activeTaskId == filtered[i].task.id,
                 onTap: () async {
                   await context.push('/tasks/${filtered[i].task.id}');
                   ref.invalidate(tasksProvider);
@@ -99,6 +142,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
       ),
     );
   }
+
+  String _filterLabel(String f) => switch (f) {
+        'PLANNED' => 'geplante',
+        'ACTIVE' => 'aktive',
+        'COMPLETED' => 'erledigte',
+        _ => f,
+      };
 
   Future<void> _deleteTask(String id) async {
     final confirmed = await showDialog<bool>(

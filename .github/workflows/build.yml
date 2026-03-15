@@ -28,8 +28,10 @@ jobs:
       - name: Dependencies installieren
         run: flutter pub get
 
-      - name: Code generieren (Drift)
-        run: dart run build_runner build --delete-conflicting-outputs
+      - name: Code generieren (Drift + Icons)
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          dart run flutter_launcher_icons
 
       - name: APK bauen
         run: flutter build apk --release
@@ -57,8 +59,10 @@ jobs:
       - name: Dependencies installieren
         run: flutter pub get
 
-      - name: Code generieren (Drift)
-        run: dart run build_runner build --delete-conflicting-outputs
+      - name: Code generieren (Drift + Icons)
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          dart run flutter_launcher_icons
 
       - name: iOS bauen (ohne Codesigning)
         run: flutter build ios --release --no-codesign
