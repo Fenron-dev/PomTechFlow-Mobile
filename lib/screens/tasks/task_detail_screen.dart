@@ -44,7 +44,7 @@ class TaskDetailScreen extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: () async {
-                    await context.push('/tasks/$taskId/edit');
+                    await context.push('/tasks/$taskId/edit'); // nested route: /tasks/:id/edit
                     ref.invalidate(taskDetailProvider(taskId));
                   },
                 ),

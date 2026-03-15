@@ -16,7 +16,7 @@ void main() {
 }
 
 final _router = GoRouter(
-  initialLocation: '/tasks',
+  initialLocation: '/dashboard',
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AppShell(shell: shell),
@@ -26,10 +26,22 @@ final _router = GoRouter(
             path: '/tasks',
             builder: (_, __) => const TaskListScreen(),
             routes: [
+              // 'new' muss VOR ':id' stehen damit kein Konflikt entsteht
+              GoRoute(
+                path: 'new',
+                builder: (_, __) => const TaskFormScreen(),
+              ),
               GoRoute(
                 path: ':id',
                 builder: (_, s) =>
                     TaskDetailScreen(taskId: s.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (_, s) =>
+                        TaskFormScreen(taskId: s.pathParameters['id']),
+                  ),
+                ],
               ),
             ],
           ),
@@ -39,11 +51,13 @@ final _router = GoRouter(
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
-              path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+              path: '/dashboard',
+              builder: (_, __) => const DashboardScreen()),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
-              path: '/customers', builder: (_, __) => const CustomersScreen()),
+              path: '/customers',
+              builder: (_, __) => const CustomersScreen()),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
@@ -52,17 +66,10 @@ final _router = GoRouter(
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
-              path: '/settings', builder: (_, __) => const SettingsScreen()),
+              path: '/settings',
+              builder: (_, __) => const SettingsScreen()),
         ]),
       ],
-    ),
-    GoRoute(
-      path: '/tasks/new',
-      builder: (_, __) => const TaskFormScreen(),
-    ),
-    GoRoute(
-      path: '/tasks/:id/edit',
-      builder: (_, s) => TaskFormScreen(taskId: s.pathParameters['id']),
     ),
   ],
 );

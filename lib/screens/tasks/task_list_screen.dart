@@ -70,7 +70,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                     onPressed: () async {
                       await context.push('/tasks/new');
                       ref.invalidate(tasksProvider);
-                    },
+                    }, // go_router: 'new' ist statische Route vor ':id'
                     icon: const Icon(Icons.add),
                     label: const Text('Neuer Task'),
                   ),
