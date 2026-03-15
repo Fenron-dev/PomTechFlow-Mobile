@@ -8,6 +8,7 @@ import 'screens/tasks/task_detail_screen.dart';
 import 'screens/tasks/task_form_screen.dart';
 import 'screens/timer/timer_screen.dart';
 import 'screens/customers/customers_screen.dart';
+import 'screens/workflows/workflows_screen.dart';
 import 'screens/settings/settings_screen.dart';
 
 void main() {
@@ -43,6 +44,11 @@ final _router = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
               path: '/customers', builder: (_, __) => const CustomersScreen()),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+              path: '/workflows',
+              builder: (_, __) => const WorkflowsScreen()),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
@@ -108,6 +114,11 @@ class AppShell extends StatelessWidget {
             icon: Icon(Icons.business_outlined),
             selectedIcon: Icon(Icons.business),
             label: 'Kunden',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.folder_outlined),
+            selectedIcon: Icon(Icons.folder),
+            label: 'Workflows',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../providers/tasks_provider.dart';
+import '../../../providers/database_provider.dart';
+import '../../../providers/settings_provider.dart';
+import '../../../services/pdf_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class OverviewTab extends StatelessWidget {
+class OverviewTab extends ConsumerStatefulWidget {
   final TaskWithDetails detail;
   final bool isActiveTask;
   final VoidCallback onStartTimer;
@@ -17,10 +21,60 @@ class OverviewTab extends StatelessWidget {
   });
 
   @override
+  ConsumerState<OverviewTab> createState() => _OverviewTabState();
+}
+
+class _OverviewTabState extends ConsumerState<OverviewTab> {
+  bool _generatingPdf = false;
+
+  Future<void> _generatePdf() async {
+    setState(() => _generatingPdf = true);
+    try {
+      final db = ref.read(databaseProvider);
+      final settings = ref.read(settingsProvider).valueOrNull;
+      final taskId = widget.detail.task.id;
+
+      final todos = await (db.select(db.todos)
+            ..where((t) => t.taskId.equals(taskId)))
+          .get();
+      final hardware = await (db.select(db.hardware)
+            ..where((h) => h.taskId.equals(taskId)))
+          .get();
+      final notes = await (db.select(db.notes)
+            ..where((n) => n.taskId.equals(taskId)))
+          .get();
+
+      final file = await PdfService.generateReport(PdfReportData(
+        taskDetail: widget.detail,
+        todos: todos,
+        hardware: hardware,
+        notes: notes,
+        companyName: settings?.companyName ?? 'IT-Firma',
+        technicianName: settings?.technicianName ?? '',
+        aeMinutes: (settings?.aeMinutes ?? 10).toDouble(),
+      ));
+      await PdfService.shareReport(file);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF Fehler: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _generatingPdf = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final detail = widget.detail;
+    final isActiveTask = widget.isActiveTask;
+    final onStartTimer = widget.onStartTimer;
+    final onMarkDone = widget.onMarkDone;
     final task = detail.task;
     final ae = detail.aeCount;
     final cs = Theme.of(context).colorScheme;
+
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -40,16 +94,29 @@ class OverviewTab extends StatelessWidget {
                   label: Text(isActiveTask ? 'Timer läuft' : 'Timer starten'),
                 ),
               ),
-              if (task.status != 'COMPLETED') ...[
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: onMarkDone,
-                  icon: const Icon(Icons.check),
-                  label: const Text('Erledigt'),
-                ),
-              ],
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: onMarkDone,
+                icon: const Icon(Icons.check),
+                label: const Text('Erledigt'),
+              ),
             ],
           ),
+        const SizedBox(height: 8),
+        // PDF Bericht
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _generatingPdf ? null : _generatePdf,
+            icon: _generatingPdf
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.picture_as_pdf_outlined),
+            label: Text(_generatingPdf ? 'Erstelle PDF...' : 'Bericht erstellen'),
+          ),
+        ),
         const SizedBox(height: 20),
 
         // Statistiken
