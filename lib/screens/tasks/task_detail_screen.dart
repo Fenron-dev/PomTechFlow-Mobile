@@ -1,0 +1,94 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:go_router/go_router.dart';
+import '../../providers/tasks_provider.dart';
+import '../../providers/database_provider.dart';
+import '../../providers/timer_provider.dart';
+import '../../db/database.dart';
+import 'tabs/overview_tab.dart';
+import 'tabs/checklist_tab.dart';
+import 'tabs/hardware_tab.dart';
+import 'tabs/notes_tab.dart';
+
+class TaskDetailScreen extends ConsumerWidget {
+  final String taskId;
+  const TaskDetailScreen({super.key, required this.taskId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final taskAsync = ref.watch(taskDetailProvider(taskId));
+    final timer = ref.watch(timerProvider);
+
+    return taskAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(body: Center(child: Text('Fehler: $e'))),
+      data: (detail) {
+        if (detail == null) {
+          return const Scaffold(body: Center(child: Text('Task nicht gefunden')));
+        }
+        final task = detail.task;
+        final isActiveTask = timer.activeTaskId == taskId;
+
+        return DefaultTabController(
+          length: 4,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(
+                task.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () async {
+                    await context.push('/tasks/$taskId/edit');
+                    ref.invalidate(taskDetailProvider(taskId));
+                  },
+                ),
+              ],
+              bottom: const TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.info_outline), text: 'Übersicht'),
+                  Tab(icon: Icon(Icons.checklist), text: 'Checkliste'),
+                  Tab(icon: Icon(Icons.computer_outlined), text: 'Hardware'),
+                  Tab(icon: Icon(Icons.notes), text: 'Notizen'),
+                ],
+              ),
+            ),
+            body: TabBarView(
+              children: [
+                OverviewTab(
+                  detail: detail,
+                  isActiveTask: isActiveTask,
+                  onStartTimer: () async {
+                    await ref.read(timerProvider.notifier).start(taskId);
+                    if (context.mounted) context.go('/timer');
+                  },
+                  onMarkDone: () => _markDone(ref, taskId),
+                ),
+                ChecklistTab(taskId: taskId),
+                HardwareTab(taskId: taskId),
+                NotesTab(taskId: taskId),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _markDone(WidgetRef ref, String taskId) async {
+    final db = ref.read(databaseProvider);
+    await (db.update(db.tasks)..where((t) => t.id.equals(taskId))).write(
+      TasksCompanion(
+        status: const drift.Value('COMPLETED'),
+        updatedAt: drift.Value(DateTime.now()),
+      ),
+    );
+    ref.invalidate(taskDetailProvider(taskId));
+    ref.invalidate(tasksProvider);
+  }
+}

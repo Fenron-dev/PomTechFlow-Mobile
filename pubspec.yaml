@@ -1,0 +1,47 @@
+name: pomtechflow_mobile
+description: IT-Support Pomodoro Zeiterfassung – Mobile App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Datenbank (SQLite, lokal auf dem Gerät)
+  drift: ^2.20.3
+  drift_flutter: ^0.2.4
+  sqlite3_flutter_libs: ^0.5.24
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Navigation
+  go_router: ^14.2.7
+
+  # PDF Generierung
+  pdf: ^3.11.1
+  printing: ^5.13.1
+  path_provider: ^2.1.4
+
+  # UI Helpers
+  flutter_slidable: ^3.1.1
+  intl: ^0.19.0
+  gap: ^3.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.20.3
+  build_runner: ^2.4.12
+  riverpod_generator: ^2.4.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
