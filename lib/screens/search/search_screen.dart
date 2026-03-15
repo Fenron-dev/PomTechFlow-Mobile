@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/tasks_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../db/database.dart';
+import 'package:drift/drift.dart' show OrderingTerm, OrderingMode;
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -100,8 +101,8 @@ class _SearchResults extends ConsumerWidget {
     final matchedCustomers = customersAsync.valueOrNull
             ?.where((c) =>
                 c.name.toLowerCase().contains(query) ||
-                (c.contactEmail ?? '').toLowerCase().contains(query) ||
-                (c.contactPhone ?? '').toLowerCase().contains(query))
+                (c.email ?? '').toLowerCase().contains(query) ||
+                (c.phone ?? '').toLowerCase().contains(query))
             .toList() ??
         [];
 
@@ -208,8 +209,8 @@ class _CustomerResult extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary, size: 20),
       ),
       title: Text(customer.name),
-      subtitle: customer.contactEmail != null
-          ? Text(customer.contactEmail!)
+      subtitle: customer.email != null
+          ? Text(customer.email!)
           : null,
       onTap: () => context.push('/customers'),
     );

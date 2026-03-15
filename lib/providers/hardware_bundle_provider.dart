@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' show OrderingTerm, OrderingMode;
 import '../db/database.dart';
 import 'database_provider.dart';
 
