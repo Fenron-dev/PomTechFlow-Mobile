@@ -6,6 +6,7 @@ import '../../providers/database_provider.dart';
 import '../../providers/customers_provider.dart';
 import '../../providers/tasks_provider.dart';
 import '../../db/database.dart';
+import '../../services/notification_service.dart';
 
 class TaskFormScreen extends ConsumerStatefulWidget {
   final String? taskId;
@@ -104,6 +105,16 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     }
 
     ref.invalidate(tasksProvider);
+    // Notification schedulieren/abbrechen
+    if (_plannedDate != null && _plannedDate!.isAfter(DateTime.now())) {
+      await NotificationService.scheduleTaskReminder(
+        widget.taskId ?? 'new_${DateTime.now().millisecondsSinceEpoch}',
+        _titleCtrl.text.trim(),
+        _plannedDate!,
+      );
+    } else if (widget.taskId != null) {
+      await NotificationService.cancelTaskReminder(widget.taskId!);
+    }
     if (mounted) Navigator.of(context).pop();
   }
 

@@ -11,8 +11,12 @@ import 'screens/customers/customers_screen.dart';
 import 'screens/workflows/workflows_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/search/search_screen.dart';
+import 'screens/statistics/statistics_screen.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.initialize();
   runApp(const ProviderScope(child: PomTechFlowApp()));
 }
 
@@ -22,6 +26,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/search',
       builder: (_, __) => const SearchScreen(),
+    ),
+    GoRoute(
+      path: '/statistics',
+      builder: (_, __) => const StatisticsScreen(),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AppShell(shell: shell),

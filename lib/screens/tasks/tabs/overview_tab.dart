@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../providers/tasks_provider.dart';
@@ -28,6 +29,18 @@ class OverviewTab extends ConsumerStatefulWidget {
 
 class _OverviewTabState extends ConsumerState<OverviewTab> {
   bool _generatingPdf = false;
+  List<File> _previousReports = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReports();
+  }
+
+  Future<void> _loadReports() async {
+    final reports = await PdfService.listReports(widget.detail.task.id);
+    if (mounted) setState(() => _previousReports = reports);
+  }
 
   Future<void> _generatePdf() async {
     setState(() => _generatingPdf = true);
@@ -56,6 +69,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         aeMinutes: (settings?.aeMinutes ?? 10).toDouble(),
       ));
       await PdfService.shareReport(file);
+      _loadReports();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -134,6 +148,14 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
             label: Text(_generatingPdf ? 'Erstelle PDF...' : 'Bericht erstellen'),
           ),
         ),
+        // Frühere Berichte
+        if (_previousReports.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _ReportHistory(
+            reports: _previousReports,
+            onRefresh: _loadReports,
+          ),
+        ],
         const SizedBox(height: 20),
 
         // Statistiken
@@ -421,6 +443,53 @@ class _InfoRow extends StatelessWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _ReportHistory extends StatelessWidget {
+  final List<File> reports;
+  final VoidCallback onRefresh;
+
+  const _ReportHistory({required this.reports, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Frühere Berichte',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.outline),
+        ),
+        const SizedBox(height: 4),
+        ...reports.map((f) {
+          final name = f.path.split('/').last;
+          // Extract timestamp from filename: bericht_XXXXXXXX_<ts>.pdf
+          final parts = name.replaceAll('.pdf', '').split('_');
+          String dateStr = '';
+          if (parts.length >= 3) {
+            final ts = int.tryParse(parts.last);
+            if (ts != null) {
+              final dt = DateTime.fromMillisecondsSinceEpoch(ts);
+              dateStr = DateFormat('dd.MM.yyyy HH:mm').format(dt.toLocal());
+            }
+          }
+          return ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+            title: Text(dateStr.isNotEmpty ? dateStr : name,
+                style: Theme.of(context).textTheme.bodySmall),
+            trailing: IconButton(
+              icon: const Icon(Icons.share_outlined, size: 18),
+              onPressed: () => PdfService.shareReport(f),
+              visualDensity: VisualDensity.compact,
+            ),
+          );
+        }),
       ],
     );
   }

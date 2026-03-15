@@ -21,6 +21,11 @@ class DashboardScreen extends ConsumerWidget {
         title: Text(settings?.companyName ?? 'PomTechFlow'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.bar_chart_outlined),
+            tooltip: 'Statistiken',
+            onPressed: () => context.push('/statistics'),
+          ),
+          IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Neuer Task',
             onPressed: () async {

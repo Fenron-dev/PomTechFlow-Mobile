@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -391,5 +392,19 @@ class PdfService {
       bytes: await file.readAsBytes(),
       filename: file.path.split('/').last,
     );
+  }
+
+  /// Lists all previously generated PDF reports for a task
+  static Future<List<File>> listReports(String taskId) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final prefix = 'bericht_${taskId.substring(0, 8)}_';
+    final docDir = Directory(dir.path);
+    if (!await docDir.exists()) return [];
+    return docDir
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.split('/').last.startsWith(prefix) && f.path.endsWith('.pdf'))
+        .toList()
+        ..sort((a, b) => b.path.compareTo(a.path)); // newest first
   }
 }
