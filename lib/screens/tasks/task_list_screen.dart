@@ -168,16 +168,16 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
             },
           ),
           IconButton(
+            icon: const Icon(Icons.copy_outlined),
+            tooltip: 'Aus Vorlage erstellen',
+            onPressed: () => _createFromTemplate(context, ref, isTablet: isTablet),
+          ),
+          IconButton(
             icon: const Icon(Icons.add),
+            tooltip: 'Neuer Task',
             onPressed: () async {
-              if (isTablet) {
-                // On tablet, push new-task form; on return, refresh and select
-                await context.push('/tasks/new');
-                ref.invalidate(tasksProvider);
-              } else {
-                await context.push('/tasks/new');
-                ref.invalidate(tasksProvider);
-              }
+              await context.push('/tasks/new');
+              ref.invalidate(tasksProvider);
             },
           ),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'theme/app_theme.dart';
 import 'providers/settings_provider.dart' hide AppSettings;
 import 'screens/dashboard/dashboard_screen.dart';
@@ -20,6 +21,7 @@ import 'widgets/adaptive_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('de_DE', null);
   await NotificationService.initialize();
   runApp(const ProviderScope(child: PomTechFlowApp()));
 }

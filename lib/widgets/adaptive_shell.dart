@@ -17,6 +17,9 @@ class AdaptiveShell extends StatelessWidget {
   void _onDestination(BuildContext context, int i) {
     if (i == 3) {
       context.push('/search');
+    } else if (i == 2) {
+      // Einstellungen: immer zum Root-Tab zurückspringen
+      shell.goBranch(i, initialLocation: true);
     } else {
       shell.goBranch(i);
     }
@@ -159,7 +162,7 @@ class _AppMenuBar extends StatelessWidget {
               const Divider(height: 1),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.settings_outlined, size: 16),
-                onPressed: () => shell.goBranch(2),
+                onPressed: () => shell.goBranch(2, initialLocation: true),
                 child: const Text('Einstellungen'),
               ),
             ],
