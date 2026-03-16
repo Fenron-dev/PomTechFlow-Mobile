@@ -6,11 +6,10 @@ import '../../providers/database_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/task_templates_provider.dart';
-import '../../providers/workflows_provider.dart';
-import '../../providers/hardware_bundle_provider.dart';
 import '../../db/database.dart';
 import '../../widgets/task_card.dart';
 import '../../services/task_handover_service.dart';
+import 'task_detail_screen.dart';
 import 'package:drift/drift.dart' as drift;
 
 class TaskListScreen extends ConsumerStatefulWidget {
@@ -25,6 +24,9 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   String _search = '';
   bool _searchVisible = false;
   final _searchCtrl = TextEditingController();
+  String? _selectedTaskId;
+
+  static const double _tabletBreakpoint = 700;
 
   @override
   void dispose() {
@@ -34,6 +36,39 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isTablet = width >= _tabletBreakpoint;
+
+    if (isTablet) {
+      return _buildTabletLayout();
+    }
+    return _buildListScaffold(isTablet: false);
+  }
+
+  Widget _buildTabletLayout() {
+    return Row(
+      children: [
+        SizedBox(
+          width: 360,
+          child: _buildListScaffold(isTablet: true),
+        ),
+        const VerticalDivider(width: 1, thickness: 1),
+        Expanded(
+          child: _selectedTaskId == null
+              ? const _EmptyDetailPane()
+              : TaskDetailScreen(
+                  key: ValueKey(_selectedTaskId),
+                  taskId: _selectedTaskId!,
+                  embedded: true,
+                  onDeleted: () => setState(() => _selectedTaskId = null),
+                  onTaskChanged: () => ref.invalidate(tasksProvider),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildListScaffold({required bool isTablet}) {
     final tasksAsync = ref.watch(tasksProvider);
     final timer = ref.watch(timerProvider);
     final aeMinutes = ref.watch(settingsProvider).valueOrNull?.aeMinutes ?? 10;
@@ -68,15 +103,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
             tooltip: 'Task importieren (.ptf)',
             onPressed: () async {
               final db = ref.read(databaseProvider);
-              final result =
-                  await TaskHandoverService.importTask(db);
+              final result = await TaskHandoverService.importTask(db);
               if (!context.mounted) return;
               if (result.isSuccess) {
                 ref.invalidate(tasksProvider);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                      content: Text(
-                          'Task importiert: ${result.taskTitle}')),
+                      content: Text('Task importiert: ${result.taskTitle}')),
                 );
               } else if (result.error != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -88,8 +121,14 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () async {
-              await context.push('/tasks/new');
-              ref.invalidate(tasksProvider);
+              if (isTablet) {
+                // On tablet, push new-task form; on return, refresh and select
+                await context.push('/tasks/new');
+                ref.invalidate(tasksProvider);
+              } else {
+                await context.push('/tasks/new');
+                ref.invalidate(tasksProvider);
+              }
             },
           ),
         ],
@@ -135,7 +174,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Theme.of(context).colorScheme.outline),
                   ),
-                          if (_search.isEmpty) ...[
+                  if (_search.isEmpty) ...[
                     const SizedBox(height: 8),
                     FilledButton.icon(
                       onPressed: () async {
@@ -148,7 +187,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: () =>
-                          _createFromTemplate(context, ref),
+                          _createFromTemplate(context, ref, isTablet: isTablet),
                       icon: const Icon(Icons.copy_outlined),
                       label: const Text('Aus Vorlage'),
                     ),
@@ -156,6 +195,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 ],
               ),
             );
+          }
+
+          // Auto-clear selection if selected task no longer in filtered list
+          if (_selectedTaskId != null &&
+              !filtered.any((t) => t.task.id == _selectedTaskId)) {
+            WidgetsBinding.instance.addPostFrameCallback(
+                (_) => setState(() => _selectedTaskId = null));
           }
 
           return RefreshIndicator(
@@ -168,11 +214,16 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 task: filtered[i],
                 isTimerRunning: timer.activeTaskId == filtered[i].task.id,
                 aeMinutes: aeMinutes,
+                isSelected: isTablet && _selectedTaskId == filtered[i].task.id,
                 onTap: () async {
-                  await context.push('/tasks/${filtered[i].task.id}');
-                  ref.invalidate(tasksProvider);
+                  if (isTablet) {
+                    setState(() => _selectedTaskId = filtered[i].task.id);
+                  } else {
+                    await context.push('/tasks/${filtered[i].task.id}');
+                    ref.invalidate(tasksProvider);
+                  }
                 },
-                onDelete: () => _deleteTask(filtered[i].task.id),
+                onDelete: () => _deleteTask(filtered[i].task.id, isTablet: isTablet),
               ),
             ),
           );
@@ -181,15 +232,14 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     );
   }
 
-  Future<void> _createFromTemplate(
-      BuildContext context, WidgetRef ref) async {
-    final templates =
-        ref.read(taskTemplatesProvider).valueOrNull ?? [];
+  Future<void> _createFromTemplate(BuildContext context, WidgetRef ref,
+      {required bool isTablet}) async {
+    final templates = ref.read(taskTemplatesProvider).valueOrNull ?? [];
     if (templates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Keine Vorlagen. Erst in Einstellungen anlegen.')),
+            content:
+                Text('Keine Vorlagen. Erst in Einstellungen anlegen.')),
       );
       return;
     }
@@ -228,10 +278,8 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 
     final db = ref.read(databaseProvider);
     final now = DateTime.now();
-    final newTaskId =
-        'task_${now.millisecondsSinceEpoch}';
+    final newTaskId = 'task_${now.millisecondsSinceEpoch}';
 
-    // Task aus Vorlage erstellen
     await db.into(db.tasks).insert(TasksCompanion.insert(
           id: drift.Value(newTaskId),
           title: selected.template.title,
@@ -240,7 +288,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           updatedAt: drift.Value(now),
         ));
 
-    // Workflow-Checkliste anwenden
     if (selected.template.workflowId != null) {
       final items = await (db.select(db.workflowItems)
             ..where((i) =>
@@ -259,7 +306,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
       }
     }
 
-    // Hardware Bundle anwenden
     if (selected.template.hardwareBundleId != null) {
       final bundleItems = await (db.select(db.hardwareBundleItems)
             ..where((i) =>
@@ -280,13 +326,19 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 
     ref.invalidate(tasksProvider);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(
-              'Task erstellt: ${selected.template.title}')),
-    );
-    await context.push('/tasks/$newTaskId');
-    ref.invalidate(tasksProvider);
+
+    if (isTablet) {
+      setState(() => _selectedTaskId = newTaskId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Task erstellt: ${selected.template.title}')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Task erstellt: ${selected.template.title}')),
+      );
+      await context.push('/tasks/$newTaskId');
+      ref.invalidate(tasksProvider);
+    }
   }
 
   String _filterLabel(String f) => switch (f) {
@@ -296,7 +348,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         _ => f,
       };
 
-  Future<void> _deleteTask(String id) async {
+  Future<void> _deleteTask(String id, {required bool isTablet}) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -315,7 +367,35 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     if (confirmed != true) return;
     final db = ref.read(databaseProvider);
     await (db.delete(db.tasks)..where((t) => t.id.equals(id))).go();
+    if (isTablet && _selectedTaskId == id) {
+      setState(() => _selectedTaskId = null);
+    }
     ref.invalidate(tasksProvider);
+  }
+}
+
+class _EmptyDetailPane extends StatelessWidget {
+  const _EmptyDetailPane();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.touch_app_outlined, size: 64, color: cs.outlineVariant),
+          const SizedBox(height: 16),
+          Text(
+            'Task auswählen',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(color: cs.outline),
+          ),
+        ],
+      ),
+    );
   }
 }
 

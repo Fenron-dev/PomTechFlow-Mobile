@@ -9,6 +9,7 @@ class TaskCard extends StatelessWidget {
   final VoidCallback onDelete;
   final bool isTimerRunning;
   final int aeMinutes;
+  final bool isSelected;
 
   const TaskCard({
     super.key,
@@ -17,6 +18,7 @@ class TaskCard extends StatelessWidget {
     required this.onDelete,
     this.isTimerRunning = false,
     this.aeMinutes = 10,
+    this.isSelected = false,
   });
 
   @override
@@ -55,6 +57,7 @@ class TaskCard extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.zero,
+      color: isSelected ? cs.secondaryContainer : null,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),

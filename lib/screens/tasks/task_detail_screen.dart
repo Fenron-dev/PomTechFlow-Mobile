@@ -15,7 +15,19 @@ import 'tabs/photos_tab.dart';
 
 class TaskDetailScreen extends ConsumerWidget {
   final String taskId;
-  const TaskDetailScreen({super.key, required this.taskId});
+  /// When true, the widget is embedded in a master-detail Row (tablet).
+  /// Suppresses the automatic back button and uses callbacks for side effects.
+  final bool embedded;
+  final VoidCallback? onDeleted;
+  final VoidCallback? onTaskChanged;
+
+  const TaskDetailScreen({
+    super.key,
+    required this.taskId,
+    this.embedded = false,
+    this.onDeleted,
+    this.onTaskChanged,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,6 +49,7 @@ class TaskDetailScreen extends ConsumerWidget {
           length: 5,
           child: Scaffold(
             appBar: AppBar(
+              automaticallyImplyLeading: !embedded,
               title: Text(
                 task.title,
                 maxLines: 1,
@@ -46,8 +59,9 @@ class TaskDetailScreen extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: () async {
-                    await context.push('/tasks/$taskId/edit'); // nested route: /tasks/:id/edit
+                    await context.push('/tasks/$taskId/edit');
                     ref.invalidate(taskDetailProvider(taskId));
+                    onTaskChanged?.call();
                   },
                 ),
                 IconButton(
@@ -84,9 +98,12 @@ class TaskDetailScreen extends ConsumerWidget {
                   isActiveTask: isActiveTask,
                   onStartTimer: () async {
                     await ref.read(timerProvider.notifier).start(taskId);
-                    if (context.mounted) context.go('/timer');
+                    if (!embedded && context.mounted) context.go('/timer');
                   },
-                  onMarkDone: () => _markDone(ref, taskId),
+                  onMarkDone: () async {
+                    await _markDone(ref, taskId);
+                    onTaskChanged?.call();
+                  },
                 ),
                 ChecklistTab(taskId: taskId),
                 HardwareTab(taskId: taskId),
