@@ -110,6 +110,7 @@ class TaskHandoverService {
                 'endTime': s.endTime?.toIso8601String(),
                 'duration': s.duration,
                 'type': s.type,
+                'note': s.note,
               })
           .toList(),
       'photos': photoData,
@@ -256,6 +257,7 @@ class TaskHandoverService {
                     endStr != null ? DateTime.tryParse(endStr) : null),
                 duration: drift.Value(sd['duration'] as int? ?? 0),
                 type: drift.Value(sd['type'] as String? ?? 'WORK'),
+                note: drift.Value(sd['note'] as String?),
               ));
         }
 
