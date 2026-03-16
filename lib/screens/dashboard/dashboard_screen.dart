@@ -89,13 +89,16 @@ class DashboardScreen extends ConsumerWidget {
                 ],
 
                 // Stats
-                GridView.count(
-                  crossAxisCount: 2,
+                LayoutBuilder(builder: (context, constraints) {
+                  final cols = constraints.maxWidth >= 500 ? 4 : 2;
+                  final ratio = cols == 4 ? 2.2 : 1.4;
+                  return GridView.count(
+                  crossAxisCount: cols,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.4,
+                  childAspectRatio: ratio,
                   children: [
                     _StatCard(
                       label: 'Gesamt AE',
@@ -127,7 +130,8 @@ class DashboardScreen extends ConsumerWidget {
                       onTap: () => context.go('/settings'),
                     ),
                   ],
-                ),
+                );
+                }),
                 const SizedBox(height: 24),
 
                 // ── Heute geplant ───────────────────────────────────────

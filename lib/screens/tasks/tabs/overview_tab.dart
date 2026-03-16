@@ -364,13 +364,13 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration:
           BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: cs.onSurface.withValues(alpha: 0.6)),
-          const SizedBox(width: 10),
+          Icon(icon, size: 16, color: cs.onSurface.withValues(alpha: 0.6)),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,7 +383,7 @@ class _StatCard extends StatelessWidget {
                     Text(value,
                         style: Theme.of(context)
                             .textTheme
-                            .titleLarge
+                            .titleMedium
                             ?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(width: 3),
                     Text(unit,
@@ -708,6 +708,7 @@ class _SessionsSection extends ConsumerWidget {
             endTime: drift.Value(result.end),
             duration: drift.Value(result.duration),
             type: drift.Value(result.type),
+            note: drift.Value(result.note),
           ));
     } else {
       await (db.update(db.sessions)..where((s) => s.id.equals(existing.id)))
@@ -716,6 +717,7 @@ class _SessionsSection extends ConsumerWidget {
         endTime: drift.Value(result.end),
         duration: drift.Value(result.duration),
         type: drift.Value(result.type),
+        note: drift.Value(result.note),
       ));
     }
     await _recalcTotal(db);
@@ -804,7 +806,8 @@ class _SessionsSection extends ConsumerWidget {
                     title: Text('$start – $end',
                         style: Theme.of(context).textTheme.bodySmall),
                     subtitle: Text(
-                        '${s.duration} Min · ${_typeLabel(s.type)}',
+                        '${s.duration} Min · ${_typeLabel(s.type)}'
+                        '${s.note != null && s.note!.isNotEmpty ? ' · ${s.note}' : ''}',
                         style: Theme.of(context)
                             .textTheme
                             .labelSmall
@@ -841,11 +844,13 @@ class _SessionResult {
   final DateTime end;
   final int duration; // minutes
   final String type;
+  final String? note;
   _SessionResult(
       {required this.start,
       required this.end,
       required this.duration,
-      required this.type});
+      required this.type,
+      this.note});
 }
 
 class _SessionForm extends StatefulWidget {
@@ -861,6 +866,7 @@ class _SessionFormState extends State<_SessionForm> {
   late DateTime _start;
   late DateTime _end;
   String _type = 'WORK';
+  late final TextEditingController _noteCtrl;
 
   @override
   void initState() {
@@ -870,6 +876,13 @@ class _SessionFormState extends State<_SessionForm> {
         now.subtract(const Duration(minutes: 25));
     _end = widget.session?.endTime?.toLocal() ?? now;
     _type = widget.session?.type ?? 'WORK';
+    _noteCtrl = TextEditingController(text: widget.session?.note ?? '');
+  }
+
+  @override
+  void dispose() {
+    _noteCtrl.dispose();
+    super.dispose();
   }
 
   int get _durationMinutes {
@@ -958,6 +971,16 @@ class _SessionFormState extends State<_SessionForm> {
             ],
             onChanged: (v) => setState(() => _type = v ?? 'WORK'),
           ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _noteCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Notiz (optional)',
+              hintText: 'z.B. was wurde gemacht',
+            ),
+            maxLines: 2,
+            textCapitalization: TextCapitalization.sentences,
+          ),
           const SizedBox(height: 20),
           FilledButton(
             onPressed: _durationMinutes > 0
@@ -968,6 +991,9 @@ class _SessionFormState extends State<_SessionForm> {
                         end: _end.toUtc(),
                         duration: _durationMinutes,
                         type: _type,
+                        note: _noteCtrl.text.trim().isEmpty
+                            ? null
+                            : _noteCtrl.text.trim(),
                       ),
                     )
                 : null,

@@ -1246,6 +1246,15 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     requiredDuringInsert: false,
     defaultValue: const Constant('WORK'),
   );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1254,6 +1263,7 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     endTime,
     duration,
     type,
+    note,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1304,6 +1314,12 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         type.isAcceptableOrUnknown(data['type']!, _typeMeta),
       );
     }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
     return context;
   }
 
@@ -1337,6 +1353,10 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         DriftSqlType.string,
         data['${effectivePrefix}type'],
       )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
     );
   }
 
@@ -1353,6 +1373,7 @@ class Session extends DataClass implements Insertable<Session> {
   final DateTime? endTime;
   final int duration;
   final String type;
+  final String? note;
   const Session({
     required this.id,
     required this.taskId,
@@ -1360,6 +1381,7 @@ class Session extends DataClass implements Insertable<Session> {
     this.endTime,
     required this.duration,
     required this.type,
+    this.note,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1372,6 +1394,9 @@ class Session extends DataClass implements Insertable<Session> {
     }
     map['duration'] = Variable<int>(duration);
     map['type'] = Variable<String>(type);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
     return map;
   }
 
@@ -1385,6 +1410,7 @@ class Session extends DataClass implements Insertable<Session> {
           : Value(endTime),
       duration: Value(duration),
       type: Value(type),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
     );
   }
 
@@ -1400,6 +1426,7 @@ class Session extends DataClass implements Insertable<Session> {
       endTime: serializer.fromJson<DateTime?>(json['endTime']),
       duration: serializer.fromJson<int>(json['duration']),
       type: serializer.fromJson<String>(json['type']),
+      note: serializer.fromJson<String?>(json['note']),
     );
   }
   @override
@@ -1412,6 +1439,7 @@ class Session extends DataClass implements Insertable<Session> {
       'endTime': serializer.toJson<DateTime?>(endTime),
       'duration': serializer.toJson<int>(duration),
       'type': serializer.toJson<String>(type),
+      'note': serializer.toJson<String?>(note),
     };
   }
 
@@ -1422,6 +1450,7 @@ class Session extends DataClass implements Insertable<Session> {
     Value<DateTime?> endTime = const Value.absent(),
     int? duration,
     String? type,
+    Value<String?> note = const Value.absent(),
   }) => Session(
     id: id ?? this.id,
     taskId: taskId ?? this.taskId,
@@ -1429,6 +1458,7 @@ class Session extends DataClass implements Insertable<Session> {
     endTime: endTime.present ? endTime.value : this.endTime,
     duration: duration ?? this.duration,
     type: type ?? this.type,
+    note: note.present ? note.value : this.note,
   );
   Session copyWithCompanion(SessionsCompanion data) {
     return Session(
@@ -1438,6 +1468,7 @@ class Session extends DataClass implements Insertable<Session> {
       endTime: data.endTime.present ? data.endTime.value : this.endTime,
       duration: data.duration.present ? data.duration.value : this.duration,
       type: data.type.present ? data.type.value : this.type,
+      note: data.note.present ? data.note.value : this.note,
     );
   }
 
@@ -1449,14 +1480,15 @@ class Session extends DataClass implements Insertable<Session> {
           ..write('startTime: $startTime, ')
           ..write('endTime: $endTime, ')
           ..write('duration: $duration, ')
-          ..write('type: $type')
+          ..write('type: $type, ')
+          ..write('note: $note')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, taskId, startTime, endTime, duration, type);
+      Object.hash(id, taskId, startTime, endTime, duration, type, note);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1466,7 +1498,8 @@ class Session extends DataClass implements Insertable<Session> {
           other.startTime == this.startTime &&
           other.endTime == this.endTime &&
           other.duration == this.duration &&
-          other.type == this.type);
+          other.type == this.type &&
+          other.note == this.note);
 }
 
 class SessionsCompanion extends UpdateCompanion<Session> {
@@ -1476,6 +1509,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
   final Value<DateTime?> endTime;
   final Value<int> duration;
   final Value<String> type;
+  final Value<String?> note;
   final Value<int> rowid;
   const SessionsCompanion({
     this.id = const Value.absent(),
@@ -1484,6 +1518,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.endTime = const Value.absent(),
     this.duration = const Value.absent(),
     this.type = const Value.absent(),
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SessionsCompanion.insert({
@@ -1493,6 +1528,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.endTime = const Value.absent(),
     this.duration = const Value.absent(),
     this.type = const Value.absent(),
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : taskId = Value(taskId),
        startTime = Value(startTime);
@@ -1503,6 +1539,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Expression<DateTime>? endTime,
     Expression<int>? duration,
     Expression<String>? type,
+    Expression<String>? note,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1512,6 +1549,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       if (endTime != null) 'end_time': endTime,
       if (duration != null) 'duration': duration,
       if (type != null) 'type': type,
+      if (note != null) 'note': note,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1523,6 +1561,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Value<DateTime?>? endTime,
     Value<int>? duration,
     Value<String>? type,
+    Value<String?>? note,
     Value<int>? rowid,
   }) {
     return SessionsCompanion(
@@ -1532,6 +1571,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       endTime: endTime ?? this.endTime,
       duration: duration ?? this.duration,
       type: type ?? this.type,
+      note: note ?? this.note,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1557,6 +1597,9 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     if (type.present) {
       map['type'] = Variable<String>(type.value);
     }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1572,6 +1615,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
           ..write('endTime: $endTime, ')
           ..write('duration: $duration, ')
           ..write('type: $type, ')
+          ..write('note: $note, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7370,6 +7414,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       Value<DateTime?> endTime,
       Value<int> duration,
       Value<String> type,
+      Value<String?> note,
       Value<int> rowid,
     });
 typedef $$SessionsTableUpdateCompanionBuilder =
@@ -7380,6 +7425,7 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<DateTime?> endTime,
       Value<int> duration,
       Value<String> type,
+      Value<String?> note,
       Value<int> rowid,
     });
 
@@ -7437,6 +7483,11 @@ class $$SessionsTableFilterComposer
 
   ColumnFilters<String> get type => $composableBuilder(
     column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7498,6 +7549,11 @@ class $$SessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$TasksTableOrderingComposer get taskId {
     final $$TasksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -7545,6 +7601,9 @@ class $$SessionsTableAnnotationComposer
 
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 
   $$TasksTableAnnotationComposer get taskId {
     final $$TasksTableAnnotationComposer composer = $composerBuilder(
@@ -7604,6 +7663,7 @@ class $$SessionsTableTableManager
                 Value<DateTime?> endTime = const Value.absent(),
                 Value<int> duration = const Value.absent(),
                 Value<String> type = const Value.absent(),
+                Value<String?> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion(
                 id: id,
@@ -7612,6 +7672,7 @@ class $$SessionsTableTableManager
                 endTime: endTime,
                 duration: duration,
                 type: type,
+                note: note,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7622,6 +7683,7 @@ class $$SessionsTableTableManager
                 Value<DateTime?> endTime = const Value.absent(),
                 Value<int> duration = const Value.absent(),
                 Value<String> type = const Value.absent(),
+                Value<String?> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion.insert(
                 id: id,
@@ -7630,6 +7692,7 @@ class $$SessionsTableTableManager
                 endTime: endTime,
                 duration: duration,
                 type: type,
+                note: note,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

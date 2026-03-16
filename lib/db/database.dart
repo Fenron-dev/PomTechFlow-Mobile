@@ -45,6 +45,7 @@ class Sessions extends Table {
   IntColumn get duration => integer().withDefault(const Constant(0))(); // Minuten
   TextColumn get type => text().withDefault(const Constant('WORK'))();
   // Type: WORK | SHORT_BREAK | LONG_BREAK
+  TextColumn get note => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -207,7 +208,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -230,6 +231,10 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(tasks, tasks.recurrenceType);
         await m.addColumn(tasks, tasks.recurrenceInterval);
         await m.createTable(taskTemplates);
+      }
+      if (from < 5) {
+        // v4 → v5: Session-Notiz
+        await m.addColumn(sessions, sessions.note);
       }
     },
   );
