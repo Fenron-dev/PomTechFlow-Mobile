@@ -285,10 +285,8 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (_, i) {
                 final taskId = filtered[i].task.id;
-                final isRunning = timer.status == TimerStatus.running &&
-                    timer.activeTaskId == taskId;
-                final isPaused = timer.status == TimerStatus.paused &&
-                    timer.activeTaskId == taskId;
+                final isRunning = timer[taskId]?.status == TimerStatus.running;
+                final isPaused = timer[taskId]?.status == TimerStatus.paused;
                 return TaskCard(
                   task: filtered[i],
                   isTimerRunning: isRunning,
@@ -304,17 +302,20 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                     }
                   },
                   onDelete: () => _deleteTask(taskId, isTablet: isTablet),
-                  onTimerStart: timer.status == TimerStatus.idle
-                      ? () => ref.read(timerProvider.notifier).start(taskId)
+                  onTimerStart: !timer.containsKey(taskId)
+                      ? () async {
+                          await ref.read(timerProvider.notifier).start(taskId);
+                          ref.invalidate(tasksProvider);
+                        }
                       : null,
                   onTimerPause: isRunning
-                      ? () => ref.read(timerProvider.notifier).pause()
+                      ? () => ref.read(timerProvider.notifier).pause(taskId)
                       : null,
                   onTimerResume: isPaused
-                      ? () => ref.read(timerProvider.notifier).resume()
+                      ? () => ref.read(timerProvider.notifier).resume(taskId)
                       : null,
                   onTimerStop: (isRunning || isPaused)
-                      ? () => handleTimerStop(context, ref)
+                      ? () => handleTimerStop(context, ref, taskId)
                       : null,
                 );
               },
@@ -465,15 +466,15 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   Future<void> _deleteTask(String id, {required bool isTablet}) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Task löschen?'),
         content: const Text('Alle Daten dieses Tasks werden gelöscht.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogCtx, false),
               child: const Text('Abbrechen')),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogCtx, true),
               child: const Text('Löschen')),
         ],
       ),

@@ -43,7 +43,7 @@ class TaskDetailScreen extends ConsumerWidget {
           return const Scaffold(body: Center(child: Text('Task nicht gefunden')));
         }
         final task = detail.task;
-        final isActiveTask = timer.activeTaskId == taskId;
+        final isActiveTask = timer.containsKey(taskId);
 
         return DefaultTabController(
           length: 5,

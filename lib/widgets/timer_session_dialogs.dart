@@ -342,15 +342,16 @@ class _TimerStopSheetState extends ConsumerState<_TimerStopSheet> {
 
 // ─── Hilfsfunktion: Kompletten Stop-Flow ausführen ───────────────────────────
 
-/// Stops the running timer, shows the stop dialog, and persists the result.
+/// Stops the running timer for [taskId], shows the stop dialog, and persists the result.
 /// Can be called from any screen (timer, task list, dashboard).
-Future<void> handleTimerStop(BuildContext context, WidgetRef ref) async {
-  final timer = ref.read(timerProvider);
-  final taskId = timer.activeTaskId;
-  final sessionMins = timer.elapsedSeconds ~/ 60;
+Future<void> handleTimerStop(BuildContext context, WidgetRef ref, String taskId) async {
+  final timerMap = ref.read(timerProvider);
+  final entry = timerMap[taskId];
+  if (entry == null) return;
+  final sessionMins = entry.elapsedSeconds ~/ 60;
 
-  await ref.read(timerProvider.notifier).stop();
-  if (taskId == null || !context.mounted) return;
+  await ref.read(timerProvider.notifier).stop(taskId);
+  if (!context.mounted) return;
 
   final result = await showTimerStopDialog(context, ref, taskId, sessionMins);
   if (result == null || !context.mounted) return;

@@ -250,20 +250,16 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   segments: const [
                     ButtonSegment(
                         value: 'LOW',
-                        label: Text('Niedrig'),
-                        icon: Icon(Icons.arrow_downward, size: 16)),
+                        icon: Tooltip(message: 'Niedrig', child: Icon(Icons.arrow_downward, size: 16))),
                     ButtonSegment(
                         value: 'NORMAL',
-                        label: Text('Normal'),
-                        icon: Icon(Icons.remove, size: 16)),
+                        icon: Tooltip(message: 'Normal', child: Icon(Icons.remove, size: 16))),
                     ButtonSegment(
                         value: 'HIGH',
-                        label: Text('Hoch'),
-                        icon: Icon(Icons.arrow_upward, size: 16)),
+                        icon: Tooltip(message: 'Hoch', child: Icon(Icons.arrow_upward, size: 16))),
                     ButtonSegment(
                         value: 'CRITICAL',
-                        label: Text('Kritisch'),
-                        icon: Icon(Icons.priority_high, size: 16)),
+                        icon: Tooltip(message: 'Kritisch', child: Icon(Icons.priority_high, size: 16))),
                   ],
                   selected: {_priority},
                   onSelectionChanged: (s) =>

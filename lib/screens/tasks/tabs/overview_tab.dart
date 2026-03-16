@@ -139,11 +139,11 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
     final aeMin = settings?.aeMinutes ?? 10;
     final ae = detail.aeCount(aeMin);
     final cs = Theme.of(context).colorScheme;
-    final timer = ref.watch(timerProvider);
+    final timerMap = ref.watch(timerProvider);
     final timerNotifier = ref.read(timerProvider.notifier);
-    final isThisTask = timer.activeTaskId == task.id;
-    final isRunning = isThisTask && timer.status == TimerStatus.running;
-    final isPaused = isThisTask && timer.status == TimerStatus.paused;
+    final isThisTask = timerMap.containsKey(task.id);
+    final isRunning = timerMap[task.id]?.status == TimerStatus.running;
+    final isPaused = timerMap[task.id]?.status == TimerStatus.paused;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -156,7 +156,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         if (task.status != 'COMPLETED')
           _TaskTimerWidget(
             taskId: task.id,
-            timer: timer,
+            timerEntry: timerMap[task.id],
             isThisTask: isThisTask,
             isRunning: isRunning,
             isPaused: isPaused,
@@ -164,10 +164,10 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
               final go = await showTimerStartDialog(context, ref, task.id);
               if (go && context.mounted) await timerNotifier.start(task.id);
             },
-            onPause: () => timerNotifier.pause(),
-            onResume: () => timerNotifier.resume(),
+            onPause: () => timerNotifier.pause(task.id),
+            onResume: () => timerNotifier.resume(task.id),
             onStop: () async {
-              await handleTimerStop(context, ref);
+              await handleTimerStop(context, ref, task.id);
               ref.invalidate(todosProvider(task.id));
               ref.invalidate(notesProvider(task.id));
             },
@@ -400,7 +400,7 @@ class _StatCard extends StatelessWidget {
 
 class _TaskTimerWidget extends StatelessWidget {
   final String taskId;
-  final TimerState timer;
+  final TimerEntry? timerEntry;
   final bool isThisTask;
   final bool isRunning;
   final bool isPaused;
@@ -412,7 +412,7 @@ class _TaskTimerWidget extends StatelessWidget {
 
   const _TaskTimerWidget({
     required this.taskId,
-    required this.timer,
+    required this.timerEntry,
     required this.isThisTask,
     required this.isRunning,
     required this.isPaused,
@@ -438,9 +438,9 @@ class _TaskTimerWidget extends StatelessWidget {
         child: Column(
           children: [
             // Zeitanzeige
-            if (isThisTask) ...[
+            if (isThisTask && timerEntry != null) ...[
               Text(
-                timer.timeString,
+                timerEntry!.timeString,
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isRunning ? cs.primary : cs.tertiary,
@@ -448,7 +448,7 @@ class _TaskTimerWidget extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               LinearProgressIndicator(
-                value: timer.progress,
+                value: timerEntry!.progress,
                 backgroundColor: cs.surfaceContainerHighest,
               ),
               const SizedBox(height: 12),
@@ -718,15 +718,15 @@ class _SessionsSection extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref, Session s) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Session löschen?'),
         content: const Text('Die Zeiterfassung dieser Session wird entfernt.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogCtx, false),
               child: const Text('Abbrechen')),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogCtx, true),
               child: const Text('Löschen')),
         ],
       ),

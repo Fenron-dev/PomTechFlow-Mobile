@@ -11,7 +11,7 @@ class TimerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final timer = ref.watch(timerProvider);
+    final timerMap = ref.watch(timerProvider);
     final tasksAsync = ref.watch(tasksProvider);
     final cs = Theme.of(context).colorScheme;
 
@@ -19,7 +19,6 @@ class TimerScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Timer'),
         actions: [
-          // Quick-Reminder Bell
           IconButton(
             icon: const Icon(Icons.alarm_add_outlined),
             tooltip: 'Erinnerung setzen',
@@ -30,157 +29,228 @@ class TimerScreen extends ConsumerWidget {
       body: Column(
         children: [
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Status-Label
-                Text(
-                  switch (timer.status) {
-                    TimerStatus.running => 'Läuft',
-                    TimerStatus.paused => 'Pausiert',
-                    TimerStatus.idle => 'Bereit',
-                  },
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(color: cs.primary),
-                ),
-                const SizedBox(height: 32),
-
-                // Timer-Ring (füllt sich alle 25 Minuten)
-                SizedBox(
-                  width: 220,
-                  height: 220,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CustomPaint(
-                        size: const Size(220, 220),
-                        painter: _TimerRingPainter(
-                          progress: timer.progress,
-                          color: timer.status == TimerStatus.paused
-                              ? cs.tertiary
-                              : cs.primary,
-                          backgroundColor: cs.surfaceContainerHighest,
-                        ),
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            timer.timeString,
-                            style: Theme.of(context)
-                                .textTheme
-                                .displayMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures()
-                                  ],
-                                ),
-                          ),
-                          if (timer.activeTaskId != null)
-                            tasksAsync.maybeWhen(
-                              data: (tasks) {
-                                final t = tasks
-                                    .where((t) =>
-                                        t.task.id == timer.activeTaskId)
-                                    .firstOrNull;
-                                return t != null
-                                    ? Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 16),
-                                        child: Text(
-                                          t.task.title,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelMedium
-                                              ?.copyWith(color: cs.outline),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      )
-                                    : const SizedBox();
-                              },
-                              orElse: () => const SizedBox(),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 40),
-
-                // Steuerung
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (timer.status == TimerStatus.idle) ...[
-                      tasksAsync.maybeWhen(
-                        data: (tasks) {
-                          final activeTasks = tasks
-                              .where((t) =>
-                                  t.task.status == 'ACTIVE' ||
-                                  t.task.status == 'PLANNED')
-                              .toList();
-                          if (activeTasks.isEmpty) {
-                            return Text('Keine Tasks vorhanden',
-                                style: TextStyle(color: cs.outline));
-                          }
-                          return _TaskPickerButton(
-                            tasks: activeTasks,
-                            onStart: (taskId) => ref
-                                .read(timerProvider.notifier)
-                                .start(taskId),
-                          );
-                        },
-                        orElse: () => const CircularProgressIndicator(),
-                      ),
-                    ] else ...[
-                      if (timer.status == TimerStatus.paused)
-                        _ControlButton(
-                          icon: Icons.play_arrow,
-                          color: cs.primary,
-                          onPressed: () =>
-                              ref.read(timerProvider.notifier).resume(),
-                          size: 64,
-                        )
-                      else
-                        _ControlButton(
-                          icon: Icons.pause,
-                          color: cs.primary,
-                          onPressed: () =>
-                              ref.read(timerProvider.notifier).pause(),
-                          size: 64,
-                        ),
-                      const SizedBox(width: 20),
-                      _ControlButton(
-                        icon: Icons.stop,
-                        color: cs.error,
-                        onPressed: () =>
-                            _stopTimer(context, ref, timer),
-                        size: 48,
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
+            child: timerMap.isEmpty
+                ? _buildIdleState(context, ref, tasksAsync, cs)
+                : _buildActiveState(context, ref, timerMap, tasksAsync, cs),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildIdleState(
+      BuildContext context,
+      WidgetRef ref,
+      AsyncValue<List<TaskWithDetails>> tasksAsync,
+      ColorScheme cs) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text('Bereit',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(color: cs.primary)),
+        const SizedBox(height: 32),
+        SizedBox(
+          width: 220,
+          height: 220,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: const Size(220, 220),
+                painter: _TimerRingPainter(
+                  progress: 0,
+                  color: cs.primary,
+                  backgroundColor: cs.surfaceContainerHighest,
+                ),
+              ),
+              Text(
+                '00:00',
+                style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 40),
+        tasksAsync.maybeWhen(
+          data: (tasks) {
+            final activeTasks = tasks
+                .where((t) =>
+                    t.task.status == 'ACTIVE' || t.task.status == 'PLANNED')
+                .toList();
+            if (activeTasks.isEmpty) {
+              return Text('Keine Tasks vorhanden',
+                  style: TextStyle(color: cs.outline));
+            }
+            return _TaskPickerButton(
+              tasks: activeTasks,
+              onStart: (taskId) =>
+                  ref.read(timerProvider.notifier).start(taskId),
+            );
+          },
+          orElse: () => const CircularProgressIndicator(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveState(
+      BuildContext context,
+      WidgetRef ref,
+      Map<String, TimerEntry> timerMap,
+      AsyncValue<List<TaskWithDetails>> tasksAsync,
+      ColorScheme cs) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ...timerMap.entries.map((entry) {
+          final taskId = entry.key;
+          final timerEntry = entry.value;
+          final taskTitle = tasksAsync.maybeWhen(
+                data: (tasks) => tasks
+                    .where((t) => t.task.id == taskId)
+                    .firstOrNull
+                    ?.task
+                    .title,
+                orElse: () => null,
+              ) ??
+              taskId;
+          return _ActiveTimerCard(
+            taskId: taskId,
+            taskTitle: taskTitle,
+            entry: timerEntry,
+            onPause: () => ref.read(timerProvider.notifier).pause(taskId),
+            onResume: () => ref.read(timerProvider.notifier).resume(taskId),
+            onStop: () => _stopTimer(context, ref, taskId),
+          );
+        }),
+        const SizedBox(height: 16),
+        tasksAsync.maybeWhen(
+          data: (tasks) {
+            final activeTasks = tasks
+                .where((t) =>
+                    (t.task.status == 'ACTIVE' ||
+                        t.task.status == 'PLANNED') &&
+                    !timerMap.containsKey(t.task.id))
+                .toList();
+            if (activeTasks.isEmpty) return const SizedBox();
+            return _TaskPickerButton(
+              tasks: activeTasks,
+              label: 'Weiteren Task starten',
+              onStart: (taskId) =>
+                  ref.read(timerProvider.notifier).start(taskId),
+            );
+          },
+          orElse: () => const SizedBox(),
+        ),
+      ],
+    );
+  }
+
   Future<void> _stopTimer(
-      BuildContext context, WidgetRef ref, TimerState timer) async {
-    await handleTimerStop(context, ref);
+      BuildContext context, WidgetRef ref, String taskId) async {
+    await handleTimerStop(context, ref, taskId);
   }
 
   Future<void> _showReminderDialog(BuildContext context) async {
     await showDialog(
       context: context,
       builder: (_) => const _ReminderDialog(),
+    );
+  }
+}
+
+// ─── Active Timer Card ────────────────────────────────────────────────────────
+
+class _ActiveTimerCard extends StatelessWidget {
+  final String taskId;
+  final String taskTitle;
+  final TimerEntry entry;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+  final VoidCallback onStop;
+
+  const _ActiveTimerCard({
+    required this.taskId,
+    required this.taskTitle,
+    required this.entry,
+    required this.onPause,
+    required this.onResume,
+    required this.onStop,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isRunning = entry.status == TimerStatus.running;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: isRunning ? cs.primaryContainer : cs.tertiaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 72,
+              height: 72,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CustomPaint(
+                    size: const Size(72, 72),
+                    painter: _TimerRingPainter(
+                      progress: entry.progress,
+                      color: isRunning ? cs.primary : cs.tertiary,
+                      backgroundColor: cs.surfaceContainerHighest,
+                    ),
+                  ),
+                  Text(
+                    entry.timeString,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                taskTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (isRunning)
+              IconButton.filled(
+                onPressed: onPause,
+                icon: const Icon(Icons.pause),
+                tooltip: 'Pausieren',
+              )
+            else
+              IconButton.filled(
+                onPressed: onResume,
+                icon: const Icon(Icons.play_arrow),
+                tooltip: 'Fortsetzen',
+              ),
+            const SizedBox(width: 4),
+            IconButton(
+              onPressed: onStop,
+              icon: Icon(Icons.stop_circle_outlined, color: cs.error),
+              tooltip: 'Stoppen',
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -301,9 +371,14 @@ class _ReminderDialogState extends State<_ReminderDialog> {
 
 class _TaskPickerButton extends StatelessWidget {
   final List<TaskWithDetails> tasks;
+  final String label;
   final ValueChanged<String> onStart;
 
-  const _TaskPickerButton({required this.tasks, required this.onStart});
+  const _TaskPickerButton({
+    required this.tasks,
+    required this.onStart,
+    this.label = 'Task auswählen & starten',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -316,7 +391,7 @@ class _TaskPickerButton extends StatelessWidget {
         if (taskId != null) onStart(taskId);
       },
       icon: const Icon(Icons.play_arrow),
-      label: const Text('Task auswählen & starten'),
+      label: Text(label),
     );
   }
 }
@@ -352,39 +427,6 @@ class _TaskPickerSheet extends StatelessWidget {
         ),
         const SizedBox(height: 16),
       ],
-    );
-  }
-}
-
-// ─── Control Button ───────────────────────────────────────────────────────────
-
-class _ControlButton extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final VoidCallback onPressed;
-  final double size;
-
-  const _ControlButton({
-    required this.icon,
-    required this.color,
-    required this.onPressed,
-    required this.size,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: color,
-          shape: const CircleBorder(),
-          padding: EdgeInsets.zero,
-        ),
-        child: Icon(icon, size: size * 0.45, color: Colors.white),
-      ),
     );
   }
 }

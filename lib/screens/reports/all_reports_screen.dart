@@ -59,15 +59,15 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
   Future<void> _delete(File file) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Bericht löschen?'),
         content: const Text('Die PDF-Datei wird dauerhaft gelöscht.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogCtx, false),
               child: const Text('Abbrechen')),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogCtx, true),
               child: const Text('Löschen')),
         ],
       ),

@@ -61,11 +61,6 @@ class DashboardScreen extends ConsumerWidget {
           // Summe der aufgerundeten AE pro Task
           final totalAE = tasks.fold<int>(0, (s, t) => s + t.aeCount(aeMin));
 
-          // Task mit laufendem Timer
-          final activeTimerTask = timer.activeTaskId != null
-              ? tasks.where((t) => t.task.id == timer.activeTaskId).firstOrNull
-              : null;
-
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(tasksProvider),
             child: Align(
@@ -75,20 +70,6 @@ class DashboardScreen extends ConsumerWidget {
                 child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Aktiver Timer Banner
-                if (timer.status != TimerStatus.idle) ...[
-                  _TimerBanner(
-                    timer: timer,
-                    taskTitle: activeTimerTask?.task.title,
-                    onTap: () {
-                      if (timer.activeTaskId != null) {
-                        context.push('/tasks/${timer.activeTaskId}');
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
                 // Stats
                 LayoutBuilder(builder: (context, constraints) {
                   final cols = constraints.maxWidth >= 500 ? 4 : 2;
@@ -165,27 +146,28 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   ...active.take(3).map((t) {
-                    final isRunning = timer.status == TimerStatus.running &&
-                        timer.activeTaskId == t.task.id;
-                    final isPaused = timer.status == TimerStatus.paused &&
-                        timer.activeTaskId == t.task.id;
+                    final isRunning = timer[t.task.id]?.status == TimerStatus.running;
+                    final isPaused = timer[t.task.id]?.status == TimerStatus.paused;
                     return _TaskRow(
                       task: t,
                       isTimerRunning: isRunning,
                       isTimerPaused: isPaused,
                       aeMin: aeMin,
                       onTap: () => context.push('/tasks/${t.task.id}'),
-                      onTimerStart: timer.status == TimerStatus.idle
-                          ? () => ref.read(timerProvider.notifier).start(t.task.id)
+                      onTimerStart: !timer.containsKey(t.task.id)
+                          ? () async {
+                              await ref.read(timerProvider.notifier).start(t.task.id);
+                              ref.invalidate(tasksProvider);
+                            }
                           : null,
                       onTimerPause: isRunning
-                          ? () => ref.read(timerProvider.notifier).pause()
+                          ? () => ref.read(timerProvider.notifier).pause(t.task.id)
                           : null,
                       onTimerResume: isPaused
-                          ? () => ref.read(timerProvider.notifier).resume()
+                          ? () => ref.read(timerProvider.notifier).resume(t.task.id)
                           : null,
                       onTimerStop: (isRunning || isPaused)
-                          ? () => handleTimerStop(context, ref)
+                          ? () => handleTimerStop(context, ref, t.task.id)
                           : null,
                     );
                   }),
@@ -210,12 +192,24 @@ class DashboardScreen extends ConsumerWidget {
                       .take(3)
                       .map((t) => _TaskRow(
                             task: t,
-                            isTimerRunning: false,
-                            isTimerPaused: false,
+                            isTimerRunning: timer[t.task.id]?.status == TimerStatus.running,
+                            isTimerPaused: timer[t.task.id]?.status == TimerStatus.paused,
                             aeMin: aeMin,
                             onTap: () => context.push('/tasks/${t.task.id}'),
-                            onTimerStart: timer.status == TimerStatus.idle
-                                ? () => ref.read(timerProvider.notifier).start(t.task.id)
+                            onTimerStart: !timer.containsKey(t.task.id)
+                                ? () async {
+                                    await ref.read(timerProvider.notifier).start(t.task.id);
+                                    ref.invalidate(tasksProvider);
+                                  }
+                                : null,
+                            onTimerPause: timer[t.task.id]?.status == TimerStatus.running
+                                ? () => ref.read(timerProvider.notifier).pause(t.task.id)
+                                : null,
+                            onTimerResume: timer[t.task.id]?.status == TimerStatus.paused
+                                ? () => ref.read(timerProvider.notifier).resume(t.task.id)
+                                : null,
+                            onTimerStop: (timer[t.task.id] != null)
+                                ? () => handleTimerStop(context, ref, t.task.id)
                                 : null,
                           )),
                 ],
@@ -255,66 +249,6 @@ class DashboardScreen extends ConsumerWidget {
         ),
           );
         },
-      ),
-    );
-  }
-}
-
-// ─── Timer Banner ─────────────────────────────────────────────────────────────
-
-class _TimerBanner extends StatelessWidget {
-  final TimerState timer;
-  final String? taskTitle;
-  final VoidCallback onTap;
-
-  const _TimerBanner(
-      {required this.timer, required this.taskTitle, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isRunning = timer.status == TimerStatus.running;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isRunning ? cs.primaryContainer : cs.tertiaryContainer,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(isRunning ? Icons.timer : Icons.pause_circle_outline,
-                color: isRunning ? cs.primary : cs.tertiary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isRunning ? 'Timer läuft' : 'Timer pausiert',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  if (taskTitle != null)
-                    Text(taskTitle!,
-                        style: Theme.of(context).textTheme.bodySmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-            Text(
-              timer.timeString,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isRunning ? cs.primary : cs.tertiary),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right),
-          ],
-        ),
       ),
     );
   }

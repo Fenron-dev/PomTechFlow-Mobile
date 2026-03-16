@@ -4,27 +4,23 @@ import 'package:drift/drift.dart' as drift;
 import 'database_provider.dart';
 import '../db/database.dart';
 
-enum TimerStatus { idle, running, paused }
+enum TimerStatus { running, paused }
 
-/// Visual reference cycle for the ring animation (25 min, configurable)
+/// Ring fills over this many seconds (visual only, no auto-stop).
 const int _ringCycleSecs = 25 * 60;
 
-class TimerState {
+class TimerEntry {
   final TimerStatus status;
   final int elapsedSeconds;
-  final String? activeTaskId;
-  final String? activeSessionId;
+  final String sessionId;
 
-  const TimerState({
-    this.status = TimerStatus.idle,
-    this.elapsedSeconds = 0,
-    this.activeTaskId,
-    this.activeSessionId,
+  const TimerEntry({
+    required this.status,
+    required this.elapsedSeconds,
+    required this.sessionId,
   });
 
-  /// Ring fills over a configurable cycle (default 25 min) then resets.
-  double get progress =>
-      (elapsedSeconds % _ringCycleSecs) / _ringCycleSecs;
+  double get progress => (elapsedSeconds % _ringCycleSecs) / _ringCycleSecs;
 
   String get timeString {
     final h = elapsedSeconds ~/ 3600;
@@ -36,41 +32,43 @@ class TimerState {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  TimerState copyWith({
-    TimerStatus? status,
-    int? elapsedSeconds,
-    String? activeTaskId,
-    String? activeSessionId,
-  }) =>
-      TimerState(
+  TimerEntry copyWith({TimerStatus? status, int? elapsedSeconds}) => TimerEntry(
         status: status ?? this.status,
         elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
-        activeTaskId: activeTaskId ?? this.activeTaskId,
-        activeSessionId: activeSessionId ?? this.activeSessionId,
+        sessionId: sessionId,
       );
 }
 
-class TimerNotifier extends Notifier<TimerState> {
-  Timer? _timer;
-  DateTime? _sessionStart;
+class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
+  final Map<String, Timer> _tickers = {};
+  final Map<String, DateTime> _sessionStarts = {};
 
   @override
-  TimerState build() {
-    ref.onDispose(() => _timer?.cancel());
-    return const TimerState();
+  Map<String, TimerEntry> build() {
+    ref.onDispose(() {
+      for (final t in _tickers.values) {
+        t.cancel();
+      }
+    });
+    return {};
   }
 
+  bool isRunning(String taskId) =>
+      state[taskId]?.status == TimerStatus.running;
+
+  bool isActive(String taskId) => state.containsKey(taskId);
+
   Future<void> start(String taskId) async {
-    if (state.status == TimerStatus.running) return;
+    if (state.containsKey(taskId)) return; // already running
 
     final db = ref.read(databaseProvider);
-    _sessionStart = DateTime.now();
+    final sessionStart = DateTime.now();
+    final sessionId = 'sess_${DateTime.now().millisecondsSinceEpoch}_$taskId';
 
-    final sessionId = 'sess_${DateTime.now().millisecondsSinceEpoch}';
     await db.into(db.sessions).insert(SessionsCompanion.insert(
           id: drift.Value(sessionId),
           taskId: taskId,
-          startTime: _sessionStart!,
+          startTime: sessionStart,
           type: const drift.Value('WORK'),
         ));
 
@@ -81,71 +79,86 @@ class TimerNotifier extends Notifier<TimerState> {
       ),
     );
 
-    state = state.copyWith(
+    _sessionStarts[taskId] = sessionStart;
+
+    final newState = Map<String, TimerEntry>.from(state);
+    newState[taskId] = TimerEntry(
       status: TimerStatus.running,
       elapsedSeconds: 0,
-      activeTaskId: taskId,
-      activeSessionId: sessionId,
+      sessionId: sessionId,
     );
+    state = newState;
 
-    _startTick();
+    _startTick(taskId);
   }
 
-  void pause() {
-    if (state.status != TimerStatus.running) return;
-    _timer?.cancel();
-    state = state.copyWith(status: TimerStatus.paused);
+  void pause(String taskId) {
+    if (state[taskId]?.status != TimerStatus.running) return;
+    _tickers[taskId]?.cancel();
+    _tickers.remove(taskId);
+    final newState = Map<String, TimerEntry>.from(state);
+    newState[taskId] = state[taskId]!.copyWith(status: TimerStatus.paused);
+    state = newState;
   }
 
-  void resume() {
-    if (state.status != TimerStatus.paused) return;
-    state = state.copyWith(status: TimerStatus.running);
-    _startTick();
+  void resume(String taskId) {
+    if (state[taskId]?.status != TimerStatus.paused) return;
+    final newState = Map<String, TimerEntry>.from(state);
+    newState[taskId] = state[taskId]!.copyWith(status: TimerStatus.running);
+    state = newState;
+    _startTick(taskId);
   }
 
-  Future<void> stop() async {
-    _timer?.cancel();
-    await _finalizeSession();
-    state = const TimerState();
+  Future<void> stop(String taskId) async {
+    _tickers[taskId]?.cancel();
+    _tickers.remove(taskId);
+    await _finalizeSession(taskId);
+    final newState = Map<String, TimerEntry>.from(state);
+    newState.remove(taskId);
+    state = newState;
+    _sessionStarts.remove(taskId);
   }
 
-  void _startTick() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+  void _startTick(String taskId) {
+    _tickers[taskId]?.cancel();
+    _tickers[taskId] = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!state.containsKey(taskId)) return;
+      final newState = Map<String, TimerEntry>.from(state);
+      newState[taskId] =
+          state[taskId]!.copyWith(elapsedSeconds: state[taskId]!.elapsedSeconds + 1);
+      state = newState;
+    });
   }
 
-  void _tick() {
-    state = state.copyWith(elapsedSeconds: state.elapsedSeconds + 1);
-  }
+  Future<void> _finalizeSession(String taskId) async {
+    final entry = state[taskId];
+    final sessionStart = _sessionStarts[taskId];
+    if (entry == null || sessionStart == null) return;
 
-  Future<void> _finalizeSession() async {
-    if (state.activeSessionId == null || _sessionStart == null) return;
     final db = ref.read(databaseProvider);
     final now = DateTime.now();
-    final duration = now.difference(_sessionStart!).inMinutes;
+    final duration = now.difference(sessionStart).inMinutes;
 
     await (db.update(db.sessions)
-          ..where((s) => s.id.equals(state.activeSessionId!)))
+          ..where((s) => s.id.equals(entry.sessionId)))
         .write(SessionsCompanion(
       endTime: drift.Value(now),
       duration: drift.Value(duration),
     ));
 
-    if (state.activeTaskId != null) {
-      final task = await (db.select(db.tasks)
-            ..where((t) => t.id.equals(state.activeTaskId!)))
-          .getSingle();
-      await (db.update(db.tasks)
-            ..where((t) => t.id.equals(state.activeTaskId!)))
-          .write(TasksCompanion(
+    final task = await (db.select(db.tasks)
+          ..where((t) => t.id.equals(taskId)))
+        .getSingle();
+    await (db.update(db.tasks)..where((t) => t.id.equals(taskId))).write(
+      TasksCompanion(
         totalMinutes: drift.Value(task.totalMinutes + duration),
         updatedAt: drift.Value(now),
-      ));
-    }
-    _sessionStart = null;
+      ),
+    );
   }
 }
 
-final timerProvider = NotifierProvider<TimerNotifier, TimerState>(
-  TimerNotifier.new,
+final timerProvider =
+    NotifierProvider<MultiTimerNotifier, Map<String, TimerEntry>>(
+  MultiTimerNotifier.new,
 );
