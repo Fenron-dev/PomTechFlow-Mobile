@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
@@ -286,15 +287,13 @@ class AppDatabase extends _$AppDatabase {
 // ─── UUID Helper ──────────────────────────────────────────────────────────────
 
 String _uuid() {
-  // Simple UUID v4 ohne externes Package
-  final now = DateTime.now().microsecondsSinceEpoch;
-  final rand = now ^ (now >> 16);
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replaceAllMapped(
-    RegExp(r'[xy]'),
-    (m) {
-      final r = (rand + m.start * 7) % 16;
-      final v = m.group(0) == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toRadixString(16);
-    },
-  );
+  // UUID v4 mit kryptographisch sicherem Zufallsgenerator
+  final rng = Random.secure();
+  final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 1
+  String hex(int b) => b.toRadixString(16).padLeft(2, '0');
+  final h = bytes.map(hex).join();
+  return '${h.substring(0, 8)}-${h.substring(8, 12)}-'
+      '${h.substring(12, 16)}-${h.substring(16, 20)}-${h.substring(20, 32)}';
 }

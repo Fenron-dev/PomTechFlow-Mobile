@@ -93,30 +93,15 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
       );
       return;
     }
-    await showModalBottomSheet(
+    final selected = await showModalBottomSheet<List<WorkflowWithDetails>>(
       context: context,
-      builder: (_) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('Workflow anwenden',
-                style: Theme.of(context).textTheme.titleLarge),
-          ),
-          const Divider(height: 1),
-          ...workflows.map((wf) => ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: Text(wf.workflow.name),
-                subtitle: Text('${wf.items.length} Punkte'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _applyWorkflow(wf);
-                },
-              )),
-          const SizedBox(height: 8),
-        ],
-      ),
+      isScrollControlled: true,
+      builder: (_) => _WorkflowMultiPicker(workflows: workflows),
     );
+    if (selected == null || selected.isEmpty) return;
+    for (final wf in selected) {
+      await _applyWorkflow(wf);
+    }
   }
 
   @override
@@ -447,6 +432,84 @@ class _TodoTile extends StatelessWidget {
               child: const Icon(Icons.drag_handle,
                   size: 18, color: Colors.grey),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Multi-Workflow Picker ────────────────────────────────────────────────────
+
+class _WorkflowMultiPicker extends StatefulWidget {
+  final List<WorkflowWithDetails> workflows;
+  const _WorkflowMultiPicker({required this.workflows});
+
+  @override
+  State<_WorkflowMultiPicker> createState() => _WorkflowMultiPickerState();
+}
+
+class _WorkflowMultiPickerState extends State<_WorkflowMultiPicker> {
+  final Set<String> _selected = {};
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.5,
+      minChildSize: 0.3,
+      maxChildSize: 0.85,
+      expand: false,
+      builder: (_, scrollCtrl) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              children: [
+                Text('Workflows anwenden',
+                    style: Theme.of(context).textTheme.titleLarge),
+                const Spacer(),
+                FilledButton.icon(
+                  onPressed: _selected.isEmpty
+                      ? null
+                      : () => Navigator.pop(
+                            context,
+                            widget.workflows
+                                .where((w) => _selected.contains(w.workflow.id))
+                                .toList(),
+                          ),
+                  icon: const Icon(Icons.check),
+                  label: Text(_selected.isEmpty
+                      ? 'Anwenden'
+                      : 'Anwenden (${_selected.length})'),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: ListView.builder(
+              controller: scrollCtrl,
+              itemCount: widget.workflows.length,
+              itemBuilder: (_, i) {
+                final wf = widget.workflows[i];
+                final checked = _selected.contains(wf.workflow.id);
+                return CheckboxListTile(
+                  value: checked,
+                  onChanged: (v) => setState(() {
+                    if (v == true) {
+                      _selected.add(wf.workflow.id);
+                    } else {
+                      _selected.remove(wf.workflow.id);
+                    }
+                  }),
+                  secondary: const Icon(Icons.folder_outlined),
+                  title: Text(wf.workflow.name),
+                  subtitle: Text('${wf.items.length} Punkte'),
+                  controlAffinity: ListTileControlAffinity.leading,
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
         ],
       ),
     );

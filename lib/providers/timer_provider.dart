@@ -137,7 +137,9 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
 
     final db = ref.read(databaseProvider);
     final now = DateTime.now();
-    final duration = now.difference(sessionStart).inMinutes;
+    // Ceiling: angefangene Minute zählt voll (z.B. 90s → 2 Min, 30s → 1 Min)
+    final durationSecs = now.difference(sessionStart).inSeconds;
+    final duration = (durationSecs / 60).ceil().toInt();
 
     await (db.update(db.sessions)
           ..where((s) => s.id.equals(entry.sessionId)))
