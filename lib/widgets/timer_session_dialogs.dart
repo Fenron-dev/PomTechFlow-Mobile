@@ -185,10 +185,7 @@ class _TimerStopSheetState extends ConsumerState<_TimerStopSheet> {
   @override
   void initState() {
     super.initState();
-    // Bereits erledigte rausfiltern, offene vorauswählen
-    for (final todo in widget.todos.where((t) => !t.completed)) {
-      _toComplete.add(todo.id);
-    }
+    // Start with nothing selected — user picks what they completed
   }
 
   @override
@@ -373,6 +370,8 @@ Future<void> handleTimerStop(BuildContext context, WidgetRef ref, String taskId)
   }
 
   ref.invalidate(tasksProvider);
+  ref.invalidate(sessionsProvider(taskId));
+  ref.invalidate(taskDetailProvider(taskId));
 }
 
 // ─── Hilfsfunktion: Stop-Ergebnis in DB schreiben ────────────────────────────

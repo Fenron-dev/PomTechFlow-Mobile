@@ -146,10 +146,16 @@ class _TemplateCard extends StatelessWidget {
                     label: Text(twd.customer!.name),
                     visualDensity: VisualDensity.compact,
                   ),
-                if (twd.workflow != null)
+                for (final wf in twd.workflows)
                   Chip(
                     avatar: const Icon(Icons.checklist, size: 14),
-                    label: Text(twd.workflow!.name),
+                    label: Text(wf.name),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                if (twd.customTodos.isNotEmpty)
+                  Chip(
+                    avatar: const Icon(Icons.add_task, size: 14),
+                    label: Text('${twd.customTodos.length} eigene Punkte'),
                     visualDensity: VisualDensity.compact,
                   ),
                 if (twd.bundle != null)
@@ -181,9 +187,12 @@ class _TemplateForm extends ConsumerStatefulWidget {
 class _TemplateFormState extends ConsumerState<_TemplateForm> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _descCtrl;
+  final TextEditingController _todoCtrl = TextEditingController();
   String? _customerId;
-  String? _workflowId;
+  List<String> _selectedWorkflowIds = [];
+  List<String> _customTodos = [];
   String? _bundleId;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -192,44 +201,92 @@ class _TemplateFormState extends ConsumerState<_TemplateForm> {
     _titleCtrl = TextEditingController(text: t?.title ?? '');
     _descCtrl = TextEditingController(text: t?.description ?? '');
     _customerId = t?.customerId;
-    _workflowId = t?.workflowId;
     _bundleId = t?.hardwareBundleId;
+    _selectedWorkflowIds =
+        widget.existing?.workflows.map((w) => w.id).toList() ?? [];
+    _customTodos =
+        widget.existing?.customTodos.map((td) => td.content).toList() ?? [];
   }
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _todoCtrl.dispose();
     super.dispose();
+  }
+
+  void _addTodo() {
+    final text = _todoCtrl.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _customTodos.add(text);
+      _todoCtrl.clear();
+    });
   }
 
   Future<void> _save() async {
     if (_titleCtrl.text.trim().isEmpty) return;
+    if (_saving) return;
+    setState(() => _saving = true);
     final db = ref.read(databaseProvider);
-    if (widget.existing == null) {
-      await db.into(db.taskTemplates).insert(TaskTemplatesCompanion.insert(
-            title: _titleCtrl.text.trim(),
-            description: drift.Value(_descCtrl.text.trim().isEmpty
-                ? null
-                : _descCtrl.text.trim()),
-            customerId: drift.Value(_customerId),
-            workflowId: drift.Value(_workflowId),
-            hardwareBundleId: drift.Value(_bundleId),
-          ));
-    } else {
-      await (db.update(db.taskTemplates)
-            ..where((t) => t.id.equals(widget.existing!.template.id)))
-          .write(TaskTemplatesCompanion(
-        title: drift.Value(_titleCtrl.text.trim()),
-        description: drift.Value(_descCtrl.text.trim().isEmpty
-            ? null
-            : _descCtrl.text.trim()),
-        customerId: drift.Value(_customerId),
-        workflowId: drift.Value(_workflowId),
-        hardwareBundleId: drift.Value(_bundleId),
-      ));
+    try {
+      final String templateId;
+      if (widget.existing == null) {
+        templateId = 'tpl_${DateTime.now().millisecondsSinceEpoch}';
+        await db.into(db.taskTemplates).insert(TaskTemplatesCompanion.insert(
+              id: drift.Value(templateId),
+              title: _titleCtrl.text.trim(),
+              description: drift.Value(_descCtrl.text.trim().isEmpty
+                  ? null
+                  : _descCtrl.text.trim()),
+              customerId: drift.Value(_customerId),
+              hardwareBundleId: drift.Value(_bundleId),
+            ));
+      } else {
+        templateId = widget.existing!.template.id;
+        await (db.update(db.taskTemplates)
+              ..where((t) => t.id.equals(templateId)))
+            .write(TaskTemplatesCompanion(
+          title: drift.Value(_titleCtrl.text.trim()),
+          description: drift.Value(_descCtrl.text.trim().isEmpty
+              ? null
+              : _descCtrl.text.trim()),
+          customerId: drift.Value(_customerId),
+          hardwareBundleId: drift.Value(_bundleId),
+        ));
+        // Clear old associations
+        await (db.delete(db.taskTemplateWorkflows)
+              ..where((r) => r.templateId.equals(templateId)))
+            .go();
+        await (db.delete(db.taskTemplateTodos)
+              ..where((r) => r.templateId.equals(templateId)))
+            .go();
+      }
+
+      // Save workflow links
+      for (final wfId in _selectedWorkflowIds) {
+        await db.into(db.taskTemplateWorkflows).insert(
+              TaskTemplateWorkflowsCompanion.insert(
+                  templateId: templateId, workflowId: wfId),
+            );
+      }
+
+      // Save custom todos
+      for (var i = 0; i < _customTodos.length; i++) {
+        await db.into(db.taskTemplateTodos).insert(
+              TaskTemplateTodosCompanion.insert(
+                templateId: templateId,
+                content: _customTodos[i],
+                sortOrder: drift.Value(i),
+              ),
+            );
+      }
+
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
-    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -237,9 +294,10 @@ class _TemplateFormState extends ConsumerState<_TemplateForm> {
     final customersAsync = ref.watch(customersProvider);
     final workflowsAsync = ref.watch(workflowsProvider);
     final bundlesAsync = ref.watch(hardwareBundlesProvider);
+    final cs = Theme.of(context).colorScheme;
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.85,
+      initialChildSize: 0.9,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
@@ -260,7 +318,12 @@ class _TemplateFormState extends ConsumerState<_TemplateForm> {
                   ),
                   const Spacer(),
                   FilledButton(
-                      onPressed: _save, child: const Text('Speichern')),
+                      onPressed: _saving ? null : _save,
+                      child: _saving
+                          ? const SizedBox(
+                              width: 16, height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Speichern')),
                 ],
               ),
             ),
@@ -291,8 +354,8 @@ class _TemplateFormState extends ConsumerState<_TemplateForm> {
                   customersAsync.maybeWhen(
                     data: (customers) => DropdownButtonFormField<String?>(
                       value: _customerId,
-                      decoration:
-                          const InputDecoration(labelText: 'Kunde (optional)'),
+                      decoration: const InputDecoration(
+                          labelText: 'Kunde (optional)'),
                       items: [
                         const DropdownMenuItem(
                             value: null, child: Text('Kein Kunde')),
@@ -303,42 +366,108 @@ class _TemplateFormState extends ConsumerState<_TemplateForm> {
                     ),
                     orElse: () => const SizedBox(),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
 
-                  // Workflow (Checkliste)
+                  // Workflows (multi-select)
+                  Text('Workflows / Checklisten',
+                      style: Theme.of(context).textTheme.labelLarge
+                          ?.copyWith(color: cs.primary)),
+                  const SizedBox(height: 8),
                   workflowsAsync.maybeWhen(
-                    data: (workflows) => DropdownButtonFormField<String?>(
-                      value: _workflowId,
-                      decoration: const InputDecoration(
-                          labelText: 'Checkliste/Workflow (optional)'),
-                      items: [
-                        const DropdownMenuItem(
-                            value: null, child: Text('Kein Workflow')),
-                        ...workflows.map((w) => DropdownMenuItem(
-                            value: w.workflow.id,
-                            child: Text(w.workflow.name))),
-                      ],
-                      onChanged: (v) => setState(() => _workflowId = v),
-                    ),
+                    data: (workflows) => workflows.isEmpty
+                        ? Text('Keine Workflows vorhanden',
+                            style: TextStyle(color: cs.outline))
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: workflows
+                                .map((wfd) => FilterChip(
+                                      label: Text(wfd.workflow.name),
+                                      selected: _selectedWorkflowIds
+                                          .contains(wfd.workflow.id),
+                                      onSelected: (v) => setState(() {
+                                        if (v) {
+                                          _selectedWorkflowIds
+                                              .add(wfd.workflow.id);
+                                        } else {
+                                          _selectedWorkflowIds
+                                              .remove(wfd.workflow.id);
+                                        }
+                                      }),
+                                    ))
+                                .toList(),
+                          ),
                     orElse: () => const SizedBox(),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
+
+                  // Eigene zusätzliche Checklistenpunkte
+                  Text('Eigene Checklistenpunkte',
+                      style: Theme.of(context).textTheme.labelLarge
+                          ?.copyWith(color: cs.primary)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _todoCtrl,
+                          decoration: const InputDecoration(
+                            hintText: 'Neuer Punkt...',
+                            isDense: true,
+                          ),
+                          onSubmitted: (_) => _addTodo(),
+                          textCapitalization: TextCapitalization.sentences,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filled(
+                          icon: const Icon(Icons.add), onPressed: _addTodo),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (_customTodos.isNotEmpty)
+                    ReorderableListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _customTodos.length,
+                      onReorder: (oldIndex, newIndex) {
+                        setState(() {
+                          if (newIndex > oldIndex) newIndex--;
+                          final item = _customTodos.removeAt(oldIndex);
+                          _customTodos.insert(newIndex, item);
+                        });
+                      },
+                      itemBuilder: (_, i) => ListTile(
+                        key: ValueKey('todo_${_customTodos[i]}_$i'),
+                        dense: true,
+                        leading: const Icon(Icons.drag_handle),
+                        title: Text(_customTodos[i]),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () =>
+                              setState(() => _customTodos.removeAt(i)),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 20),
 
                   // Hardware Bundle
                   bundlesAsync.maybeWhen(
-                    data: (bundles) => DropdownButtonFormField<String?>(
-                      value: _bundleId,
-                      decoration: const InputDecoration(
-                          labelText: 'Hardware Bundle (optional)'),
-                      items: [
-                        const DropdownMenuItem(
-                            value: null, child: Text('Kein Bundle')),
-                        ...bundles.map((b) => DropdownMenuItem(
-                            value: b.bundle.id,
-                            child: Text(b.bundle.name))),
-                      ],
-                      onChanged: (v) => setState(() => _bundleId = v),
-                    ),
+                    data: (bundles) => bundles.isEmpty
+                        ? const SizedBox()
+                        : DropdownButtonFormField<String?>(
+                            value: _bundleId,
+                            decoration: const InputDecoration(
+                                labelText: 'Hardware Bundle (optional)'),
+                            items: [
+                              const DropdownMenuItem(
+                                  value: null, child: Text('Kein Bundle')),
+                              ...bundles.map((b) => DropdownMenuItem(
+                                  value: b.bundle.id,
+                                  child: Text(b.bundle.name))),
+                            ],
+                            onChanged: (v) => setState(() => _bundleId = v),
+                          ),
                     orElse: () => const SizedBox(),
                   ),
                   const SizedBox(height: 24),

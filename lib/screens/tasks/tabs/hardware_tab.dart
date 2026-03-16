@@ -58,6 +58,7 @@ class HardwareTab extends ConsumerWidget {
                       ..where((h) => h.id.equals(items[i].id)))
                     .go();
                 ref.invalidate(hardwareProvider(taskId));
+                ref.invalidate(taskDetailProvider(taskId));
               },
             ),
           );

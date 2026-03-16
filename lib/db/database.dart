@@ -175,6 +175,26 @@ class TaskTemplates extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class TaskTemplateWorkflows extends Table {
+  TextColumn get templateId =>
+      text().references(TaskTemplates, #id, onDelete: KeyAction.cascade)();
+  TextColumn get workflowId => text()();
+
+  @override
+  Set<Column> get primaryKey => {templateId, workflowId};
+}
+
+class TaskTemplateTodos extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get templateId =>
+      text().references(TaskTemplates, #id, onDelete: KeyAction.cascade)();
+  TextColumn get content => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class DevicePresets extends Table {
   TextColumn get id => text().clientDefault(() => _uuid())();
   TextColumn get type => text()();
@@ -206,12 +226,14 @@ class DevicePresets extends Table {
   AppSettings,
   DevicePresets,
   TaskTemplates,
+  TaskTemplateWorkflows,
+  TaskTemplateTodos,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -247,6 +269,11 @@ class AppDatabase extends _$AppDatabase {
         // v6 → v7: Wochentag & Monatstag für Wiederholung
         await m.addColumn(tasks, tasks.recurrenceWeekday);
         await m.addColumn(tasks, tasks.recurrenceMonthDay);
+      }
+      if (from < 8) {
+        // v7 → v8: Template multi-workflow + custom todos
+        await m.createTable(taskTemplateWorkflows);
+        await m.createTable(taskTemplateTodos);
       }
     },
   );

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
@@ -98,6 +99,23 @@ class _CustomerCard extends StatelessWidget {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
+  /// Decodes "street||zip||city" and opens the native maps app.
+  Future<void> _openMaps(String rawAddress) async {
+    final parts = rawAddress.split('||');
+    final address = parts.length == 3
+        ? '${parts[0]} ${parts[1]} ${parts[2]}'.trim()
+        : rawAddress;
+    final encoded = Uri.encodeComponent(address);
+    final nativeUri = Platform.isIOS
+        ? Uri.parse('maps://?q=$encoded')
+        : Uri.parse('geo:0,0?q=$encoded');
+    if (await canLaunchUrl(nativeUri)) {
+      await launchUrl(nativeUri);
+    } else {
+      await launchUrl(Uri.parse('https://maps.google.com/?q=$encoded'));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -176,19 +194,13 @@ class _CustomerCard extends StatelessWidget {
                           _launch('mailto:${customer.email}'),
                       visualDensity: VisualDensity.compact,
                     ),
-                  if (customer.address != null) Builder(builder: (_) {
-                    final parts = customer.address!.split('||');
-                    final mapsAddress = parts.length == 3
-                        ? '${parts[0]} ${parts[1]} ${parts[2]}'.trim()
-                        : customer.address!;
-                    return ActionChip(
-                      avatar: const Icon(Icons.directions_outlined, size: 16),
-                      label: const Text('Navigation'),
-                      onPressed: () => _launch(
-                          'https://maps.google.com/?q=${Uri.encodeComponent(mapsAddress)}'),
+                  if (customer.address != null)
+                    ActionChip(
+                      avatar: const Icon(Icons.map_outlined, size: 16),
+                      label: const Text('In Maps öffnen'),
+                      onPressed: () => _openMaps(customer.address!),
                       visualDensity: VisualDensity.compact,
-                    );
-                  }),
+                    ),
                 ],
               ),
             ],

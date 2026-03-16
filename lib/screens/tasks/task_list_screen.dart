@@ -382,22 +382,49 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           updatedAt: drift.Value(now),
         ));
 
-    if (selected.template.workflowId != null) {
+    // Apply all linked workflows (multi-workflow support)
+    int todoSortIndex = 0;
+    for (final wf in selected.workflows) {
+      final items = await (db.select(db.workflowItems)
+            ..where((i) => i.workflowId.equals(wf.id))
+            ..orderBy([(i) => drift.OrderingTerm.asc(i.sortOrder)]))
+          .get();
+      for (final item in items) {
+        await db.into(db.todos).insert(TodosCompanion.insert(
+              taskId: newTaskId,
+              content: item.itemText,
+              sortOrder: drift.Value(todoSortIndex++),
+              workflowId: drift.Value(wf.id),
+              workflowName: drift.Value(wf.name),
+            ));
+      }
+    }
+
+    // Fallback: legacy single workflowId if join table was empty
+    if (selected.workflows.isEmpty && selected.template.workflowId != null) {
       final items = await (db.select(db.workflowItems)
             ..where((i) =>
                 i.workflowId.equals(selected.template.workflowId!))
             ..orderBy([(i) => drift.OrderingTerm.asc(i.sortOrder)]))
           .get();
-      final workflow = selected.workflow;
-      for (var i = 0; i < items.length; i++) {
+      for (final item in items) {
         await db.into(db.todos).insert(TodosCompanion.insert(
               taskId: newTaskId,
-              content: items[i].itemText,
-              sortOrder: drift.Value(i),
+              content: item.itemText,
+              sortOrder: drift.Value(todoSortIndex++),
               workflowId: drift.Value(selected.template.workflowId),
-              workflowName: drift.Value(workflow?.name),
+              workflowName: drift.Value(selected.workflow?.name),
             ));
       }
+    }
+
+    // Apply custom template todos
+    for (final customTodo in selected.customTodos) {
+      await db.into(db.todos).insert(TodosCompanion.insert(
+            taskId: newTaskId,
+            content: customTodo.content,
+            sortOrder: drift.Value(todoSortIndex++),
+          ));
     }
 
     if (selected.template.hardwareBundleId != null) {

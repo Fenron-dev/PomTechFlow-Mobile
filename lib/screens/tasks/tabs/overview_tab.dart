@@ -542,6 +542,37 @@ class _CustomerContactRow extends StatelessWidget {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
+  /// Decodes "street||zip||city" and opens the native maps app.
+  Future<void> _openMaps(String rawAddress) async {
+    final parts = rawAddress.split('||');
+    final address = parts.length == 3
+        ? '${parts[0]} ${parts[1]} ${parts[2]}'.trim()
+        : rawAddress;
+    final encoded = Uri.encodeComponent(address);
+    final nativeUri = Platform.isIOS
+        ? Uri.parse('maps://?q=$encoded')
+        : Uri.parse('geo:0,0?q=$encoded');
+    if (await canLaunchUrl(nativeUri)) {
+      await launchUrl(nativeUri);
+    } else {
+      await launchUrl(Uri.parse('https://maps.google.com/?q=$encoded'));
+    }
+  }
+
+  /// Returns "Straße, PLZ Ort" from "street||zip||city" encoding.
+  static String _formatAddress(String rawAddress) {
+    final parts = rawAddress.split('||');
+    if (parts.length == 3) {
+      final street = parts[0].trim();
+      final zipCity = '${parts[1]} ${parts[2]}'.trim();
+      if (street.isNotEmpty && zipCity.trim().isNotEmpty) {
+        return '$street, $zipCity';
+      }
+      return (street.isNotEmpty ? street : zipCity).trim();
+    }
+    return rawAddress;
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -569,9 +600,37 @@ class _CustomerContactRow extends StatelessWidget {
             ),
           ],
         ),
-        if (customer.phone != null ||
-            customer.email != null ||
-            customer.address != null) ...[
+        // Address row with "In Maps öffnen" button
+        if (customer.address != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(Icons.location_on_outlined, size: 16, color: cs.outline),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _formatAddress(customer.address!),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: cs.onSurface),
+                ),
+              ),
+              const SizedBox(width: 6),
+              FilledButton.tonalIcon(
+                onPressed: () => _openMaps(customer.address!),
+                icon: const Icon(Icons.map_outlined, size: 16),
+                label: const Text('In Maps öffnen'),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  textStyle: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (customer.phone != null || customer.email != null) ...[
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
@@ -590,16 +649,7 @@ class _CustomerContactRow extends StatelessWidget {
                   avatar: const Icon(Icons.email_outlined, size: 14),
                   label: Text(customer.email!,
                       style: Theme.of(context).textTheme.labelSmall),
-                  onPressed: () =>
-                      _launch('mailto:${customer.email}'),
-                  visualDensity: VisualDensity.compact,
-                ),
-              if (customer.address != null)
-                ActionChip(
-                  avatar: const Icon(Icons.directions_outlined, size: 14),
-                  label: const Text('Navigation'),
-                  onPressed: () => _launch(
-                      'https://maps.google.com/?q=${Uri.encodeComponent(customer.address!)}'),
+                  onPressed: () => _launch('mailto:${customer.email}'),
                   visualDensity: VisualDensity.compact,
                 ),
             ],

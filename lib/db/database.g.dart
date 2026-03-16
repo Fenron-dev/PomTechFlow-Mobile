@@ -6104,6 +6104,548 @@ class TaskTemplatesCompanion extends UpdateCompanion<TaskTemplate> {
   }
 }
 
+class $TaskTemplateWorkflowsTable extends TaskTemplateWorkflows
+    with TableInfo<$TaskTemplateWorkflowsTable, TaskTemplateWorkflow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaskTemplateWorkflowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _templateIdMeta = const VerificationMeta(
+    'templateId',
+  );
+  @override
+  late final GeneratedColumn<String> templateId = GeneratedColumn<String>(
+    'template_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES task_templates (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _workflowIdMeta = const VerificationMeta(
+    'workflowId',
+  );
+  @override
+  late final GeneratedColumn<String> workflowId = GeneratedColumn<String>(
+    'workflow_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [templateId, workflowId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'task_template_workflows';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TaskTemplateWorkflow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('template_id')) {
+      context.handle(
+        _templateIdMeta,
+        templateId.isAcceptableOrUnknown(data['template_id']!, _templateIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_templateIdMeta);
+    }
+    if (data.containsKey('workflow_id')) {
+      context.handle(
+        _workflowIdMeta,
+        workflowId.isAcceptableOrUnknown(data['workflow_id']!, _workflowIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_workflowIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {templateId, workflowId};
+  @override
+  TaskTemplateWorkflow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaskTemplateWorkflow(
+      templateId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}template_id'],
+      )!,
+      workflowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workflow_id'],
+      )!,
+    );
+  }
+
+  @override
+  $TaskTemplateWorkflowsTable createAlias(String alias) {
+    return $TaskTemplateWorkflowsTable(attachedDatabase, alias);
+  }
+}
+
+class TaskTemplateWorkflow extends DataClass
+    implements Insertable<TaskTemplateWorkflow> {
+  final String templateId;
+  final String workflowId;
+  const TaskTemplateWorkflow({
+    required this.templateId,
+    required this.workflowId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['template_id'] = Variable<String>(templateId);
+    map['workflow_id'] = Variable<String>(workflowId);
+    return map;
+  }
+
+  TaskTemplateWorkflowsCompanion toCompanion(bool nullToAbsent) {
+    return TaskTemplateWorkflowsCompanion(
+      templateId: Value(templateId),
+      workflowId: Value(workflowId),
+    );
+  }
+
+  factory TaskTemplateWorkflow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaskTemplateWorkflow(
+      templateId: serializer.fromJson<String>(json['templateId']),
+      workflowId: serializer.fromJson<String>(json['workflowId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'templateId': serializer.toJson<String>(templateId),
+      'workflowId': serializer.toJson<String>(workflowId),
+    };
+  }
+
+  TaskTemplateWorkflow copyWith({String? templateId, String? workflowId}) =>
+      TaskTemplateWorkflow(
+        templateId: templateId ?? this.templateId,
+        workflowId: workflowId ?? this.workflowId,
+      );
+  TaskTemplateWorkflow copyWithCompanion(TaskTemplateWorkflowsCompanion data) {
+    return TaskTemplateWorkflow(
+      templateId: data.templateId.present
+          ? data.templateId.value
+          : this.templateId,
+      workflowId: data.workflowId.present
+          ? data.workflowId.value
+          : this.workflowId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskTemplateWorkflow(')
+          ..write('templateId: $templateId, ')
+          ..write('workflowId: $workflowId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(templateId, workflowId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaskTemplateWorkflow &&
+          other.templateId == this.templateId &&
+          other.workflowId == this.workflowId);
+}
+
+class TaskTemplateWorkflowsCompanion
+    extends UpdateCompanion<TaskTemplateWorkflow> {
+  final Value<String> templateId;
+  final Value<String> workflowId;
+  final Value<int> rowid;
+  const TaskTemplateWorkflowsCompanion({
+    this.templateId = const Value.absent(),
+    this.workflowId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TaskTemplateWorkflowsCompanion.insert({
+    required String templateId,
+    required String workflowId,
+    this.rowid = const Value.absent(),
+  }) : templateId = Value(templateId),
+       workflowId = Value(workflowId);
+  static Insertable<TaskTemplateWorkflow> custom({
+    Expression<String>? templateId,
+    Expression<String>? workflowId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (templateId != null) 'template_id': templateId,
+      if (workflowId != null) 'workflow_id': workflowId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TaskTemplateWorkflowsCompanion copyWith({
+    Value<String>? templateId,
+    Value<String>? workflowId,
+    Value<int>? rowid,
+  }) {
+    return TaskTemplateWorkflowsCompanion(
+      templateId: templateId ?? this.templateId,
+      workflowId: workflowId ?? this.workflowId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (templateId.present) {
+      map['template_id'] = Variable<String>(templateId.value);
+    }
+    if (workflowId.present) {
+      map['workflow_id'] = Variable<String>(workflowId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskTemplateWorkflowsCompanion(')
+          ..write('templateId: $templateId, ')
+          ..write('workflowId: $workflowId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TaskTemplateTodosTable extends TaskTemplateTodos
+    with TableInfo<$TaskTemplateTodosTable, TaskTemplateTodo> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaskTemplateTodosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => _uuid(),
+  );
+  static const VerificationMeta _templateIdMeta = const VerificationMeta(
+    'templateId',
+  );
+  @override
+  late final GeneratedColumn<String> templateId = GeneratedColumn<String>(
+    'template_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES task_templates (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, templateId, content, sortOrder];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'task_template_todos';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TaskTemplateTodo> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('template_id')) {
+      context.handle(
+        _templateIdMeta,
+        templateId.isAcceptableOrUnknown(data['template_id']!, _templateIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_templateIdMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TaskTemplateTodo map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaskTemplateTodo(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      templateId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}template_id'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $TaskTemplateTodosTable createAlias(String alias) {
+    return $TaskTemplateTodosTable(attachedDatabase, alias);
+  }
+}
+
+class TaskTemplateTodo extends DataClass
+    implements Insertable<TaskTemplateTodo> {
+  final String id;
+  final String templateId;
+  final String content;
+  final int sortOrder;
+  const TaskTemplateTodo({
+    required this.id,
+    required this.templateId,
+    required this.content,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['template_id'] = Variable<String>(templateId);
+    map['content'] = Variable<String>(content);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  TaskTemplateTodosCompanion toCompanion(bool nullToAbsent) {
+    return TaskTemplateTodosCompanion(
+      id: Value(id),
+      templateId: Value(templateId),
+      content: Value(content),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory TaskTemplateTodo.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaskTemplateTodo(
+      id: serializer.fromJson<String>(json['id']),
+      templateId: serializer.fromJson<String>(json['templateId']),
+      content: serializer.fromJson<String>(json['content']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'templateId': serializer.toJson<String>(templateId),
+      'content': serializer.toJson<String>(content),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  TaskTemplateTodo copyWith({
+    String? id,
+    String? templateId,
+    String? content,
+    int? sortOrder,
+  }) => TaskTemplateTodo(
+    id: id ?? this.id,
+    templateId: templateId ?? this.templateId,
+    content: content ?? this.content,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  TaskTemplateTodo copyWithCompanion(TaskTemplateTodosCompanion data) {
+    return TaskTemplateTodo(
+      id: data.id.present ? data.id.value : this.id,
+      templateId: data.templateId.present
+          ? data.templateId.value
+          : this.templateId,
+      content: data.content.present ? data.content.value : this.content,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskTemplateTodo(')
+          ..write('id: $id, ')
+          ..write('templateId: $templateId, ')
+          ..write('content: $content, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, templateId, content, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaskTemplateTodo &&
+          other.id == this.id &&
+          other.templateId == this.templateId &&
+          other.content == this.content &&
+          other.sortOrder == this.sortOrder);
+}
+
+class TaskTemplateTodosCompanion extends UpdateCompanion<TaskTemplateTodo> {
+  final Value<String> id;
+  final Value<String> templateId;
+  final Value<String> content;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const TaskTemplateTodosCompanion({
+    this.id = const Value.absent(),
+    this.templateId = const Value.absent(),
+    this.content = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TaskTemplateTodosCompanion.insert({
+    this.id = const Value.absent(),
+    required String templateId,
+    required String content,
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : templateId = Value(templateId),
+       content = Value(content);
+  static Insertable<TaskTemplateTodo> custom({
+    Expression<String>? id,
+    Expression<String>? templateId,
+    Expression<String>? content,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (templateId != null) 'template_id': templateId,
+      if (content != null) 'content': content,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TaskTemplateTodosCompanion copyWith({
+    Value<String>? id,
+    Value<String>? templateId,
+    Value<String>? content,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return TaskTemplateTodosCompanion(
+      id: id ?? this.id,
+      templateId: templateId ?? this.templateId,
+      content: content ?? this.content,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (templateId.present) {
+      map['template_id'] = Variable<String>(templateId.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskTemplateTodosCompanion(')
+          ..write('id: $id, ')
+          ..write('templateId: $templateId, ')
+          ..write('content: $content, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6126,6 +6668,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $DevicePresetsTable devicePresets = $DevicePresetsTable(this);
   late final $TaskTemplatesTable taskTemplates = $TaskTemplatesTable(this);
+  late final $TaskTemplateWorkflowsTable taskTemplateWorkflows =
+      $TaskTemplateWorkflowsTable(this);
+  late final $TaskTemplateTodosTable taskTemplateTodos =
+      $TaskTemplateTodosTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6146,6 +6692,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appSettings,
     devicePresets,
     taskTemplates,
+    taskTemplateWorkflows,
+    taskTemplateTodos,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6211,6 +6759,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('hardware_bundle_items', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'task_templates',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('task_template_workflows', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'task_templates',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('task_template_todos', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -11435,6 +11997,67 @@ typedef $$TaskTemplatesTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
+final class $$TaskTemplatesTableReferences
+    extends BaseReferences<_$AppDatabase, $TaskTemplatesTable, TaskTemplate> {
+  $$TaskTemplatesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $TaskTemplateWorkflowsTable,
+    List<TaskTemplateWorkflow>
+  >
+  _taskTemplateWorkflowsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.taskTemplateWorkflows,
+        aliasName: $_aliasNameGenerator(
+          db.taskTemplates.id,
+          db.taskTemplateWorkflows.templateId,
+        ),
+      );
+
+  $$TaskTemplateWorkflowsTableProcessedTableManager
+  get taskTemplateWorkflowsRefs {
+    final manager = $$TaskTemplateWorkflowsTableTableManager(
+      $_db,
+      $_db.taskTemplateWorkflows,
+    ).filter((f) => f.templateId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _taskTemplateWorkflowsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$TaskTemplateTodosTable, List<TaskTemplateTodo>>
+  _taskTemplateTodosRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.taskTemplateTodos,
+        aliasName: $_aliasNameGenerator(
+          db.taskTemplates.id,
+          db.taskTemplateTodos.templateId,
+        ),
+      );
+
+  $$TaskTemplateTodosTableProcessedTableManager get taskTemplateTodosRefs {
+    final manager = $$TaskTemplateTodosTableTableManager(
+      $_db,
+      $_db.taskTemplateTodos,
+    ).filter((f) => f.templateId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _taskTemplateTodosRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$TaskTemplatesTableFilterComposer
     extends Composer<_$AppDatabase, $TaskTemplatesTable> {
   $$TaskTemplatesTableFilterComposer({
@@ -11483,6 +12106,57 @@ class $$TaskTemplatesTableFilterComposer
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> taskTemplateWorkflowsRefs(
+    Expression<bool> Function($$TaskTemplateWorkflowsTableFilterComposer f) f,
+  ) {
+    final $$TaskTemplateWorkflowsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.taskTemplateWorkflows,
+          getReferencedColumn: (t) => t.templateId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$TaskTemplateWorkflowsTableFilterComposer(
+                $db: $db,
+                $table: $db.taskTemplateWorkflows,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> taskTemplateTodosRefs(
+    Expression<bool> Function($$TaskTemplateTodosTableFilterComposer f) f,
+  ) {
+    final $$TaskTemplateTodosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.taskTemplateTodos,
+      getReferencedColumn: (t) => t.templateId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskTemplateTodosTableFilterComposer(
+            $db: $db,
+            $table: $db.taskTemplateTodos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TaskTemplatesTableOrderingComposer
@@ -11575,6 +12249,58 @@ class $$TaskTemplatesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> taskTemplateWorkflowsRefs<T extends Object>(
+    Expression<T> Function($$TaskTemplateWorkflowsTableAnnotationComposer a) f,
+  ) {
+    final $$TaskTemplateWorkflowsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.taskTemplateWorkflows,
+          getReferencedColumn: (t) => t.templateId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$TaskTemplateWorkflowsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.taskTemplateWorkflows,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> taskTemplateTodosRefs<T extends Object>(
+    Expression<T> Function($$TaskTemplateTodosTableAnnotationComposer a) f,
+  ) {
+    final $$TaskTemplateTodosTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.taskTemplateTodos,
+          getReferencedColumn: (t) => t.templateId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$TaskTemplateTodosTableAnnotationComposer(
+                $db: $db,
+                $table: $db.taskTemplateTodos,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$TaskTemplatesTableTableManager
@@ -11588,12 +12314,12 @@ class $$TaskTemplatesTableTableManager
           $$TaskTemplatesTableAnnotationComposer,
           $$TaskTemplatesTableCreateCompanionBuilder,
           $$TaskTemplatesTableUpdateCompanionBuilder,
-          (
-            TaskTemplate,
-            BaseReferences<_$AppDatabase, $TaskTemplatesTable, TaskTemplate>,
-          ),
+          (TaskTemplate, $$TaskTemplatesTableReferences),
           TaskTemplate,
-          PrefetchHooks Function()
+          PrefetchHooks Function({
+            bool taskTemplateWorkflowsRefs,
+            bool taskTemplateTodosRefs,
+          })
         > {
   $$TaskTemplatesTableTableManager(_$AppDatabase db, $TaskTemplatesTable table)
     : super(
@@ -11651,9 +12377,73 @@ class $$TaskTemplatesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TaskTemplatesTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback:
+              ({
+                taskTemplateWorkflowsRefs = false,
+                taskTemplateTodosRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (taskTemplateWorkflowsRefs) db.taskTemplateWorkflows,
+                    if (taskTemplateTodosRefs) db.taskTemplateTodos,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (taskTemplateWorkflowsRefs)
+                        await $_getPrefetchedData<
+                          TaskTemplate,
+                          $TaskTemplatesTable,
+                          TaskTemplateWorkflow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TaskTemplatesTableReferences
+                              ._taskTemplateWorkflowsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TaskTemplatesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).taskTemplateWorkflowsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.templateId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (taskTemplateTodosRefs)
+                        await $_getPrefetchedData<
+                          TaskTemplate,
+                          $TaskTemplatesTable,
+                          TaskTemplateTodo
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TaskTemplatesTableReferences
+                              ._taskTemplateTodosRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TaskTemplatesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).taskTemplateTodosRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.templateId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
         ),
       );
 }
@@ -11668,12 +12458,620 @@ typedef $$TaskTemplatesTableProcessedTableManager =
       $$TaskTemplatesTableAnnotationComposer,
       $$TaskTemplatesTableCreateCompanionBuilder,
       $$TaskTemplatesTableUpdateCompanionBuilder,
-      (
-        TaskTemplate,
-        BaseReferences<_$AppDatabase, $TaskTemplatesTable, TaskTemplate>,
-      ),
+      (TaskTemplate, $$TaskTemplatesTableReferences),
       TaskTemplate,
-      PrefetchHooks Function()
+      PrefetchHooks Function({
+        bool taskTemplateWorkflowsRefs,
+        bool taskTemplateTodosRefs,
+      })
+    >;
+typedef $$TaskTemplateWorkflowsTableCreateCompanionBuilder =
+    TaskTemplateWorkflowsCompanion Function({
+      required String templateId,
+      required String workflowId,
+      Value<int> rowid,
+    });
+typedef $$TaskTemplateWorkflowsTableUpdateCompanionBuilder =
+    TaskTemplateWorkflowsCompanion Function({
+      Value<String> templateId,
+      Value<String> workflowId,
+      Value<int> rowid,
+    });
+
+final class $$TaskTemplateWorkflowsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $TaskTemplateWorkflowsTable,
+          TaskTemplateWorkflow
+        > {
+  $$TaskTemplateWorkflowsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $TaskTemplatesTable _templateIdTable(_$AppDatabase db) =>
+      db.taskTemplates.createAlias(
+        $_aliasNameGenerator(
+          db.taskTemplateWorkflows.templateId,
+          db.taskTemplates.id,
+        ),
+      );
+
+  $$TaskTemplatesTableProcessedTableManager get templateId {
+    final $_column = $_itemColumn<String>('template_id')!;
+
+    final manager = $$TaskTemplatesTableTableManager(
+      $_db,
+      $_db.taskTemplates,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_templateIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$TaskTemplateWorkflowsTableFilterComposer
+    extends Composer<_$AppDatabase, $TaskTemplateWorkflowsTable> {
+  $$TaskTemplateWorkflowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get workflowId => $composableBuilder(
+    column: $table.workflowId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TaskTemplatesTableFilterComposer get templateId {
+    final $$TaskTemplatesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.templateId,
+      referencedTable: $db.taskTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskTemplatesTableFilterComposer(
+            $db: $db,
+            $table: $db.taskTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskTemplateWorkflowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TaskTemplateWorkflowsTable> {
+  $$TaskTemplateWorkflowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get workflowId => $composableBuilder(
+    column: $table.workflowId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TaskTemplatesTableOrderingComposer get templateId {
+    final $$TaskTemplatesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.templateId,
+      referencedTable: $db.taskTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskTemplatesTableOrderingComposer(
+            $db: $db,
+            $table: $db.taskTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskTemplateWorkflowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TaskTemplateWorkflowsTable> {
+  $$TaskTemplateWorkflowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get workflowId => $composableBuilder(
+    column: $table.workflowId,
+    builder: (column) => column,
+  );
+
+  $$TaskTemplatesTableAnnotationComposer get templateId {
+    final $$TaskTemplatesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.templateId,
+      referencedTable: $db.taskTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskTemplatesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.taskTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskTemplateWorkflowsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaskTemplateWorkflowsTable,
+          TaskTemplateWorkflow,
+          $$TaskTemplateWorkflowsTableFilterComposer,
+          $$TaskTemplateWorkflowsTableOrderingComposer,
+          $$TaskTemplateWorkflowsTableAnnotationComposer,
+          $$TaskTemplateWorkflowsTableCreateCompanionBuilder,
+          $$TaskTemplateWorkflowsTableUpdateCompanionBuilder,
+          (TaskTemplateWorkflow, $$TaskTemplateWorkflowsTableReferences),
+          TaskTemplateWorkflow,
+          PrefetchHooks Function({bool templateId})
+        > {
+  $$TaskTemplateWorkflowsTableTableManager(
+    _$AppDatabase db,
+    $TaskTemplateWorkflowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TaskTemplateWorkflowsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$TaskTemplateWorkflowsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$TaskTemplateWorkflowsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> templateId = const Value.absent(),
+                Value<String> workflowId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskTemplateWorkflowsCompanion(
+                templateId: templateId,
+                workflowId: workflowId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String templateId,
+                required String workflowId,
+                Value<int> rowid = const Value.absent(),
+              }) => TaskTemplateWorkflowsCompanion.insert(
+                templateId: templateId,
+                workflowId: workflowId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TaskTemplateWorkflowsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({templateId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (templateId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.templateId,
+                                referencedTable:
+                                    $$TaskTemplateWorkflowsTableReferences
+                                        ._templateIdTable(db),
+                                referencedColumn:
+                                    $$TaskTemplateWorkflowsTableReferences
+                                        ._templateIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TaskTemplateWorkflowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaskTemplateWorkflowsTable,
+      TaskTemplateWorkflow,
+      $$TaskTemplateWorkflowsTableFilterComposer,
+      $$TaskTemplateWorkflowsTableOrderingComposer,
+      $$TaskTemplateWorkflowsTableAnnotationComposer,
+      $$TaskTemplateWorkflowsTableCreateCompanionBuilder,
+      $$TaskTemplateWorkflowsTableUpdateCompanionBuilder,
+      (TaskTemplateWorkflow, $$TaskTemplateWorkflowsTableReferences),
+      TaskTemplateWorkflow,
+      PrefetchHooks Function({bool templateId})
+    >;
+typedef $$TaskTemplateTodosTableCreateCompanionBuilder =
+    TaskTemplateTodosCompanion Function({
+      Value<String> id,
+      required String templateId,
+      required String content,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+typedef $$TaskTemplateTodosTableUpdateCompanionBuilder =
+    TaskTemplateTodosCompanion Function({
+      Value<String> id,
+      Value<String> templateId,
+      Value<String> content,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+
+final class $$TaskTemplateTodosTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $TaskTemplateTodosTable,
+          TaskTemplateTodo
+        > {
+  $$TaskTemplateTodosTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $TaskTemplatesTable _templateIdTable(_$AppDatabase db) =>
+      db.taskTemplates.createAlias(
+        $_aliasNameGenerator(
+          db.taskTemplateTodos.templateId,
+          db.taskTemplates.id,
+        ),
+      );
+
+  $$TaskTemplatesTableProcessedTableManager get templateId {
+    final $_column = $_itemColumn<String>('template_id')!;
+
+    final manager = $$TaskTemplatesTableTableManager(
+      $_db,
+      $_db.taskTemplates,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_templateIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$TaskTemplateTodosTableFilterComposer
+    extends Composer<_$AppDatabase, $TaskTemplateTodosTable> {
+  $$TaskTemplateTodosTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TaskTemplatesTableFilterComposer get templateId {
+    final $$TaskTemplatesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.templateId,
+      referencedTable: $db.taskTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskTemplatesTableFilterComposer(
+            $db: $db,
+            $table: $db.taskTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskTemplateTodosTableOrderingComposer
+    extends Composer<_$AppDatabase, $TaskTemplateTodosTable> {
+  $$TaskTemplateTodosTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TaskTemplatesTableOrderingComposer get templateId {
+    final $$TaskTemplatesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.templateId,
+      referencedTable: $db.taskTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskTemplatesTableOrderingComposer(
+            $db: $db,
+            $table: $db.taskTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskTemplateTodosTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TaskTemplateTodosTable> {
+  $$TaskTemplateTodosTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  $$TaskTemplatesTableAnnotationComposer get templateId {
+    final $$TaskTemplatesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.templateId,
+      referencedTable: $db.taskTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskTemplatesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.taskTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskTemplateTodosTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaskTemplateTodosTable,
+          TaskTemplateTodo,
+          $$TaskTemplateTodosTableFilterComposer,
+          $$TaskTemplateTodosTableOrderingComposer,
+          $$TaskTemplateTodosTableAnnotationComposer,
+          $$TaskTemplateTodosTableCreateCompanionBuilder,
+          $$TaskTemplateTodosTableUpdateCompanionBuilder,
+          (TaskTemplateTodo, $$TaskTemplateTodosTableReferences),
+          TaskTemplateTodo,
+          PrefetchHooks Function({bool templateId})
+        > {
+  $$TaskTemplateTodosTableTableManager(
+    _$AppDatabase db,
+    $TaskTemplateTodosTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TaskTemplateTodosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TaskTemplateTodosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TaskTemplateTodosTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> templateId = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskTemplateTodosCompanion(
+                id: id,
+                templateId: templateId,
+                content: content,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String templateId,
+                required String content,
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskTemplateTodosCompanion.insert(
+                id: id,
+                templateId: templateId,
+                content: content,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TaskTemplateTodosTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({templateId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (templateId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.templateId,
+                                referencedTable:
+                                    $$TaskTemplateTodosTableReferences
+                                        ._templateIdTable(db),
+                                referencedColumn:
+                                    $$TaskTemplateTodosTableReferences
+                                        ._templateIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TaskTemplateTodosTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaskTemplateTodosTable,
+      TaskTemplateTodo,
+      $$TaskTemplateTodosTableFilterComposer,
+      $$TaskTemplateTodosTableOrderingComposer,
+      $$TaskTemplateTodosTableAnnotationComposer,
+      $$TaskTemplateTodosTableCreateCompanionBuilder,
+      $$TaskTemplateTodosTableUpdateCompanionBuilder,
+      (TaskTemplateTodo, $$TaskTemplateTodosTableReferences),
+      TaskTemplateTodo,
+      PrefetchHooks Function({bool templateId})
     >;
 
 class $AppDatabaseManager {
@@ -11709,4 +13107,8 @@ class $AppDatabaseManager {
       $$DevicePresetsTableTableManager(_db, _db.devicePresets);
   $$TaskTemplatesTableTableManager get taskTemplates =>
       $$TaskTemplatesTableTableManager(_db, _db.taskTemplates);
+  $$TaskTemplateWorkflowsTableTableManager get taskTemplateWorkflows =>
+      $$TaskTemplateWorkflowsTableTableManager(_db, _db.taskTemplateWorkflows);
+  $$TaskTemplateTodosTableTableManager get taskTemplateTodos =>
+      $$TaskTemplateTodosTableTableManager(_db, _db.taskTemplateTodos);
 }

@@ -355,12 +355,34 @@ class _ItemDraft {
           notes: notes ?? this.notes);
 }
 
-class _ItemRow extends StatelessWidget {
+class _ItemRow extends StatefulWidget {
   final _ItemDraft draft;
   final VoidCallback onRemove;
   final ValueChanged<_ItemDraft> onChanged;
   const _ItemRow(
       {required this.draft, required this.onRemove, required this.onChanged});
+
+  @override
+  State<_ItemRow> createState() => _ItemRowState();
+}
+
+class _ItemRowState extends State<_ItemRow> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _serialCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.draft.name);
+    _serialCtrl = TextEditingController(text: widget.draft.serial);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _serialCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -374,7 +396,7 @@ class _ItemRow extends StatelessWidget {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: draft.type,
+                    value: widget.draft.type,
                     decoration: const InputDecoration(
                         labelText: 'Typ', isDense: true),
                     items: _hwTypes
@@ -382,30 +404,30 @@ class _ItemRow extends StatelessWidget {
                             value: t, child: Text(_hwLabels[t] ?? t)))
                         .toList(),
                     onChanged: (v) =>
-                        onChanged(draft.copyWith(type: v)),
+                        widget.onChanged(widget.draft.copyWith(type: v)),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.remove_circle_outline,
                       color: Colors.red),
-                  onPressed: onRemove,
+                  onPressed: widget.onRemove,
                 ),
               ],
             ),
             const SizedBox(height: 8),
             TextField(
+              controller: _nameCtrl,
               decoration: const InputDecoration(
                   labelText: 'Bezeichnung', isDense: true),
-              controller: TextEditingController(text: draft.name),
-              onChanged: (v) => onChanged(draft.copyWith(name: v)),
+              onChanged: (v) => widget.onChanged(widget.draft.copyWith(name: v)),
               textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 6),
             TextField(
+              controller: _serialCtrl,
               decoration: const InputDecoration(
                   labelText: 'Seriennummer', isDense: true),
-              controller: TextEditingController(text: draft.serial),
-              onChanged: (v) => onChanged(draft.copyWith(serial: v)),
+              onChanged: (v) => widget.onChanged(widget.draft.copyWith(serial: v)),
             ),
           ],
         ),

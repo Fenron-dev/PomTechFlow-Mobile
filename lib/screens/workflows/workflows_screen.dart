@@ -201,6 +201,7 @@ class _WorkflowFormState extends ConsumerState<_WorkflowForm> {
   final _itemCtrl = TextEditingController();
   List<String> _items = [];
   List<String> _selectedCustomerIds = [];
+  bool _saving = false;
 
   @override
   void initState() {
@@ -233,7 +234,10 @@ class _WorkflowFormState extends ConsumerState<_WorkflowForm> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) return;
+    if (_saving) return;
+    setState(() => _saving = true);
     final db = ref.read(databaseProvider);
+    try {
 
     String wfId;
     if (widget.existing == null) {
@@ -281,7 +285,10 @@ class _WorkflowFormState extends ConsumerState<_WorkflowForm> {
           );
     }
 
-    if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -311,7 +318,12 @@ class _WorkflowFormState extends ConsumerState<_WorkflowForm> {
                   ),
                   const Spacer(),
                   FilledButton(
-                      onPressed: _save, child: const Text('Speichern')),
+                      onPressed: _saving ? null : _save,
+                      child: _saving
+                          ? const SizedBox(
+                              width: 16, height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Speichern')),
                 ],
               ),
             ),

@@ -28,7 +28,12 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
     final files = Directory(dir.path)
         .listSync()
         .whereType<File>()
-        .where((f) => f.path.split('/').last.startsWith('bericht_') && f.path.endsWith('.pdf'))
+        .where((f) {
+          final name = f.path.split('/').last;
+          return name.endsWith('.pdf') &&
+              (name.startsWith('bericht_') ||
+               RegExp(r'^\d{4}-\d{2}-\d{2}_').hasMatch(name));
+        })
         .toList()
       ..sort((a, b) => b.path.compareTo(a.path));
     if (mounted) setState(() { _reports = files; _loading = false; });
@@ -36,6 +41,14 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
 
   String _formatDate(File f) {
     final name = f.path.split('/').last.replaceAll('.pdf', '');
+    // New format: YYYY-MM-DD_customer_title[_N]
+    final newFmt = RegExp(r'^(\d{4}-\d{2}-\d{2})_');
+    final match = newFmt.firstMatch(name);
+    if (match != null) {
+      final dt = DateTime.tryParse(match.group(1)!);
+      if (dt != null) return DateFormat('dd.MM.yyyy').format(dt);
+    }
+    // Legacy format: bericht_<shortId>_<ts>
     final parts = name.split('_');
     if (parts.length >= 3) {
       final ts = int.tryParse(parts.last);
@@ -149,8 +162,16 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
   }
 
   String _fileName(File f) {
-    // Extract task short id from filename: bericht_<shortId>_<ts>.pdf
     final name = f.path.split('/').last.replaceAll('.pdf', '');
+    // New format: YYYY-MM-DD_customer_title[_N]
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}_').hasMatch(name)) {
+      final parts = name.split('_');
+      if (parts.length >= 3) {
+        // parts[0]=date, parts[1]=customer, parts[2..]=title
+        return parts.sublist(1).join(' · ');
+      }
+    }
+    // Legacy format: bericht_<shortId>_<ts>.pdf
     final parts = name.split('_');
     if (parts.length >= 2) return 'Task: ${parts[1]}';
     return name;

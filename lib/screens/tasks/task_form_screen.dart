@@ -42,20 +42,19 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     final task = await (db.select(db.tasks)
           ..where((t) => t.id.equals(widget.taskId!)))
         .getSingleOrNull();
-    if (task != null) {
-      _titleCtrl.text = task.title;
-      _descCtrl.text = task.description ?? '';
-      setState(() {
-        _customerId = task.customerId;
-        _priority = task.priority;
-        _plannedDate = task.plannedDate;
-        _recurring = task.recurring;
-        _recurrenceType = task.recurrenceType ?? 'WEEKLY';
-        _recurrenceInterval = task.recurrenceInterval;
-        _recurrenceWeekday = task.recurrenceWeekday;
-        _recurrenceMonthDay = task.recurrenceMonthDay;
-      });
-    }
+    if (!mounted || task == null) return;
+    _titleCtrl.text = task.title;
+    _descCtrl.text = task.description ?? '';
+    setState(() {
+      _customerId = task.customerId;
+      _priority = task.priority;
+      _plannedDate = task.plannedDate;
+      _recurring = task.recurring;
+      _recurrenceType = task.recurrenceType ?? 'WEEKLY';
+      _recurrenceInterval = task.recurrenceInterval;
+      _recurrenceWeekday = task.recurrenceWeekday;
+      _recurrenceMonthDay = task.recurrenceMonthDay;
+    });
   }
 
   @override
