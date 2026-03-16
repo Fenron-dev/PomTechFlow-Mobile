@@ -1,6 +1,6 @@
 # PomTechFlow Mobile
 
-**IT-Support Pomodoro Zeiterfassung – Offline-First Mobile App für iOS & Android**
+**IT-Support Pomodoro Zeiterfassung – Offline-First App für Android, iOS, Windows, macOS & Linux**
 
 > Verwalte Tasks, tracke Arbeitszeit in Arbeitseinheiten (AE), erstelle Berichte und dokumentiere deinen IT-Support-Alltag – komplett lokal, ohne Internet, ohne Server.
 
@@ -13,16 +13,24 @@
 - [Navigation](#navigation)
 - [Dashboard](#dashboard)
 - [Tasks](#tasks)
-- [Timer](#timer)
+- [Prioritäten](#prioritäten)
+- [Timer & Sessions](#timer--sessions)
 - [Checkliste](#checkliste)
 - [Hardware](#hardware)
 - [Notizen](#notizen)
 - [Fotos](#fotos)
-- [PDF-Berichte](#pdf-berichte)
+- [PDF-Berichte & Vorschau](#pdf-berichte--vorschau)
+- [Task-Übergabe (.ptf)](#task-übergabe-ptf)
+- [Übergabepaket (ZIP)](#übergabepaket-zip)
+- [Wiederkehrende Tasks](#wiederkehrende-tasks)
+- [Task-Vorlagen](#task-vorlagen)
+- [Geräte-Bibliothek](#geräte-bibliothek)
+- [Kunden & Kontakt](#kunden--kontakt)
 - [Suche](#suche)
-- [Statistiken](#statistiken)
+- [Statistiken & CSV-Export](#statistiken--csv-export)
 - [Einstellungen](#einstellungen)
 - [Backup & Wiederherstellung](#backup--wiederherstellung)
+- [Desktop-Besonderheiten](#desktop-besonderheiten)
 - [FAQ](#faq)
 - [Entwicklung & Build](#entwicklung--build)
 
@@ -32,21 +40,15 @@
 
 ### Android (APK)
 
-1. Den neuesten APK-Build von **GitHub Actions** herunterladen:
-   - Repository → **Actions** → letzter erfolgreicher Workflow → **Artifacts** → `android-apk`
+1. Neuesten APK-Build von **GitHub Actions** herunterladen:
+   - Repository → **Actions** → letzter erfolgreicher Workflow → **Artifacts** → `PomTechFlow-Android`
 2. APK auf das Android-Gerät übertragen (USB, E-Mail, Cloud)
-3. Auf dem Gerät unter **Einstellungen → Sicherheit → Unbekannte Quellen** aktivieren
+3. Unter **Einstellungen → Sicherheit → Unbekannte Quellen** aktivieren
 4. APK antippen und installieren
 
 > Mindestanforderung: Android 5.0 (API 21)
 
-### iOS (TestFlight)
-
-1. **Apple Developer Account** erforderlich ($99/Jahr)
-2. `.ipa` aus GitHub Actions Artifacts in **App Store Connect** hochladen
-3. Via **TestFlight** auf dem iPhone installieren
-
-### iOS (direkt via Xcode, eigene Geräte kostenlos)
+### iOS
 
 ```bash
 git clone https://github.com/Fenron-dev/PomTechFlow-Mobile.git
@@ -54,52 +56,59 @@ cd PomTechFlow-Mobile/pomtechflow_mobile
 flutter pub get
 open ios/Runner.xcworkspace
 ```
-In Xcode: eigene Apple ID als Team → iPhone per USB verbinden → **Run**
+In Xcode: eigene Apple ID als Team setzen → iPhone per USB verbinden → **Run**
+
+### Windows / Linux / macOS
+
+Builds sind als Artifacts in GitHub Actions verfügbar:
+- **Windows**: `PomTechFlow-Windows.zip` → entpacken → `pomtechflow_mobile.exe` starten
+- **Linux**: `PomTechFlow-Linux.tar.gz` → entpacken → `pomtechflow_mobile` starten
+- **macOS**: `PomTechFlow-macOS.zip` → entpacken → App ins Programme-Ordner ziehen
 
 ---
 
 ## Erster Start
 
-Beim ersten Start erscheint das **Dashboard** mit einem Willkommensbildschirm.
-
 **Empfohlene Ersteinrichtung:**
 
-1. **Einstellungen** öffnen (unterstes Icon in der NavBar)
+1. **Einstellungen** öffnen
 2. **Firmenname** und **Techniker Name** eintragen
-3. **Arbeitseinheiten (AE)** konfigurieren (Standard: 10 Min = 1 AE)
-4. Optional: **Kunden** anlegen unter Einstellungen → Kunden
-5. Optional: **Workflows** (Checklisten-Vorlagen) anlegen
-6. Ersten Task erstellen über **Tasks → + (Plus-Button)**
+3. **Firmen-Logo** hochladen (PNG/JPG, erscheint oben links im PDF-Bericht)
+4. **Arbeitseinheiten (AE)** konfigurieren (Standard: 10 Min = 1 AE)
+5. Optional: **Kunden** anlegen → Einstellungen → Kunden
+6. Optional: **Workflows** (Checklisten-Vorlagen) anlegen
+7. Ersten Task erstellen über **Tasks → + (Plus-Button)**
 
 ---
 
 ## Navigation
 
-Die App hat eine **4-Punkte Navigation** am unteren Rand:
-
 | Icon | Bereich | Funktion |
 |------|---------|----------|
 | Dashboard | Startseite | Übersicht, Timer-Banner, heutige Tasks |
-| Tasks | Aufgaben | Liste aller Tasks, Suche, neu erstellen |
-| Einstellungen | Konfiguration | Firma, AE, Kunden, Workflows, Backup |
+| Tasks | Aufgaben | Liste aller Tasks, Suche, Filter, Sortierung |
+| Einstellungen | Konfiguration | Firma, Logo, AE, Kunden, Workflows, Backup |
 | Suche | Globale Suche | Tasks und Kunden durchsuchen |
+
+**Desktop (ab 840px Breite):** NavigationRail links statt Bottom Navigation. Ab 1200px mit beschrifteten Menüpunkten. Zusätzlich: Menüleiste oben (Datei / Ansicht).
+
+**Tablet (ab 700px):** Task-Liste und Task-Detail nebeneinander (Master-Detail Layout).
 
 ---
 
 ## Dashboard
 
-Das Dashboard zeigt auf einen Blick:
-
-- **Timer-Banner** (oben) – wenn ein Timer läuft, mit aktuellem Countdown. Antippen öffnet den Task.
+- **Timer-Banner** – läuft ein Timer, erscheint er hier mit Countdown. Antippen öffnet den Task.
 - **Statistik-Kacheln** – Gesamt-AE, aktive Tasks, abgeschlossene Tasks, AE-Konfiguration
-- **Heute geplant** – Tasks mit einem Datum von heute, sortiert nach Uhrzeit
-- **Aktive Tasks** – Tasks im Status "Aktiv" (max. 3, "Alle" zeigt komplette Liste)
-- **Geplante Tasks** – Tasks im Status "Geplant" (max. 3)
+  *(auf Desktop: 4 Spalten nebeneinander)*
+- **Heute geplant** – Tasks mit heutigem Datum, sortiert nach Uhrzeit
+- **Aktive Tasks** – max. 3 aktive Tasks (mit "Alle"-Link)
+- **Geplante Tasks** – max. 3 geplante Tasks
 
-**Aktionen im Dashboard:**
-- **+ Icon** (AppBar rechts) – Neuen Task erstellen
-- **Balken-Chart Icon** (AppBar rechts) – Statistiken öffnen
-- **Pull-to-Refresh** – Daten aktualisieren
+**AppBar-Aktionen:**
+- **PDF-Icon** → Alle gespeicherten Berichte anzeigen (mit In-App-Vorschau)
+- **Balken-Chart** → Statistiken
+- **+** → Neuer Task
 
 ---
 
@@ -107,108 +116,104 @@ Das Dashboard zeigt auf einen Blick:
 
 ### Task-Liste
 
-Alle Tasks sortiert nach letzter Änderung. Jede Karte zeigt:
-- Titel und Kunde
-- Fortschritt der Checkliste (x/y erledigt)
-- Zeitaufwand in Minuten und AE
-- Status-Badge (Geplant / Aktiv / Pausiert / Erledigt)
-- **Play-Button** zum direkten Timer-Start
-- **3-Punkte-Menü** für Bearbeiten und Löschen
+Jede Karte zeigt:
+- **Farbiger linker Balken** – Prioritäts-Indikator (rot = Kritisch, orange = Hoch, grau = Niedrig, kein = Normal)
+- Titel, Kunde, Checklisten-Fortschritt
+- Zeit in Minuten und AE, Status-Badge
+- **Wiederholungs-Icon** bei wiederkehrenden Tasks
 
-**Suche:** Lupe-Icon in der AppBar aktiviert die Inline-Suche nach Titel oder Kunde.
+**Suchen:** Lupe-Icon in der AppBar
+**Sortieren & Filtern:** Sortier-Icon in der AppBar öffnet Popup:
 
-### Neuen Task erstellen
+| Option | Beschreibung |
+|--------|-------------|
+| Priorität (hoch→niedrig) | Kritisch zuerst |
+| Datum (neu→alt) | Zuletzt geändert zuerst (Standard) |
+| Datum (alt→neu) | Älteste zuerst |
+| Titel (A–Z) | Alphabetisch |
+| — Priorität filtern — | Nur Tasks einer bestimmten Priorität anzeigen |
 
-Über das **+ FAB** (unten rechts) oder das + in der AppBar:
+**Task importieren:** Download-Icon in der AppBar → `.ptf`-Datei auswählen
+**Aus Vorlage:** Beim leeren Zustand über den "Aus Vorlage"-Button
 
-| Feld | Pflicht | Beschreibung |
-|------|---------|--------------|
-| Titel | Ja | Kurze Beschreibung des Auftrags |
-| Beschreibung | Nein | Detaillierte Informationen |
-| Kunde | Nein | Auswahl aus angelegten Kunden |
-| Geplantes Datum | Nein | Datum + Uhrzeit, wird auf Dashboard angezeigt |
+### Task erstellen / bearbeiten
 
-> Bei gesetztem Datum wird automatisch eine **Erinnerung** (lokale Notification) geplant.
-
-### Task-Status
-
-| Status | Bedeutung |
-|--------|-----------|
-| Geplant | Neu erstellt, noch nicht begonnen |
-| Aktiv | Timer wurde mindestens einmal gestartet |
-| Pausiert | Timer pausiert |
-| Erledigt | Manuell als abgeschlossen markiert |
+| Feld | Beschreibung |
+|------|-------------|
+| Titel | Kurze Beschreibung (Pflichtfeld) |
+| Beschreibung | Detaillierte Informationen |
+| Kunde | Auswahl aus angelegten Kunden |
+| **Priorität** | Niedrig / Normal / Hoch / Kritisch |
+| Geplantes Datum | Datum + Uhrzeit, löst Erinnerung aus |
+| Wiederkehrend | Täglich / Wöchentlich / Monatlich / Vierteljährlich |
 
 ---
 
-## Timer
+## Prioritäten
 
-Der Timer ist direkt in den **Task-Details (Übersicht-Tab)** integriert.
+Vier Stufen:
+
+| Stufe | Farbe | Wann nutzen |
+|-------|-------|-------------|
+| **Niedrig** | Grau | Kann warten |
+| **Normal** | (kein Balken) | Standardaufgabe |
+| **Hoch** | Orange | Zeitkritisch |
+| **Kritisch** | Rot | Sofort erledigen |
+
+Priorität wird im Task-Formular gesetzt und ist in der Task-Karte als farbiger Balken sichtbar. Sortierung nach Priorität bringt Kritisch/Hoch zuerst.
+
+---
+
+## Timer & Sessions
 
 ### Timer starten
 
-1. Task öffnen → Übersicht-Tab
-2. **"Timer starten"** antippen
-3. **Start-Dialog** erscheint:
-   - Offene Todos der Checkliste werden angezeigt
-   - Erste 3 sind vorausgewählt (was wird in dieser Session erledigt?)
-   - Bestätigen mit **"Starten"**
+Task öffnen → Übersicht-Tab → **"Timer starten"**
+Ein Dialog zeigt offene Todos – Auswahl, was in dieser Session erledigt wird.
 
 ### Timer stoppen
 
-1. **"Stoppen & speichern"** antippen
-2. **Stop-Dialog** erscheint:
-   - Erledigte Zeit wird angezeigt (z.B. "15 Minuten")
-   - Todos zum Abhaken auswählen
-   - Optional: **Schnellnotiz** hinterlassen
-   - **"Speichern"** – Zeit wird zum Task addiert, Todos werden abgehakt
+**"Stoppen & speichern"** → Dialog mit genauen Minuten, Todos abhaken, optionale Schnellnotiz.
 
-### Timer-Steuerung
+### Sessions manuell bearbeiten
 
-| Button | Funktion |
-|--------|----------|
-| Play | Timer starten |
-| Pause | Timer anhalten (Zeit läuft nicht) |
-| Resume | Fortsetzen nach Pause |
-| Stopp | Session beenden und speichern |
-| Erledigt | Task als abgeschlossen markieren |
+Im **Übersicht-Tab** unterhalb der Statistiken → **Sessions-Bereich**:
+
+- Alle Sessions mit **Datum, Startzeit, Endzeit, Dauer, Typ und Notiz**
+- **Stift-Icon** zum Bearbeiten (Datum/Uhrzeit per Picker, Notiz, Typ)
+- **Löschen** mit Bestätigungsdialog
+- **"+ Hinzufügen"** zum manuellen Erfassen vergessener Zeiten
+- Änderungen aktualisieren automatisch die Gesamtminuten des Tasks
 
 ### AE-Berechnung
 
-- **1 AE = konfigurierbare Minutenanzahl** (Standard: 10 Min)
-- Berechnung: `ceil(Gesamtminuten / AE-Minuten)` → aufgerundet
-- Beispiel bei 10 Min/AE: 3 Min = 1 AE, 11 Min = 2 AE, 30 Min = 3 AE
+`ceil(Gesamtminuten / AE-Minuten)` → aufgerundet
+Beispiel bei 10 Min/AE: 3 Min = 1 AE · 11 Min = 2 AE · 30 Min = 3 AE
 
 ---
 
 ## Checkliste
 
-Im **Checkliste-Tab** des Tasks:
-
-- **Workflow-Gruppen** erscheinen als separate aufklappbare Karten mit Fortschrittsbalken
-- Abgeschlossene Gruppen klappen automatisch zu
-- **Ungruppiete Todos** erscheinen unter "Allgemein"
-- Todos per **Tippen** abhaken/aufheben
-- **+ Button** (FAB) fügt einzelne Todos hinzu
-- **Workflow anwenden** (kleines FAB) öffnet Auswahl gespeicherter Workflows
+- **Ungrupierte Todos** – unter "Allgemein" mit **Drag & Drop** Sortierung (☰ Handle)
+- **Workflow-Gruppen** – aufklappbare Karten mit Fortschrittsbalken; schließen automatisch wenn fertig
+- **+ Button** – einzelnen Checklistenpunkt hinzufügen
+- **Workflow anwenden** – gespeicherte Workflow-Vorlage auf Task anwenden
 
 ### Workflows (Checklisten-Vorlagen)
 
-Unter **Einstellungen → Workflows** können Vorlagen erstellt werden:
+Einstellungen → Workflows:
 - Name + Beschreibung
-- Beliebig viele Checklistenpunkte
-- Optional: Zuweisung zu bestimmten Kunden
-- Beim Anwenden auf einen Task werden alle Punkte als Gruppe hinzugefügt
+- Beliebig viele Checklistenpunkte mit definierter Reihenfolge
+- Beim Anwenden werden alle Punkte als benannte Gruppe eingefügt
 
 ---
 
 ## Hardware
 
-Im **Hardware-Tab** des Tasks:
-
 - Liste aller erfassten Geräte (Typ, Bezeichnung, Seriennummer, Notizen)
 - **+ FAB** – Einzelnes Gerät hinzufügen
-- **Bundle-FAB** (kleines Icon) – Geräte-Vorlage anwenden
+- **Bundle-FAB** – Geräte-Bundle (Vorlage) anwenden
+- **Bibliothek-FAB** – Gerät aus der Geräte-Bibliothek wählen
 
 ### Gerätetypen
 
@@ -216,85 +221,161 @@ PC · Laptop · Monitor · Drucker · Router · Switch · Server · Telefon · T
 
 ### Hardware Bundles
 
-Vordefinierte Gerätepakete unter **Einstellungen → Hardware Bundles**:
-- Name + Beschreibung
-- Mehrere Geräte mit Typ, Bezeichnung und Seriennummer
-- Einmal erstellt, auf jeden Task anwendbar (z.B. "Standard-Arbeitsplatz")
+Einstellungen → Hardware Bundles: Vordefinierte Gerätepakete (z.B. "Standard-Arbeitsplatz")
+
+### Geräte-Bibliothek
+
+Einstellungen → Geräte-Bibliothek: Individuelle Einzelgeräte mit Seriennummer vorhalten und schnell zuweisen.
 
 ---
 
 ## Notizen
 
-Im **Notizen-Tab** des Tasks:
-
-- Chronologische Liste aller Notizen mit Zeitstempel
-- **+ FAB** – Neue Notiz schreiben
-- **Long-Press** auf eine Notiz – Löschen
-
-> Notizen aus dem Timer-Stop-Dialog werden hier ebenfalls gespeichert.
+- Chronologische Liste mit Zeitstempel
+- **+ FAB** – Neue Notiz
+- **Long-Press** – Löschen
+- Notizen aus Timer-Stop-Dialog werden hier ebenfalls gespeichert
 
 ---
 
 ## Fotos
 
-Im **Fotos-Tab** des Tasks:
-
-- **3-Spalten Raster-Ansicht** aller Fotos
-- **Kamera-FAB** – Foto direkt aufnehmen
-- **Galerie-FAB** – Foto aus der Galerie wählen
-- **Antippen** – Vollbild-Ansicht mit zoom (InteractiveViewer)
-- **Long-Press** – Foto löschen (mit Bestätigungsdialog)
-
-Fotos werden lokal im App-Datenordner gespeichert und sind nicht in der Galerie sichtbar.
+- 3-Spalten Raster-Ansicht
+- **Kamera-FAB** – direkt aufnehmen
+- **Galerie-FAB** – aus Galerie wählen
+- **Antippen** – Vollbild mit Zoom
+- **Long-Press** – Löschen
 
 ---
 
-## PDF-Berichte
-
-Im **Übersicht-Tab** eines Tasks:
+## PDF-Berichte & Vorschau
 
 ### Bericht erstellen
 
-**"Bericht erstellen"** erzeugt ein professionelles PDF mit:
-- Kopfzeile: Firmenname, Techniker, Datum
-- Task-Details: Titel, Kunde, Status, Beschreibung
-- Zeitübersicht: Minuten und AE
-- Checkliste: Erledigte und offene Punkte (zweispaltig)
-- Hardware-Tabelle: Typ, Bezeichnung, Seriennummer
-- Notizen: Alle Notizen mit Zeitstempel
-- Unterschriftsfelder: Techniker + Kunde
-- Fußzeile: Firmenname + Seitenzahl
+Task → Übersicht-Tab → **"PDF"**:
+- Kopfzeile: **Firmen-Logo** (oben links), Firmenname, Techniker, Datum
+- Task-Details: Titel, Kunde, Status, Beschreibung, Priorität
+- Zeitübersicht: Minuten + AE
+- Checkliste (zweispaltig)
+- Hardware-Tabelle
+- Notizen mit Zeitstempel
+- Unterschriftsfelder
 
-Nach der Generierung öffnet sich das **Teilen-Menü** (AirDrop, E-Mail, WhatsApp, etc.)
+Logo einrichten: **Einstellungen → Firma → "Firmen-Logo (PDF-Berichte)" → "Auswählen"**
 
-### Bericht-Verlauf
+### Alle Berichte anzeigen
 
-Bereits generierte Berichte erscheinen unterhalb des Buttons als Liste:
-- Datum und Uhrzeit der Erstellung
+**Dashboard → PDF-Icon** (AppBar oben rechts) → Liste aller generierten PDFs mit:
+- Datum/Uhrzeit der Erstellung
+- **Antippen** → **In-App-Vorschau** (scrollbar, zoombar, druckbar)
 - **Teilen-Button** zum erneuten Versenden
+
+---
+
+## Task-Übergabe (.ptf)
+
+Einen kompletten Task inklusive aller Daten an einen Kollegen übergeben:
+
+### Exportieren
+
+Task → Übersicht-Tab → **AppBar → Teilen-Icon (↑)**:
+- Erstellt eine `.ptf`-Datei (PomTechFlow Task)
+- Versenden per Mail, WhatsApp, AirDrop, etc.
+
+**Enthaltene Daten:**
+
+| Bereich | Inhalt |
+|---------|--------|
+| Task | Titel, Beschreibung, Status, Priorität, Datum |
+| Kunde | Name, Telefon, E-Mail, Adresse |
+| Checkliste | Alle Todos mit Erledigungsstatus |
+| Hardware | Typ, Bezeichnung, Seriennummer, Notizen |
+| Notizen | Alle Notizen mit Zeitstempel |
+| Sessions | Alle Zeiteinträge mit Notizen |
+| Fotos | Alle Fotos als Base64 eingebettet |
+
+### Importieren
+
+Task-Liste → **Download-Icon** (AppBar) → `.ptf`-Datei auswählen:
+- Neuer Task wird angelegt (`[Übergabe]` Prefix)
+- Kunde wird gesucht oder neu angelegt
+- Alle Daten werden wiederhergestellt
+
+---
+
+## Übergabepaket (ZIP)
+
+Task → Übersicht-Tab → **"ZIP Paket"**:
+- Generiert zuerst den PDF-Bericht
+- Packt PDF + alle Fotos in eine ZIP-Datei
+- Teilen-Dialog öffnet sich automatisch
+
+Ideal für vollständige Dokumentation an Endkunden.
+
+---
+
+## Wiederkehrende Tasks
+
+Beim Erstellen/Bearbeiten eines Tasks:
+- **"Wiederkehrender Task"** aktivieren
+- Intervall: Täglich / Wöchentlich / Monatlich / Vierteljährlich
+- Häufigkeit: Alle N Einheiten
+
+Wenn der Task als **"Erledigt"** markiert wird, erstellt die App automatisch einen neuen Task mit dem nächsten Fälligkeitsdatum.
+
+---
+
+## Task-Vorlagen
+
+Unter **Einstellungen → Task-Vorlagen**:
+- Komplette Task-Vorlage speichern: Titel, Beschreibung, Kunde, Workflow, Hardware-Bundle
+- Bei der Task-Erstellung über **"Aus Vorlage"**: Vorlage auswählen → Task mit vorbefüllter Checkliste und Hardware wird angelegt
+
+---
+
+## Geräte-Bibliothek
+
+Unter **Einstellungen → Geräte-Bibliothek**:
+- Individuelle Geräte mit Seriennummer, Typ und Notizen vorhalten
+- Suchbar und nach Typ filterbar
+- Im Hardware-Tab eines Tasks über den Bibliotheks-Button direkt zuweisen
+
+---
+
+## Kunden & Kontakt
+
+Unter **Einstellungen → Kunden**:
+- Name, E-Mail, Telefon, Adresse, Notizen
+- **Aktions-Chips** in der Kunden-Karte:
+  - 📞 Telefon antippen → Direktanruf
+  - ✉️ E-Mail antippen → Mail-App öffnen
+  - 🗺 Navigation antippen → Google Maps öffnen
+
+Im **Übersicht-Tab** eines Tasks werden dieselben Aktions-Chips unter dem Kunden-Namen angezeigt.
 
 ---
 
 ## Suche
 
-Das **Suche-Icon** (4. Punkt in der NavBar) öffnet die globale Suche:
-
-- Suche über **Task-Titel, Beschreibung und Kunde**
-- Suche über **Kundennamen und E-Mail**
-- Ergebnisse erscheinen sofort beim Tippen
-- Antippen eines Tasks → direkt zum Task-Detail
-- Antippen eines Kunden → zur Kunden-Verwaltung
+Globale Suche (4. NavBar-Punkt):
+- Task-Titel, Beschreibung und Kundenname
+- Kundennamen und E-Mail
+- Tippen → Sofortergebnisse
+- Antippen → direkt zum Detail
 
 ---
 
-## Statistiken
+## Statistiken & CSV-Export
 
-Erreichbar über das **Balken-Chart-Icon** im Dashboard (AppBar oben rechts):
+**Dashboard → Balken-Chart-Icon:**
 
-- **Diese Woche**: AE, Minuten, abgeschlossene Tasks
-- **Dieser Monat**: AE, Minuten, abgeschlossene Tasks
-- **Alle Tasks**: Gesamtübersicht mit Statusbalken (Aktiv / Geplant / Erledigt)
-- **Top Kunden**: Rangliste nach Zeitaufwand (AE und Minuten)
+- **Diese Woche** / **Dieser Monat** / **Gesamt**: AE, Minuten, Tasks
+- **Top Kunden**: Rangliste nach AE und Minuten
+- **Statusbalken**: Verteilung Aktiv / Geplant / Erledigt
+
+**CSV-Export:** AppBar → Tabellen-Icon → Monatsbericht als CSV-Datei:
+- Datum, Kunde, Titel, Status, Minuten, AE, Sessions, Erstellt, Abgeschlossen
+- Semikolon-getrennt, UTF-8 BOM für Excel-Kompatibilität
 
 ---
 
@@ -303,67 +384,69 @@ Erreichbar über das **Balken-Chart-Icon** im Dashboard (AppBar oben rechts):
 ### Firma
 
 | Feld | Beschreibung |
-|------|--------------|
+|------|-------------|
 | Firmenname | Erscheint im Dashboard-Titel und im PDF-Header |
 | Techniker Name | Erscheint im PDF-Bericht |
+| **Firmen-Logo** | PNG/JPG, erscheint oben links im PDF-Bericht |
 
 ### Arbeitseinheiten (AE)
 
-- **Minuten pro AE**: Wie viele Minuten eine Arbeitseinheit dauert (Standard: 10)
-- Beeinflusst alle AE-Anzeigen in der App und im PDF
+Minuten pro AE konfigurierbar (Standard: 10). Beeinflusst alle AE-Anzeigen und den PDF-Bericht.
 
 ### Timer
 
-| Einstellung | Standard | Bereich |
-|-------------|---------|---------|
-| Fokuszeit | 25 Min | 1–120 |
-| Kurze Pause | 5 Min | 1–30 |
-| Lange Pause | 15 Min | 1–60 |
+| Einstellung | Standard |
+|-------------|---------|
+| Fokuszeit | 25 Min |
+| Kurze Pause | 5 Min |
+| Lange Pause | 15 Min |
 
 ### Darstellung
 
-Drei Modi wählbar via Segmented Button:
-- **System** – folgt der Geräte-Einstellung
-- **Hell** – immer helles Theme
-- **Dunkel** – immer dunkles Theme
+System / Hell / Dunkel
 
 ### Stammdaten
 
-- **Kunden** – Kunden anlegen, bearbeiten, löschen
-- **Workflows** – Checklisten-Vorlagen verwalten
-- **Hardware Bundles** – Geräte-Vorlagen verwalten
+- **Kunden** – Kunden mit Kontaktdaten verwalten
+- **Workflows** – Checklisten-Vorlagen
+- **Task-Vorlagen** – Komplette Tasks als Vorlage
+- **Geräte-Bibliothek** – Individuelle Einzelgeräte
+- **Hardware Bundles** – Geräte-Pakete als Vorlage
+- **Datenaustausch** – Kunden/Workflows/Bundles exportieren & importieren
 
 ---
 
 ## Backup & Wiederherstellung
 
-Unter **Einstellungen → Backup & Wiederherstellung**:
+**Backup erstellen:** Einstellungen → Backup & Wiederherstellung → alle Daten als JSON exportieren
+**Backup laden:** JSON-Datei importieren (bestehende Daten werden überschrieben)
 
-### Backup erstellen
-
-**"Backup erstellen"** exportiert alle Daten als **JSON-Datei** über das Teilen-Menü:
-- Kunden, Tasks, Sessions, Todos, Hardware, Notizen, Workflows, Einstellungen
-- Fotos sind **nicht** im Backup enthalten (nur Metadaten)
-- Dateiname: `pomtechflow_backup_<timestamp>.json`
-
-### Backup laden
-
-**"Backup laden"** importiert eine zuvor gespeicherte JSON-Datei:
-1. Bestätigung erforderlich (alle aktuellen Daten werden überschrieben)
-2. Datei auswählen
-3. Alle Tabellen werden atomar wiederhergestellt
-
-> **Wichtig:** Vor einem App-Update oder Neuinstallation immer ein Backup erstellen!
+> Fotos sind nicht im Backup enthalten. Vor App-Deinstallation manuell sichern.
 
 ---
 
-## Erinnerungen (Notifications)
+## Desktop-Besonderheiten
 
-- Wird beim Speichern eines Tasks mit **geplantem Datum** automatisch eine Erinnerung gesetzt
-- Die Notification erscheint zum geplanten Zeitpunkt mit Titel des Tasks
-- Beim Entfernen des Datums wird die Erinnerung automatisch abgebrochen
-- Android 13+: Berechtigung wird beim ersten Start angefragt
-- iOS: Berechtigung wird beim ersten Start angefragt
+### Menüleiste (Windows / Linux / macOS)
+
+Am oberen Rand erscheint eine Menüleiste:
+
+| Menü | Einträge |
+|------|---------|
+| **Datei** | Neuer Task, Task importieren, Statistiken, Alle Berichte |
+| **Ansicht** | Dashboard, Tasks, Suche, Einstellungen |
+
+### Master-Detail Layout (Tablet / Desktop)
+
+Ab 700px Breite: Task-Liste links (360px) + Task-Detail rechts nebeneinander.
+Beim Antippen eines Tasks wird das Detail direkt rechts angezeigt, kein Navigationssprung.
+
+### App-Icon Badge
+
+Die Anzahl offener Tasks (Status: Geplant oder Aktiv) wird als Badge auf dem App-Icon angezeigt.
+
+> iOS/macOS: Badge-Berechtigung wird beim ersten Start beantragt.
+> Android: Funktioniert je nach Launcher.
 
 ---
 
@@ -372,20 +455,21 @@ Unter **Einstellungen → Backup & Wiederherstellung**:
 **Wo werden die Daten gespeichert?**
 Ausschließlich lokal auf dem Gerät. Keine Cloud, kein Server, kein Internet benötigt.
 
-**Was passiert bei einem App-Update?**
-Die Datenbank bleibt erhalten. Vorsorglich trotzdem ein Backup erstellen.
+**Kann ich Zeiten nachträglich korrigieren?**
+Ja: Task → Übersicht-Tab → Sessions → Stift-Icon. Datum, Uhrzeit und Dauer können per Picker bearbeitet werden.
 
-**Kann ich die App auf mehreren Geräten nutzen?**
-Ja, aber die Daten sind nicht synchronisiert. Ein Backup auf Gerät A kann auf Gerät B importiert werden.
+**Wie übergebe ich einen Task an einen Kollegen?**
+Task öffnen → AppBar → Teilen-Icon → `.ptf`-Datei per Mail/Chat senden. Kollege importiert über Task-Liste → Download-Icon.
+
+**Was ist der Unterschied zwischen Task-Übergabe (.ptf) und ZIP-Paket?**
+- `.ptf` ist für Kollegen: komplette Daten inkl. Fotos, importierbar in PomTechFlow
+- ZIP-Paket ist für Kunden/Dokumentation: PDF-Bericht + Fotos als Archiv
+
+**Was passiert bei einem App-Update?**
+Die Datenbank wird automatisch migriert. Trotzdem vorher ein Backup erstellen.
 
 **Wie viele AE hat ein 8-Stunden-Tag?**
-Bei 10 Min/AE: 480 Min / 10 = 48 AE. Bei 6 Min/AE: 80 AE.
-
-**Warum wird der Timer nicht exakt auf die Sekunde gestoppt?**
-Der Timer ist ein Pomodoro-Timer – er zählt die konfigurierte Fokuszeit herunter. Die tatsächlich gearbeiteten Minuten werden beim Stoppen berechnet und gerundet.
-
-**Kann ich Fotos aus dem Backup wiederherstellen?**
-Nein – Fotos werden als Dateipfade gespeichert. Bei einer Neuinstallation sind die Dateipfade ungültig. Fotos vor dem Deinstallieren manuell sichern.
+Bei 10 Min/AE: 480 ÷ 10 = 48 AE.
 
 ---
 
@@ -395,8 +479,6 @@ Nein – Fotos werden als Dateipfade gespeichert. Bei einer Neuinstallation sind
 
 - Flutter 3.41.4+
 - Dart 3.11.1+
-- Android SDK (für Android-Build)
-- Xcode 15+ (für iOS-Build, nur macOS)
 
 ### Lokal ausführen
 
@@ -405,50 +487,48 @@ git clone https://github.com/Fenron-dev/PomTechFlow-Mobile.git
 cd PomTechFlow-Mobile/pomtechflow_mobile
 
 flutter pub get
+dart run build_runner build --delete-conflicting-outputs
 flutter run
 ```
 
-### Build
+### Datenbankschema erweitern
 
-```bash
-# Android APK
-flutter build apk --release
+Nach Änderungen in `lib/db/database.dart`:
+1. Schema-Version erhöhen (`schemaVersion`)
+2. Migration in `MigrationStrategy.onUpgrade` ergänzen
+3. `dart run build_runner build --delete-conflicting-outputs`
 
-# iOS (nur macOS)
-flutter build ios --release
-```
+Aktuelle Version: **v6**
 
 ### Automatischer Build (GitHub Actions)
 
-Bei jedem Push auf `master` wird automatisch gebaut:
-- **Android APK** → downloadbar unter Actions → Artifacts → `android-apk`
-- **iOS IPA** → downloadbar unter Actions → Artifacts → `ios-ipa`
+Bei jedem Push auf `master` werden alle Plattformen gebaut:
 
-### Datenbankschema erweitern
-
-Die Datenbank wird mit **Drift** (SQLite ORM) verwaltet:
-
-```bash
-# Nach Schema-Änderungen in lib/db/database.dart
-dart run build_runner build
-```
-
-Schema-Version in `database.dart` erhöhen und Migration in `MigrationStrategy.onUpgrade` ergänzen.
+| Artifact | Plattform |
+|----------|-----------|
+| `PomTechFlow-Android` | Android APK |
+| `PomTechFlow-iOS` | iOS IPA |
+| `PomTechFlow-Windows` | Windows ZIP |
+| `PomTechFlow-macOS` | macOS ZIP |
+| `PomTechFlow-Linux` | Linux TAR.GZ |
 
 ### Tech-Stack
 
 | Technologie | Zweck |
 |-------------|-------|
-| Flutter 3.41.4 | UI Framework |
+| Flutter 3.41.4 | UI Framework (alle Plattformen) |
 | Dart 3.11.1 | Programmiersprache |
-| Drift 2.20 | SQLite ORM |
+| Drift 2.20 | SQLite ORM, Schema-Migration |
 | flutter_riverpod | State Management |
-| go_router | Navigation |
-| pdf + printing | PDF-Generierung |
+| go_router | Navigation / Routing |
+| pdf + printing | PDF-Generierung + In-App-Vorschau |
 | flutter_local_notifications | Erinnerungen |
 | image_picker | Kamera / Galerie |
 | share_plus | Teilen / Export |
-| file_picker | Backup Import |
+| file_picker | Dateiauswahl (Import) |
+| url_launcher | Direktanruf, E-Mail, Maps |
+| archive | ZIP-Übergabepaket |
+| app_badge_plus | App-Icon Badge |
 
 ---
 

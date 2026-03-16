@@ -21,6 +21,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   String? _customerId;
+  String _priority = 'NORMAL';
   DateTime? _plannedDate;
   bool _recurring = false;
   String _recurrenceType = 'WEEKLY';
@@ -43,6 +44,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       _descCtrl.text = task.description ?? '';
       setState(() {
         _customerId = task.customerId;
+        _priority = task.priority;
         _plannedDate = task.plannedDate;
         _recurring = task.recurring;
         _recurrenceType = task.recurrenceType ?? 'WEEKLY';
@@ -94,6 +96,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                 ? null
                 : _descCtrl.text.trim()),
             customerId: drift.Value(_customerId),
+            priority: drift.Value(_priority),
             plannedDate: drift.Value(_plannedDate),
             recurring: drift.Value(_recurring),
             recurrenceType:
@@ -109,6 +112,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         description: drift.Value(
             _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim()),
         customerId: drift.Value(_customerId),
+        priority: drift.Value(_priority),
         plannedDate: drift.Value(_plannedDate),
         recurring: drift.Value(_recurring),
         recurrenceType: drift.Value(_recurring ? _recurrenceType : null),
@@ -193,6 +197,44 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                 ],
                 onChanged: (v) => setState(() => _customerId = v),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Priorität ─────────────────────────────────────────────
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Priorität',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: cs.outline)),
+                const SizedBox(height: 6),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                        value: 'LOW',
+                        label: Text('Niedrig'),
+                        icon: Icon(Icons.arrow_downward, size: 16)),
+                    ButtonSegment(
+                        value: 'NORMAL',
+                        label: Text('Normal'),
+                        icon: Icon(Icons.remove, size: 16)),
+                    ButtonSegment(
+                        value: 'HIGH',
+                        label: Text('Hoch'),
+                        icon: Icon(Icons.arrow_upward, size: 16)),
+                    ButtonSegment(
+                        value: 'CRITICAL',
+                        label: Text('Kritisch'),
+                        icon: Icon(Icons.priority_high, size: 16)),
+                  ],
+                  selected: {_priority},
+                  onSelectionChanged: (s) =>
+                      setState(() => _priority = s.first),
+                  style: ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 

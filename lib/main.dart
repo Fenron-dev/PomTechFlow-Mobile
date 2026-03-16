@@ -14,6 +14,8 @@ import 'screens/search/search_screen.dart';
 import 'screens/statistics/statistics_screen.dart';
 import 'screens/reports/all_reports_screen.dart';
 import 'services/notification_service.dart';
+import 'services/badge_service.dart';
+import 'providers/tasks_provider.dart';
 import 'widgets/adaptive_shell.dart';
 
 void main() async {
@@ -98,6 +100,11 @@ class PomTechFlowApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // App-Icon Badge: offene Tasks
+    ref.listen(openTasksCountProvider, (_, count) {
+      BadgeService.update(count);
+    });
+
     final settingsAsync = ref.watch(settingsProvider);
     final themeModeSetting = settingsAsync.valueOrNull?.themeMode ?? 'system';
     final themeMode = switch (themeModeSetting) {

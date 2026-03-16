@@ -119,6 +119,15 @@ final notesProvider =
       .get();
 });
 
+// Anzahl offener Tasks (für App-Badge)
+final openTasksCountProvider = Provider<int>((ref) {
+  final tasks = ref.watch(tasksProvider).valueOrNull ?? [];
+  return tasks
+      .where((t) =>
+          t.task.status == 'PLANNED' || t.task.status == 'ACTIVE')
+      .length;
+});
+
 // Sessions eines Tasks (für manuelle Bearbeitung)
 final sessionsProvider =
     FutureProvider.family<List<Session>, String>((ref, taskId) async {

@@ -534,6 +534,18 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<String> priority = GeneratedColumn<String>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('NORMAL'),
+  );
   static const VerificationMeta _recurringMeta = const VerificationMeta(
     'recurring',
   );
@@ -604,6 +616,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     status,
     totalMinutes,
     plannedDate,
+    priority,
     recurring,
     recurrenceType,
     recurrenceInterval,
@@ -670,6 +683,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
           data['planned_date']!,
           _plannedDateMeta,
         ),
+      );
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
       );
     }
     if (data.containsKey('recurring')) {
@@ -745,6 +764,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}planned_date'],
       ),
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}priority'],
+      )!,
       recurring: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}recurring'],
@@ -782,6 +805,7 @@ class Task extends DataClass implements Insertable<Task> {
   final String status;
   final int totalMinutes;
   final DateTime? plannedDate;
+  final String priority;
   final bool recurring;
   final String? recurrenceType;
   final int recurrenceInterval;
@@ -795,6 +819,7 @@ class Task extends DataClass implements Insertable<Task> {
     required this.status,
     required this.totalMinutes,
     this.plannedDate,
+    required this.priority,
     required this.recurring,
     this.recurrenceType,
     required this.recurrenceInterval,
@@ -817,6 +842,7 @@ class Task extends DataClass implements Insertable<Task> {
     if (!nullToAbsent || plannedDate != null) {
       map['planned_date'] = Variable<DateTime>(plannedDate);
     }
+    map['priority'] = Variable<String>(priority);
     map['recurring'] = Variable<bool>(recurring);
     if (!nullToAbsent || recurrenceType != null) {
       map['recurrence_type'] = Variable<String>(recurrenceType);
@@ -842,6 +868,7 @@ class Task extends DataClass implements Insertable<Task> {
       plannedDate: plannedDate == null && nullToAbsent
           ? const Value.absent()
           : Value(plannedDate),
+      priority: Value(priority),
       recurring: Value(recurring),
       recurrenceType: recurrenceType == null && nullToAbsent
           ? const Value.absent()
@@ -865,6 +892,7 @@ class Task extends DataClass implements Insertable<Task> {
       status: serializer.fromJson<String>(json['status']),
       totalMinutes: serializer.fromJson<int>(json['totalMinutes']),
       plannedDate: serializer.fromJson<DateTime?>(json['plannedDate']),
+      priority: serializer.fromJson<String>(json['priority']),
       recurring: serializer.fromJson<bool>(json['recurring']),
       recurrenceType: serializer.fromJson<String?>(json['recurrenceType']),
       recurrenceInterval: serializer.fromJson<int>(json['recurrenceInterval']),
@@ -883,6 +911,7 @@ class Task extends DataClass implements Insertable<Task> {
       'status': serializer.toJson<String>(status),
       'totalMinutes': serializer.toJson<int>(totalMinutes),
       'plannedDate': serializer.toJson<DateTime?>(plannedDate),
+      'priority': serializer.toJson<String>(priority),
       'recurring': serializer.toJson<bool>(recurring),
       'recurrenceType': serializer.toJson<String?>(recurrenceType),
       'recurrenceInterval': serializer.toJson<int>(recurrenceInterval),
@@ -899,6 +928,7 @@ class Task extends DataClass implements Insertable<Task> {
     String? status,
     int? totalMinutes,
     Value<DateTime?> plannedDate = const Value.absent(),
+    String? priority,
     bool? recurring,
     Value<String?> recurrenceType = const Value.absent(),
     int? recurrenceInterval,
@@ -912,6 +942,7 @@ class Task extends DataClass implements Insertable<Task> {
     status: status ?? this.status,
     totalMinutes: totalMinutes ?? this.totalMinutes,
     plannedDate: plannedDate.present ? plannedDate.value : this.plannedDate,
+    priority: priority ?? this.priority,
     recurring: recurring ?? this.recurring,
     recurrenceType: recurrenceType.present
         ? recurrenceType.value
@@ -937,6 +968,7 @@ class Task extends DataClass implements Insertable<Task> {
       plannedDate: data.plannedDate.present
           ? data.plannedDate.value
           : this.plannedDate,
+      priority: data.priority.present ? data.priority.value : this.priority,
       recurring: data.recurring.present ? data.recurring.value : this.recurring,
       recurrenceType: data.recurrenceType.present
           ? data.recurrenceType.value
@@ -959,6 +991,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('status: $status, ')
           ..write('totalMinutes: $totalMinutes, ')
           ..write('plannedDate: $plannedDate, ')
+          ..write('priority: $priority, ')
           ..write('recurring: $recurring, ')
           ..write('recurrenceType: $recurrenceType, ')
           ..write('recurrenceInterval: $recurrenceInterval, ')
@@ -977,6 +1010,7 @@ class Task extends DataClass implements Insertable<Task> {
     status,
     totalMinutes,
     plannedDate,
+    priority,
     recurring,
     recurrenceType,
     recurrenceInterval,
@@ -994,6 +1028,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.status == this.status &&
           other.totalMinutes == this.totalMinutes &&
           other.plannedDate == this.plannedDate &&
+          other.priority == this.priority &&
           other.recurring == this.recurring &&
           other.recurrenceType == this.recurrenceType &&
           other.recurrenceInterval == this.recurrenceInterval &&
@@ -1009,6 +1044,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String> status;
   final Value<int> totalMinutes;
   final Value<DateTime?> plannedDate;
+  final Value<String> priority;
   final Value<bool> recurring;
   final Value<String?> recurrenceType;
   final Value<int> recurrenceInterval;
@@ -1023,6 +1059,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.status = const Value.absent(),
     this.totalMinutes = const Value.absent(),
     this.plannedDate = const Value.absent(),
+    this.priority = const Value.absent(),
     this.recurring = const Value.absent(),
     this.recurrenceType = const Value.absent(),
     this.recurrenceInterval = const Value.absent(),
@@ -1038,6 +1075,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.status = const Value.absent(),
     this.totalMinutes = const Value.absent(),
     this.plannedDate = const Value.absent(),
+    this.priority = const Value.absent(),
     this.recurring = const Value.absent(),
     this.recurrenceType = const Value.absent(),
     this.recurrenceInterval = const Value.absent(),
@@ -1053,6 +1091,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? status,
     Expression<int>? totalMinutes,
     Expression<DateTime>? plannedDate,
+    Expression<String>? priority,
     Expression<bool>? recurring,
     Expression<String>? recurrenceType,
     Expression<int>? recurrenceInterval,
@@ -1068,6 +1107,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (status != null) 'status': status,
       if (totalMinutes != null) 'total_minutes': totalMinutes,
       if (plannedDate != null) 'planned_date': plannedDate,
+      if (priority != null) 'priority': priority,
       if (recurring != null) 'recurring': recurring,
       if (recurrenceType != null) 'recurrence_type': recurrenceType,
       if (recurrenceInterval != null) 'recurrence_interval': recurrenceInterval,
@@ -1085,6 +1125,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String>? status,
     Value<int>? totalMinutes,
     Value<DateTime?>? plannedDate,
+    Value<String>? priority,
     Value<bool>? recurring,
     Value<String?>? recurrenceType,
     Value<int>? recurrenceInterval,
@@ -1100,6 +1141,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       status: status ?? this.status,
       totalMinutes: totalMinutes ?? this.totalMinutes,
       plannedDate: plannedDate ?? this.plannedDate,
+      priority: priority ?? this.priority,
       recurring: recurring ?? this.recurring,
       recurrenceType: recurrenceType ?? this.recurrenceType,
       recurrenceInterval: recurrenceInterval ?? this.recurrenceInterval,
@@ -1133,6 +1175,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (plannedDate.present) {
       map['planned_date'] = Variable<DateTime>(plannedDate.value);
     }
+    if (priority.present) {
+      map['priority'] = Variable<String>(priority.value);
+    }
     if (recurring.present) {
       map['recurring'] = Variable<bool>(recurring.value);
     }
@@ -1164,6 +1209,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('status: $status, ')
           ..write('totalMinutes: $totalMinutes, ')
           ..write('plannedDate: $plannedDate, ')
+          ..write('priority: $priority, ')
           ..write('recurring: $recurring, ')
           ..write('recurrenceType: $recurrenceType, ')
           ..write('recurrenceInterval: $recurrenceInterval, ')
@@ -6508,6 +6554,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<String> status,
       Value<int> totalMinutes,
       Value<DateTime?> plannedDate,
+      Value<String> priority,
       Value<bool> recurring,
       Value<String?> recurrenceType,
       Value<int> recurrenceInterval,
@@ -6524,6 +6571,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String> status,
       Value<int> totalMinutes,
       Value<DateTime?> plannedDate,
+      Value<String> priority,
       Value<bool> recurring,
       Value<String?> recurrenceType,
       Value<int> recurrenceInterval,
@@ -6683,6 +6731,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<DateTime> get plannedDate => $composableBuilder(
     column: $table.plannedDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get priority => $composableBuilder(
+    column: $table.priority,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6899,6 +6952,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get recurring => $composableBuilder(
     column: $table.recurring,
     builder: (column) => ColumnOrderings(column),
@@ -6980,6 +7038,9 @@ class $$TasksTableAnnotationComposer
     column: $table.plannedDate,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
 
   GeneratedColumn<bool> get recurring =>
       $composableBuilder(column: $table.recurring, builder: (column) => column);
@@ -7191,6 +7252,7 @@ class $$TasksTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int> totalMinutes = const Value.absent(),
                 Value<DateTime?> plannedDate = const Value.absent(),
+                Value<String> priority = const Value.absent(),
                 Value<bool> recurring = const Value.absent(),
                 Value<String?> recurrenceType = const Value.absent(),
                 Value<int> recurrenceInterval = const Value.absent(),
@@ -7205,6 +7267,7 @@ class $$TasksTableTableManager
                 status: status,
                 totalMinutes: totalMinutes,
                 plannedDate: plannedDate,
+                priority: priority,
                 recurring: recurring,
                 recurrenceType: recurrenceType,
                 recurrenceInterval: recurrenceInterval,
@@ -7221,6 +7284,7 @@ class $$TasksTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int> totalMinutes = const Value.absent(),
                 Value<DateTime?> plannedDate = const Value.absent(),
+                Value<String> priority = const Value.absent(),
                 Value<bool> recurring = const Value.absent(),
                 Value<String?> recurrenceType = const Value.absent(),
                 Value<int> recurrenceInterval = const Value.absent(),
@@ -7235,6 +7299,7 @@ class $$TasksTableTableManager
                 status: status,
                 totalMinutes: totalMinutes,
                 plannedDate: plannedDate,
+                priority: priority,
                 recurring: recurring,
                 recurrenceType: recurrenceType,
                 recurrenceInterval: recurrenceInterval,

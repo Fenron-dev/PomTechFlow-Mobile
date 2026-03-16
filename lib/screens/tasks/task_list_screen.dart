@@ -21,12 +21,22 @@ class TaskListScreen extends ConsumerStatefulWidget {
 
 class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   String _filter = 'ALL';
+  String _priorityFilter = 'ALL';
+  String _sortBy = 'date_desc';
   String _search = '';
   bool _searchVisible = false;
   final _searchCtrl = TextEditingController();
   String? _selectedTaskId;
 
   static const double _tabletBreakpoint = 700;
+
+  static int _priorityRank(String p) => switch (p) {
+    'CRITICAL' => 3,
+    'HIGH' => 2,
+    'NORMAL' => 1,
+    'LOW' => 0,
+    _ => 1,
+  };
 
   @override
   void dispose() {
@@ -98,6 +108,44 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               }
             }),
           ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort),
+            tooltip: 'Sortieren & Filtern',
+            onSelected: (v) {
+              if (v.startsWith('sort:')) {
+                setState(() => _sortBy = v.substring(5));
+              } else if (v.startsWith('prio:')) {
+                setState(() => _priorityFilter = v.substring(5));
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(enabled: false,
+                  child: Text('— Sortierung —',
+                      style: TextStyle(fontSize: 12))),
+              _sortItem('sort:priority_desc', Icons.flag,
+                  'Priorität (hoch→niedrig)', _sortBy == 'priority_desc'),
+              _sortItem('sort:date_desc', Icons.calendar_today,
+                  'Datum (neu→alt)', _sortBy == 'date_desc'),
+              _sortItem('sort:date_asc', Icons.calendar_today_outlined,
+                  'Datum (alt→neu)', _sortBy == 'date_asc'),
+              _sortItem('sort:title_asc', Icons.sort_by_alpha,
+                  'Titel (A–Z)', _sortBy == 'title_asc'),
+              const PopupMenuDivider(),
+              const PopupMenuItem(enabled: false,
+                  child: Text('— Priorität filtern —',
+                      style: TextStyle(fontSize: 12))),
+              _sortItem('prio:ALL', Icons.filter_list, 'Alle',
+                  _priorityFilter == 'ALL'),
+              _sortItem('prio:CRITICAL', Icons.priority_high, 'Kritisch',
+                  _priorityFilter == 'CRITICAL'),
+              _sortItem('prio:HIGH', Icons.arrow_upward, 'Hoch',
+                  _priorityFilter == 'HIGH'),
+              _sortItem('prio:NORMAL', Icons.remove, 'Normal',
+                  _priorityFilter == 'NORMAL'),
+              _sortItem('prio:LOW', Icons.arrow_downward, 'Niedrig',
+                  _priorityFilter == 'LOW'),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.download_outlined),
             tooltip: 'Task importieren (.ptf)',
@@ -148,12 +196,36 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               ? tasks
               : tasks.where((t) => t.task.status == _filter).toList();
 
+          if (_priorityFilter != 'ALL') {
+            filtered = filtered
+                .where((t) => t.task.priority == _priorityFilter)
+                .toList();
+          }
+
           if (_search.isNotEmpty) {
             filtered = filtered
                 .where((t) =>
                     t.task.title.toLowerCase().contains(_search) ||
                     (t.customer?.name.toLowerCase().contains(_search) ?? false))
                 .toList();
+          }
+
+          // Sortierung
+          filtered = List.of(filtered);
+          switch (_sortBy) {
+            case 'priority_desc':
+              filtered.sort((a, b) =>
+                  _priorityRank(b.task.priority)
+                      .compareTo(_priorityRank(a.task.priority)));
+            case 'date_asc':
+              filtered.sort((a, b) =>
+                  a.task.updatedAt.compareTo(b.task.updatedAt));
+            case 'title_asc':
+              filtered.sort((a, b) =>
+                  a.task.title.compareTo(b.task.title));
+            default: // date_desc
+              filtered.sort((a, b) =>
+                  b.task.updatedAt.compareTo(a.task.updatedAt));
           }
 
           if (filtered.isEmpty) {
@@ -339,6 +411,26 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
       await context.push('/tasks/$newTaskId');
       ref.invalidate(tasksProvider);
     }
+  }
+
+  PopupMenuItem<String> _sortItem(
+      String value, IconData icon, String label, bool active) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(children: [
+        Icon(icon, size: 18,
+            color: active
+                ? Theme.of(context).colorScheme.primary
+                : null),
+        const SizedBox(width: 10),
+        Text(label,
+            style: active
+                ? TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold)
+                : null),
+      ]),
+    );
   }
 
   String _filterLabel(String f) => switch (f) {

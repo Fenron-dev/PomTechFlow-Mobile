@@ -55,12 +55,25 @@ class TaskCard extends StatelessWidget {
       _ => 'PLANNED',
     };
 
+    final priorityColor = switch (t.priority) {
+      'CRITICAL' => Colors.red,
+      'HIGH' => Colors.orange,
+      'LOW' => Colors.blueGrey.shade300,
+      _ => Colors.transparent,
+    };
+
     return Card(
       margin: EdgeInsets.zero,
       color: isSelected ? cs.secondaryContainer : null,
-      child: InkWell(
+      clipBehavior: Clip.hardEdge,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+        if (t.priority != 'NORMAL')
+          Container(width: 4, color: priorityColor),
+        Expanded(child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Column(
@@ -188,7 +201,10 @@ class TaskCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )), // Expanded + InkWell
+      ],
+      ), // Row
+      ), // IntrinsicHeight
     );
   }
 }

@@ -27,6 +27,7 @@ class Tasks extends Table {
   // Status: PLANNED | ACTIVE | PAUSED | COMPLETED
   IntColumn get totalMinutes => integer().withDefault(const Constant(0))();
   DateTimeColumn get plannedDate => dateTime().nullable()(); // NEU v2
+  TextColumn get priority => text().withDefault(const Constant('NORMAL'))(); // NEU v6: LOW|NORMAL|HIGH|CRITICAL
   BoolColumn get recurring => boolean().withDefault(const Constant(false))(); // NEU v4
   TextColumn get recurrenceType => text().nullable()(); // DAILY|WEEKLY|MONTHLY|QUARTERLY
   IntColumn get recurrenceInterval => integer().withDefault(const Constant(1))(); // alle N Einheiten
@@ -208,7 +209,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -235,6 +236,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         // v4 → v5: Session-Notiz
         await m.addColumn(sessions, sessions.note);
+      }
+      if (from < 6) {
+        // v5 → v6: Task-Priorität
+        await m.addColumn(tasks, tasks.priority);
       }
     },
   );

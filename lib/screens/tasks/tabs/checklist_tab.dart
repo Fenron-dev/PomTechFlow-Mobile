@@ -23,6 +23,21 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
     super.dispose();
   }
 
+  Future<void> _reorderTodos(
+      List<Todo> todos, int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex--;
+    if (oldIndex == newIndex) return;
+    final list = List.of(todos);
+    final item = list.removeAt(oldIndex);
+    list.insert(newIndex, item);
+    final db = ref.read(databaseProvider);
+    for (int i = 0; i < list.length; i++) {
+      await (db.update(db.todos)..where((t) => t.id.equals(list[i].id)))
+          .write(TodosCompanion(sortOrder: drift.Value(i)));
+    }
+    ref.invalidate(todosProvider(widget.taskId));
+  }
+
   Future<void> _addTodo() async {
     final text = _ctrl.text.trim();
     if (text.isEmpty) return;
@@ -187,6 +202,8 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
                       todos: ungrouped,
                       onToggle: _toggleTodo,
                       onDelete: _deleteTodo,
+                      onReorder: (o, n) =>
+                          _reorderTodos(ungrouped, o, n),
                     ),
                   if (ungrouped.isNotEmpty && grouped.isNotEmpty)
                     const SizedBox(height: 8),
@@ -221,8 +238,14 @@ class _UngroupedSection extends StatelessWidget {
   final List<Todo> todos;
   final ValueChanged<Todo> onToggle;
   final ValueChanged<String> onDelete;
-  const _UngroupedSection(
-      {required this.todos, required this.onToggle, required this.onDelete});
+  final void Function(int, int) onReorder;
+
+  const _UngroupedSection({
+    required this.todos,
+    required this.onToggle,
+    required this.onDelete,
+    required this.onReorder,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -237,11 +260,23 @@ class _UngroupedSection extends StatelessWidget {
                   .labelMedium
                   ?.copyWith(color: Theme.of(context).colorScheme.outline)),
         ),
-        ...todos.map((todo) => _TodoTile(
-              todo: todo,
-              onToggle: () => onToggle(todo),
-              onDelete: () => onDelete(todo.id),
-            )),
+        ReorderableListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          onReorder: onReorder,
+          buildDefaultDragHandles: false,
+          children: todos
+              .asMap()
+              .entries
+              .map((e) => _TodoTile(
+                    key: ValueKey(e.value.id),
+                    todo: e.value,
+                    index: e.key,
+                    onToggle: () => onToggle(e.value),
+                    onDelete: () => onDelete(e.value.id),
+                  ))
+              .toList(),
+        ),
       ],
     );
   }
@@ -355,6 +390,7 @@ class _WorkflowGroupCardState extends State<_WorkflowGroupCard> {
           if (_expanded) ...[
             const Divider(height: 1, indent: 14, endIndent: 14),
             ...group.todos.map((todo) => _TodoTile(
+                  key: ValueKey(todo.id),
                   todo: todo,
                   onToggle: () => widget.onToggle(todo),
                   onDelete: () => widget.onDelete(todo.id),
@@ -369,10 +405,16 @@ class _WorkflowGroupCardState extends State<_WorkflowGroupCard> {
 
 class _TodoTile extends StatelessWidget {
   final Todo todo;
+  final int? index; // null = in workflow group (no drag handle)
   final VoidCallback onToggle;
   final VoidCallback onDelete;
-  const _TodoTile(
-      {required this.todo, required this.onToggle, required this.onDelete});
+  const _TodoTile({
+    super.key,
+    required this.todo,
+    this.index,
+    required this.onToggle,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -391,10 +433,21 @@ class _TodoTile extends StatelessWidget {
               : null,
         ),
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.close, size: 18),
-        onPressed: onDelete,
-        visualDensity: VisualDensity.compact,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.close, size: 18),
+            onPressed: onDelete,
+            visualDensity: VisualDensity.compact,
+          ),
+          if (index != null)
+            ReorderableDragStartListener(
+              index: index!,
+              child: const Icon(Icons.drag_handle,
+                  size: 18, color: Colors.grey),
+            ),
+        ],
       ),
     );
   }
