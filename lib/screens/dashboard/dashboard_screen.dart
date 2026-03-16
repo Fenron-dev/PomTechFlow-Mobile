@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../providers/tasks_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/timer_provider.dart';
+import '../../providers/database_provider.dart';
+import '../../providers/general_notes_provider.dart';
+import '../../db/database.dart';
 import '../../widgets/timer_session_dialogs.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -41,6 +46,13 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'quickstart',
+        onPressed: () => _quickStart(context, ref),
+        icon: const Icon(Icons.bolt),
+        label: const Text('Schnellstart'),
+        tooltip: 'Timer sofort starten',
+      ),
       body: tasksAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Fehler: $e')),
@@ -72,7 +84,7 @@ class DashboardScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 // Schnellnotiz
-                _ScratchPadCard(settings: settings),
+                const _QuickNoteCard(),
                 const SizedBox(height: 12),
                 // Stats
                 LayoutBuilder(builder: (context, constraints) {
@@ -469,69 +481,146 @@ class _TaskRow extends StatelessWidget {
 }
 
 
-// ─── Scratch-Pad ──────────────────────────────────────────────────────────────
+// ─── Quick-Note Card ──────────────────────────────────────────────────────────
 
-class _ScratchPadCard extends ConsumerStatefulWidget {
-  final AppSettings? settings;
-  const _ScratchPadCard({this.settings});
+class _QuickNoteCard extends ConsumerStatefulWidget {
+  const _QuickNoteCard();
 
   @override
-  ConsumerState<_ScratchPadCard> createState() => _ScratchPadCardState();
+  ConsumerState<_QuickNoteCard> createState() => _QuickNoteCardState();
 }
 
-class _ScratchPadCardState extends ConsumerState<_ScratchPadCard> {
-  late final TextEditingController _ctrl;
-  Timer? _debounce;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: widget.settings?.scratchPad ?? '');
-  }
+class _QuickNoteCardState extends ConsumerState<_QuickNoteCard> {
+  final _ctrl = TextEditingController();
+  bool _saving = false;
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _ctrl.dispose();
     super.dispose();
   }
 
-  void _onChanged(String value) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      final current = ref.read(settingsProvider).valueOrNull;
-      if (current == null) return;
-      ref.read(settingsProvider.notifier).save(
-            current.copyWith(scratchPad: value),
-          );
-    });
+  Future<void> _save() async {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty) return;
+    setState(() => _saving = true);
+    final db = ref.read(databaseProvider);
+    await db.into(db.generalNotes).insert(
+          GeneralNotesCompanion.insert(content: text),
+        );
+    ref.invalidate(generalNotesProvider);
+    ref.invalidate(allTagsProvider);
+    _ctrl.clear();
+    setState(() => _saving = false);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Notiz gespeichert'),
+          duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'Notizen öffnen',
+            onPressed: () => context.go('/notes'),
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasText = widget.settings?.scratchPad.isNotEmpty ?? false;
     return Card(
       margin: EdgeInsets.zero,
       child: ExpansionTile(
-        initiallyExpanded: hasText,
         leading: const Icon(Icons.edit_note_outlined),
         title: const Text('Schnellnotiz'),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: TextField(
-              controller: _ctrl,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                hintText: 'Kurze Notiz, Gedanken, Aufgaben...',
-                border: OutlineInputBorder(),
-              ),
-              textCapitalization: TextCapitalization.sentences,
-              onChanged: _onChanged,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                TextField(
+                  controller: _ctrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Notiz, Gedanke, Info...',
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.sentences,
+                  onSubmitted: (_) => _save(),
+                ),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: const Icon(Icons.save_outlined, size: 16),
+                  label: const Text('Speichern'),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+// ─── Quick-Start ──────────────────────────────────────────────────────────────
+
+Future<void> _quickStart(BuildContext context, WidgetRef ref) async {
+  final ctrl = TextEditingController();
+  final now = DateTime.now();
+  final defaultTitle =
+      'Schnellstart ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Schnellstart'),
+      content: TextField(
+        controller: ctrl,
+        decoration: InputDecoration(
+          labelText: 'Titel (optional)',
+          hintText: defaultTitle,
+        ),
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        onSubmitted: (_) => Navigator.pop(ctx, true),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen')),
+        FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Starten ▶')),
+      ],
+    ),
+  );
+  final title =
+      ctrl.text.trim().isEmpty ? defaultTitle : ctrl.text.trim();
+  ctrl.dispose();
+  if (confirmed != true || !context.mounted) return;
+
+  final db = ref.read(databaseProvider);
+  final taskId = _genUuid();
+  await db.into(db.tasks).insert(
+        TasksCompanion.insert(
+          id: drift.Value(taskId),
+          title: title,
+        ),
+      );
+  await ref.read(timerProvider.notifier).start(taskId);
+  ref.invalidate(tasksProvider);
+  if (context.mounted) context.push('/tasks/$taskId');
+}
+
+String _genUuid() {
+  final rng = Random.secure();
+  final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  String hex(int b) => b.toRadixString(16).padLeft(2, '0');
+  final h = bytes.map(hex).join();
+  return '${h.substring(0, 8)}-${h.substring(8, 12)}-'
+      '${h.substring(12, 16)}-${h.substring(16, 20)}-${h.substring(20, 32)}';
 }

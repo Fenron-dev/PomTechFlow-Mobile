@@ -16,6 +16,7 @@ import '../../../services/zip_export_service.dart';
 import '../../../widgets/timer_session_dialogs.dart';
 import '../../../providers/task_links_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class OverviewTab extends ConsumerStatefulWidget {
   final TaskWithDetails detail;
@@ -1260,28 +1261,50 @@ class _TaskLinksSection extends ConsumerWidget {
           error: (_, __) => const SizedBox(),
           data: (links) {
             if (links.isEmpty) return const SizedBox();
+            final directLinks =
+                links.where((e) => !e.isBacklink).toList();
+            final backlinks =
+                links.where((e) => e.isBacklink).toList();
+
+            Widget linkTile(TaskLinkEntry e) => ListTile(
+                  dense: true,
+                  leading: Icon(
+                    e.isBacklink
+                        ? Icons.reply
+                        : (_linkIcons[e.link.linkType] ?? Icons.link),
+                    size: 18,
+                    color: e.isBacklink ? cs.secondary : cs.primary,
+                  ),
+                  title: Text(e.linkedTask.title,
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(e.isBacklink
+                      ? '↩ ${_linkLabels[e.link.linkType] ?? e.link.linkType}'
+                      : (_linkLabels[e.link.linkType] ?? e.link.linkType)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close, size: 16),
+                    onPressed: () => _removeLink(ref, e.link.id),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                  onTap: () => context.push('/tasks/${e.linkedTask.id}'),
+                );
+
             return Column(
-              children: links
-                  .map((e) => ListTile(
-                        dense: true,
-                        leading: Icon(
-                          _linkIcons[e.link.linkType] ?? Icons.link,
-                          size: 18,
-                          color: cs.primary,
-                        ),
-                        title: Text(e.linkedTask.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                        subtitle: Text(
-                            _linkLabels[e.link.linkType] ?? e.link.linkType),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.close, size: 16),
-                          onPressed: () => _removeLink(ref, e.link.id),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        contentPadding: EdgeInsets.zero,
-                      ))
-                  .toList(),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...directLinks.map(linkTile),
+                if (backlinks.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Rückverweise',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: cs.outline),
+                  ),
+                  ...backlinks.map(linkTile),
+                ],
+              ],
             );
           },
         ),

@@ -15,6 +15,7 @@ import 'screens/search/search_screen.dart';
 import 'screens/statistics/statistics_screen.dart';
 import 'screens/reports/all_reports_screen.dart';
 import 'screens/reports/monthly_report_screen.dart';
+import 'screens/notes/notes_screen.dart';
 import 'services/notification_service.dart';
 import 'services/badge_service.dart';
 import 'providers/tasks_provider.dart';
@@ -80,7 +81,14 @@ final _router = GoRouter(
             ],
           ),
         ]),
-        // 2 - Einstellungen (inkl. Kunden, Workflows, Backup)
+        // 2 - Notizen
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/notes',
+            builder: (_, __) => const NotesScreen(),
+          ),
+        ]),
+        // 3 - Einstellungen (inkl. Kunden, Workflows, Backup)
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/settings',

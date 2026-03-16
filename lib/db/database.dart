@@ -211,6 +211,17 @@ class TaskLinks extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class GeneralNotes extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get content => text()();
+  TextColumn get tags => text().nullable()(); // kommagetrennte Tags, z.B. "linux,on/linux/install"
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class DevicePresets extends Table {
   TextColumn get id => text().clientDefault(() => _uuid())();
   TextColumn get type => text()();
@@ -245,12 +256,13 @@ class DevicePresets extends Table {
   TaskTemplateWorkflows,
   TaskTemplateTodos,
   TaskLinks,
+  GeneralNotes,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -297,6 +309,10 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(tasks, tasks.estimatedMinutes);
         await m.addColumn(tasks, tasks.billedAt);
         await m.createTable(taskLinks);
+      }
+      if (from < 10) {
+        // v9 → v10: Allgemeine Notizen mit Tags
+        await m.createTable(generalNotes);
       }
     },
   );
