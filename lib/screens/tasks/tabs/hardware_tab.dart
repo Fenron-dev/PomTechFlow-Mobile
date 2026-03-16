@@ -292,18 +292,21 @@ class _HardwareFormState extends ConsumerState<_HardwareForm> {
           const SizedBox(height: 12),
           TextField(
             controller: _nameCtrl,
+            textDirection: TextDirection.ltr,
             decoration: const InputDecoration(
                 labelText: 'Bezeichnung', hintText: 'z.B. Dell Latitude 5540'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _serialCtrl,
+            textDirection: TextDirection.ltr,
             decoration: const InputDecoration(
                 labelText: 'Seriennummer', hintText: 'Optional'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _notesCtrl,
+            textDirection: TextDirection.ltr,
             decoration:
                 const InputDecoration(labelText: 'Notizen', hintText: 'Optional'),
           ),

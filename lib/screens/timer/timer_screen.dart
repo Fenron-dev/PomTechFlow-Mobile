@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/tasks_provider.dart';
+import '../../services/notification_service.dart';
+import '../../widgets/timer_session_dialogs.dart';
 
 class TimerScreen extends ConsumerWidget {
   const TimerScreen({super.key});
@@ -13,50 +15,39 @@ class TimerScreen extends ConsumerWidget {
     final tasksAsync = ref.watch(tasksProvider);
     final cs = Theme.of(context).colorScheme;
 
-    final phaseLabel = switch (timer.phase) {
-      TimerPhase.work => 'Fokuszeit',
-      TimerPhase.shortBreak => 'Kurze Pause',
-      TimerPhase.longBreak => 'Lange Pause',
-    };
-
-    final phaseColor = switch (timer.phase) {
-      TimerPhase.work => cs.primary,
-      TimerPhase.shortBreak => cs.secondary,
-      TimerPhase.longBreak => cs.tertiary,
-    };
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Timer')),
+      appBar: AppBar(
+        title: const Text('Timer'),
+        actions: [
+          // Quick-Reminder Bell
+          IconButton(
+            icon: const Icon(Icons.alarm_add_outlined),
+            tooltip: 'Erinnerung setzen',
+            onPressed: () => _showReminderDialog(context),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Pomodoro-Punkte
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    4,
-                    (i) => Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Icon(
-                        Icons.circle,
-                        size: 12,
-                        color: i < (timer.completedPomodoros % 4)
-                            ? phaseColor
-                            : cs.outlineVariant,
-                      ),
-                    ),
-                  ),
+                // Status-Label
+                Text(
+                  switch (timer.status) {
+                    TimerStatus.running => 'Läuft',
+                    TimerStatus.paused => 'Pausiert',
+                    TimerStatus.idle => 'Bereit',
+                  },
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(color: cs.primary),
                 ),
-                const SizedBox(height: 8),
-                Text(phaseLabel,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: phaseColor)),
                 const SizedBox(height: 32),
 
-                // Timer-Ring
+                // Timer-Ring (füllt sich alle 25 Minuten)
                 SizedBox(
                   width: 220,
                   height: 220,
@@ -67,7 +58,9 @@ class TimerScreen extends ConsumerWidget {
                         size: const Size(220, 220),
                         painter: _TimerRingPainter(
                           progress: timer.progress,
-                          color: phaseColor,
+                          color: timer.status == TimerStatus.paused
+                              ? cs.tertiary
+                              : cs.primary,
                           backgroundColor: cs.surfaceContainerHighest,
                         ),
                       ),
@@ -94,14 +87,18 @@ class TimerScreen extends ConsumerWidget {
                                         t.task.id == timer.activeTaskId)
                                     .firstOrNull;
                                 return t != null
-                                    ? Text(
-                                        t.task.title,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelMedium
-                                            ?.copyWith(color: cs.outline),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                    ? Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16),
+                                        child: Text(
+                                          t.task.title,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelMedium
+                                              ?.copyWith(color: cs.outline),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       )
                                     : const SizedBox();
                               },
@@ -119,7 +116,6 @@ class TimerScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (timer.status == TimerStatus.idle) ...[
-                      // Task-Auswahl wenn idle
                       tasksAsync.maybeWhen(
                         data: (tasks) {
                           final activeTasks = tasks
@@ -138,14 +134,13 @@ class TimerScreen extends ConsumerWidget {
                                 .start(taskId),
                           );
                         },
-                        orElse: () =>
-                            const CircularProgressIndicator(),
+                        orElse: () => const CircularProgressIndicator(),
                       ),
                     ] else ...[
                       if (timer.status == TimerStatus.paused)
                         _ControlButton(
                           icon: Icons.play_arrow,
-                          color: phaseColor,
+                          color: cs.primary,
                           onPressed: () =>
                               ref.read(timerProvider.notifier).resume(),
                           size: 64,
@@ -153,7 +148,7 @@ class TimerScreen extends ConsumerWidget {
                       else
                         _ControlButton(
                           icon: Icons.pause,
-                          color: phaseColor,
+                          color: cs.primary,
                           onPressed: () =>
                               ref.read(timerProvider.notifier).pause(),
                           size: 64,
@@ -163,7 +158,7 @@ class TimerScreen extends ConsumerWidget {
                         icon: Icons.stop,
                         color: cs.error,
                         onPressed: () =>
-                            ref.read(timerProvider.notifier).stop(),
+                            _stopTimer(context, ref, timer),
                         size: 48,
                       ),
                     ],
@@ -176,7 +171,133 @@ class TimerScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _stopTimer(
+      BuildContext context, WidgetRef ref, TimerState timer) async {
+    await handleTimerStop(context, ref);
+  }
+
+  Future<void> _showReminderDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (_) => const _ReminderDialog(),
+    );
+  }
 }
+
+// ─── Quick Reminder Dialog ────────────────────────────────────────────────────
+
+class _ReminderDialog extends StatefulWidget {
+  const _ReminderDialog();
+
+  @override
+  State<_ReminderDialog> createState() => _ReminderDialogState();
+}
+
+class _ReminderDialogState extends State<_ReminderDialog> {
+  int _minutes = 10;
+  final _textCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _textCtrl.text = 'Server nochmal prüfen';
+  }
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final presets = [5, 10, 15, 20, 30];
+    return AlertDialog(
+      title: const Row(children: [
+        Icon(Icons.alarm_add_outlined),
+        SizedBox(width: 10),
+        Text('Erinnerung setzen'),
+      ]),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _textCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Woran erinnern?',
+              isDense: true,
+            ),
+            textCapitalization: TextCapitalization.sentences,
+          ),
+          const SizedBox(height: 16),
+          Text('In wie vielen Minuten?',
+              style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: presets
+                .map((p) => ChoiceChip(
+                      label: Text('$p min'),
+                      selected: _minutes == p,
+                      onSelected: (_) => setState(() => _minutes = p),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('Individuell: '),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 70,
+                child: TextFormField(
+                  initialValue: _minutes.toString(),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    suffix: Text('min'),
+                  ),
+                  onChanged: (v) {
+                    final val = int.tryParse(v);
+                    if (val != null && val > 0) setState(() => _minutes = val);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton.icon(
+          icon: const Icon(Icons.alarm_on),
+          label: const Text('Setzen'),
+          onPressed: () async {
+            Navigator.pop(context);
+            final when =
+                DateTime.now().add(Duration(minutes: _minutes));
+            final text = _textCtrl.text.trim().isEmpty
+                ? 'Erinnerung'
+                : _textCtrl.text.trim();
+            await NotificationService.scheduleReminder(text, when);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('Erinnerung in $_minutes Min: $text'),
+              ));
+            }
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Task Picker ──────────────────────────────────────────────────────────────
 
 class _TaskPickerButton extends StatelessWidget {
   final List<TaskWithDetails> tasks;
@@ -235,6 +356,8 @@ class _TaskPickerSheet extends StatelessWidget {
   }
 }
 
+// ─── Control Button ───────────────────────────────────────────────────────────
+
 class _ControlButton extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -266,6 +389,8 @@ class _ControlButton extends StatelessWidget {
   }
 }
 
+// ─── Ring Painter ─────────────────────────────────────────────────────────────
+
 class _TimerRingPainter extends CustomPainter {
   final double progress;
   final Color color;
@@ -289,19 +414,21 @@ class _TimerRingPainter extends CustomPainter {
       ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius, bgPaint);
 
-    final fgPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
+    if (progress > 0) {
+      final fgPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
 
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      2 * math.pi * progress,
-      false,
-      fgPaint,
-    );
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2,
+        2 * math.pi * progress,
+        false,
+        fgPaint,
+      );
+    }
   }
 
   @override

@@ -9,6 +9,7 @@ import '../../providers/task_templates_provider.dart';
 import '../../db/database.dart';
 import '../../widgets/task_card.dart';
 import '../../services/task_handover_service.dart';
+import '../../widgets/timer_session_dialogs.dart';
 import 'task_detail_screen.dart';
 import 'package:drift/drift.dart' as drift;
 
@@ -282,21 +283,41 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               padding: const EdgeInsets.all(12),
               itemCount: filtered.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (_, i) => TaskCard(
-                task: filtered[i],
-                isTimerRunning: timer.activeTaskId == filtered[i].task.id,
-                aeMinutes: aeMinutes,
-                isSelected: isTablet && _selectedTaskId == filtered[i].task.id,
-                onTap: () async {
-                  if (isTablet) {
-                    setState(() => _selectedTaskId = filtered[i].task.id);
-                  } else {
-                    await context.push('/tasks/${filtered[i].task.id}');
-                    ref.invalidate(tasksProvider);
-                  }
-                },
-                onDelete: () => _deleteTask(filtered[i].task.id, isTablet: isTablet),
-              ),
+              itemBuilder: (_, i) {
+                final taskId = filtered[i].task.id;
+                final isRunning = timer.status == TimerStatus.running &&
+                    timer.activeTaskId == taskId;
+                final isPaused = timer.status == TimerStatus.paused &&
+                    timer.activeTaskId == taskId;
+                return TaskCard(
+                  task: filtered[i],
+                  isTimerRunning: isRunning,
+                  isTimerPaused: isPaused,
+                  aeMinutes: aeMinutes,
+                  isSelected: isTablet && _selectedTaskId == taskId,
+                  onTap: () async {
+                    if (isTablet) {
+                      setState(() => _selectedTaskId = taskId);
+                    } else {
+                      await context.push('/tasks/$taskId');
+                      ref.invalidate(tasksProvider);
+                    }
+                  },
+                  onDelete: () => _deleteTask(taskId, isTablet: isTablet),
+                  onTimerStart: timer.status == TimerStatus.idle
+                      ? () => ref.read(timerProvider.notifier).start(taskId)
+                      : null,
+                  onTimerPause: isRunning
+                      ? () => ref.read(timerProvider.notifier).pause()
+                      : null,
+                  onTimerResume: isPaused
+                      ? () => ref.read(timerProvider.notifier).resume()
+                      : null,
+                  onTimerStop: (isRunning || isPaused)
+                      ? () => handleTimerStop(context, ref)
+                      : null,
+                );
+              },
             ),
           );
         },
@@ -437,6 +458,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         'PLANNED' => 'geplante',
         'ACTIVE' => 'aktive',
         'COMPLETED' => 'erledigte',
+        'CRM_DONE' => 'im CRM erfasste',
         _ => f,
       };
 
@@ -504,6 +526,7 @@ class _FilterBar extends StatelessWidget {
       ('PLANNED', 'Geplant'),
       ('ACTIVE', 'Aktiv'),
       ('COMPLETED', 'Erledigt'),
+      ('CRM_DONE', 'Im CRM'),
     ];
     return SizedBox(
       height: 48,

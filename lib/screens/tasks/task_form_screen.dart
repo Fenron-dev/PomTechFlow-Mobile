@@ -27,6 +27,8 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   bool _recurring = false;
   String _recurrenceType = 'WEEKLY';
   int _recurrenceInterval = 1;
+  int? _recurrenceWeekday; // 1=Mo..7=So
+  int? _recurrenceMonthDay; // 1..31
   bool _loading = false;
 
   @override
@@ -50,6 +52,8 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         _recurring = task.recurring;
         _recurrenceType = task.recurrenceType ?? 'WEEKLY';
         _recurrenceInterval = task.recurrenceInterval;
+        _recurrenceWeekday = task.recurrenceWeekday;
+        _recurrenceMonthDay = task.recurrenceMonthDay;
       });
     }
   }
@@ -69,12 +73,13 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       firstDate: now.subtract(const Duration(days: 365)),
       lastDate: now.add(const Duration(days: 365 * 2)),
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
     // Optional: Uhrzeit
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_plannedDate ?? now),
     );
+    if (!mounted) return;
     setState(() {
       _plannedDate = time == null
           ? picked
@@ -104,6 +109,14 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               recurrenceType:
                   drift.Value(_recurring ? _recurrenceType : null),
               recurrenceInterval: drift.Value(_recurrenceInterval),
+              recurrenceWeekday: drift.Value(
+                  _recurring && _recurrenceType == 'WEEKLY'
+                      ? _recurrenceWeekday
+                      : null),
+              recurrenceMonthDay: drift.Value(
+                  _recurring && _recurrenceType == 'MONTHLY'
+                      ? _recurrenceMonthDay
+                      : null),
               updatedAt: drift.Value(now),
             ));
       } else {
@@ -119,6 +132,14 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
           recurring: drift.Value(_recurring),
           recurrenceType: drift.Value(_recurring ? _recurrenceType : null),
           recurrenceInterval: drift.Value(_recurrenceInterval),
+          recurrenceWeekday: drift.Value(
+              _recurring && _recurrenceType == 'WEEKLY'
+                  ? _recurrenceWeekday
+                  : null),
+          recurrenceMonthDay: drift.Value(
+              _recurring && _recurrenceType == 'MONTHLY'
+                  ? _recurrenceMonthDay
+                  : null),
           updatedAt: drift.Value(now),
         ));
       }
@@ -381,6 +402,67 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                       ?.copyWith(color: cs.primary),
                 ),
               ),
+
+              // Wochentag-Picker für WEEKLY
+              if (_recurrenceType == 'WEEKLY') ...[
+                const SizedBox(height: 12),
+                Text('Am Wochentag',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelMedium
+                        ?.copyWith(color: cs.outline)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    for (int day = 1; day <= 7; day++)
+                      ChoiceChip(
+                        label: Text(_weekdayLabel(day)),
+                        selected: _recurrenceWeekday == day,
+                        onSelected: (_) => setState(() =>
+                            _recurrenceWeekday =
+                                _recurrenceWeekday == day ? null : day),
+                      ),
+                  ],
+                ),
+              ],
+
+              // Monatstag-Picker für MONTHLY
+              if (_recurrenceType == 'MONTHLY') ...[
+                const SizedBox(height: 12),
+                Text('Am Tag des Monats',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelMedium
+                        ?.copyWith(color: cs.outline)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (int d = 1; d <= 28; d++)
+                      ChoiceChip(
+                        label: Text('$d.'),
+                        selected: _recurrenceMonthDay == d,
+                        onSelected: (_) => setState(() =>
+                            _recurrenceMonthDay =
+                                _recurrenceMonthDay == d ? null : d),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
+                if (_recurrenceMonthDay == null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Kein Tag gewählt → nach Intervall wiederholen',
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall
+                          ?.copyWith(color: cs.outline),
+                    ),
+                  ),
+              ],
             ],
           ],
         ),
@@ -394,5 +476,16 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         'MONTHLY' => _recurrenceInterval == 1 ? 'Monat' : 'Monate',
         'QUARTERLY' => _recurrenceInterval == 1 ? 'Quartal' : 'Quartale',
         _ => type,
+      };
+
+  String _weekdayLabel(int day) => switch (day) {
+        1 => 'Mo',
+        2 => 'Di',
+        3 => 'Mi',
+        4 => 'Do',
+        5 => 'Fr',
+        6 => 'Sa',
+        7 => 'So',
+        _ => '$day',
       };
 }

@@ -209,8 +209,11 @@ class PdfService {
     );
 
     final dir = await getApplicationDocumentsDirectory();
-    final fileName =
-        'bericht_${task.id.substring(0, task.id.length.clamp(0, 8))}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final fileDateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final customerSlug = _slug(data.taskDetail.customer?.name ?? 'kein-kunde');
+    final titleSlug = _slug(task.title);
+    final baseName = '${fileDateStr}_${customerSlug}_$titleSlug';
+    final fileName = await _uniqueFilename(dir.path, baseName, 'pdf');
     final file = File('${dir.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
     return file;
@@ -399,6 +402,32 @@ class PdfService {
     );
   }
 
+  /// Converts a string to a safe filename slug (max 30 chars, no special chars)
+  static String _slug(String input) {
+    var s = input
+        .toLowerCase()
+        .replaceAll(RegExp(r'[äÄ]'), 'ae')
+        .replaceAll(RegExp(r'[öÖ]'), 'oe')
+        .replaceAll(RegExp(r'[üÜ]'), 'ue')
+        .replaceAll(RegExp(r'[ß]'), 'ss')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    if (s.length > 30) s = s.substring(0, 30).replaceAll(RegExp(r'-$'), '');
+    return s.isEmpty ? 'unbekannt' : s;
+  }
+
+  /// Returns a unique filename, appending _2, _3 etc. if necessary.
+  static Future<String> _uniqueFilename(
+      String dirPath, String base, String ext) async {
+    var name = '$base.$ext';
+    if (!await File('$dirPath/$name').exists()) return name;
+    for (var i = 2; i <= 99; i++) {
+      name = '${base}_$i.$ext';
+      if (!await File('$dirPath/$name').exists()) return name;
+    }
+    return '${base}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+  }
+
   static String _statusLabel(String s) => switch (s) {
         'ACTIVE' => 'Aktiv',
         'COMPLETED' => 'Abgeschlossen',
@@ -414,17 +443,23 @@ class PdfService {
     );
   }
 
-  /// Lists all previously generated PDF reports for a task
+  /// Lists all previously generated PDF reports (legacy + new naming scheme).
   static Future<List<File>> listReports(String taskId) async {
     final dir = await getApplicationDocumentsDirectory();
-    final prefix = 'bericht_${taskId.substring(0, taskId.length.clamp(0, 8))}_';
+    final legacyPrefix =
+        'bericht_${taskId.substring(0, taskId.length.clamp(0, 8))}_';
     final docDir = Directory(dir.path);
     if (!await docDir.exists()) return [];
     return docDir
         .listSync()
         .whereType<File>()
-        .where((f) => f.path.split('/').last.startsWith(prefix) && f.path.endsWith('.pdf'))
+        .where((f) {
+          final name = f.uri.pathSegments.last;
+          return name.endsWith('.pdf') &&
+              (name.startsWith(legacyPrefix) ||
+               RegExp(r'^\d{4}-\d{2}-\d{2}_').hasMatch(name));
+        })
         .toList()
-        ..sort((a, b) => b.path.compareTo(a.path)); // newest first
+        ..sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
   }
 }

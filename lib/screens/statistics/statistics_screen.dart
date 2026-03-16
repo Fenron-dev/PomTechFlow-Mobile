@@ -87,8 +87,10 @@ class _StatisticsBody extends ConsumerWidget {
             monthMin == 0 ? 0 : (monthMin / aeMin).ceil();
 
         // Tasks nach Status
-        final completed =
-            tasks.where((t) => t.task.status == 'COMPLETED').length;
+        final completed = tasks
+            .where((t) =>
+                t.task.status == 'COMPLETED' || t.task.status == 'CRM_DONE')
+            .length;
         final active = tasks.where((t) => t.task.status == 'ACTIVE').length;
         final planned = tasks.where((t) => t.task.status == 'PLANNED').length;
 

@@ -81,4 +81,42 @@ class NotificationService {
     if (!_supported) return;
     await _plugin.cancel(taskId.hashCode.abs() % 100000);
   }
+
+  /// Schedules a one-off reminder notification at [when].
+  static Future<void> scheduleReminder(String text, DateTime when) async {
+    if (!_supported) return;
+    if (when.isBefore(DateTime.now())) return;
+    await initialize();
+
+    final scheduledDate = tz.TZDateTime.from(when, tz.local);
+    final id = when.millisecondsSinceEpoch % 100000;
+
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        'Erinnerung',
+        text,
+        scheduledDate,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'quick_reminders',
+            'Schnell-Erinnerungen',
+            channelDescription: 'Manuelle Erinnerungen vom Timer',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: false,
+            presentSound: true,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (_) {
+      // Exakte Alarme können ohne SCHEDULE_EXACT_ALARM-Berechtigung fehlschlagen
+    }
+  }
 }

@@ -2,58 +2,51 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import 'database_provider.dart';
-import 'settings_provider.dart';
 import '../db/database.dart';
-
-enum TimerPhase { work, shortBreak, longBreak }
 
 enum TimerStatus { idle, running, paused }
 
+/// Visual reference cycle for the ring animation (25 min, configurable)
+const int _ringCycleSecs = 25 * 60;
+
 class TimerState {
   final TimerStatus status;
-  final TimerPhase phase;
-  final int secondsLeft;
-  final int totalSeconds;
+  final int elapsedSeconds;
   final String? activeTaskId;
   final String? activeSessionId;
-  final int completedPomodoros;
 
   const TimerState({
     this.status = TimerStatus.idle,
-    this.phase = TimerPhase.work,
-    this.secondsLeft = 25 * 60,
-    this.totalSeconds = 25 * 60,
+    this.elapsedSeconds = 0,
     this.activeTaskId,
     this.activeSessionId,
-    this.completedPomodoros = 0,
   });
 
+  /// Ring fills over a configurable cycle (default 25 min) then resets.
   double get progress =>
-      totalSeconds > 0 ? 1 - (secondsLeft / totalSeconds) : 0;
+      (elapsedSeconds % _ringCycleSecs) / _ringCycleSecs;
 
   String get timeString {
-    final m = secondsLeft ~/ 60;
-    final s = secondsLeft % 60;
+    final h = elapsedSeconds ~/ 3600;
+    final m = (elapsedSeconds % 3600) ~/ 60;
+    final s = elapsedSeconds % 60;
+    if (h > 0) {
+      return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   TimerState copyWith({
     TimerStatus? status,
-    TimerPhase? phase,
-    int? secondsLeft,
-    int? totalSeconds,
+    int? elapsedSeconds,
     String? activeTaskId,
     String? activeSessionId,
-    int? completedPomodoros,
   }) =>
       TimerState(
         status: status ?? this.status,
-        phase: phase ?? this.phase,
-        secondsLeft: secondsLeft ?? this.secondsLeft,
-        totalSeconds: totalSeconds ?? this.totalSeconds,
+        elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
         activeTaskId: activeTaskId ?? this.activeTaskId,
         activeSessionId: activeSessionId ?? this.activeSessionId,
-        completedPomodoros: completedPomodoros ?? this.completedPomodoros,
       );
 }
 
@@ -63,19 +56,8 @@ class TimerNotifier extends Notifier<TimerState> {
 
   @override
   TimerState build() {
-    final settings = ref.watch(settingsProvider).valueOrNull;
-    final secs = (settings?.pomodoroMinutes ?? 25) * 60;
     ref.onDispose(() => _timer?.cancel());
-    return TimerState(secondsLeft: secs, totalSeconds: secs);
-  }
-
-  int _secsForPhase(TimerPhase phase) {
-    final s = ref.read(settingsProvider).valueOrNull;
-    return switch (phase) {
-      TimerPhase.work => (s?.pomodoroMinutes ?? 25) * 60,
-      TimerPhase.shortBreak => (s?.shortBreakMinutes ?? 5) * 60,
-      TimerPhase.longBreak => (s?.longBreakMinutes ?? 15) * 60,
-    };
+    return const TimerState();
   }
 
   Future<void> start(String taskId) async {
@@ -84,7 +66,6 @@ class TimerNotifier extends Notifier<TimerState> {
     final db = ref.read(databaseProvider);
     _sessionStart = DateTime.now();
 
-    // Session in DB anlegen
     final sessionId = 'sess_${DateTime.now().millisecondsSinceEpoch}';
     await db.into(db.sessions).insert(SessionsCompanion.insert(
           id: drift.Value(sessionId),
@@ -93,7 +74,6 @@ class TimerNotifier extends Notifier<TimerState> {
           type: const drift.Value('WORK'),
         ));
 
-    // Task auf ACTIVE setzen
     await (db.update(db.tasks)..where((t) => t.id.equals(taskId))).write(
       TasksCompanion(
         status: const drift.Value('ACTIVE'),
@@ -101,12 +81,9 @@ class TimerNotifier extends Notifier<TimerState> {
       ),
     );
 
-    final secs = _secsForPhase(TimerPhase.work);
     state = state.copyWith(
       status: TimerStatus.running,
-      phase: TimerPhase.work,
-      secondsLeft: secs,
-      totalSeconds: secs,
+      elapsedSeconds: 0,
       activeTaskId: taskId,
       activeSessionId: sessionId,
     );
@@ -129,8 +106,7 @@ class TimerNotifier extends Notifier<TimerState> {
   Future<void> stop() async {
     _timer?.cancel();
     await _finalizeSession();
-    final secs = _secsForPhase(TimerPhase.work);
-    state = TimerState(secondsLeft: secs, totalSeconds: secs);
+    state = const TimerState();
   }
 
   void _startTick() {
@@ -138,22 +114,15 @@ class TimerNotifier extends Notifier<TimerState> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
-  Future<void> _tick() async {
-    if (state.secondsLeft <= 1) {
-      _timer?.cancel();
-      await _finalizeSession();
-      _onPhaseComplete();
-    } else {
-      state = state.copyWith(secondsLeft: state.secondsLeft - 1);
-    }
+  void _tick() {
+    state = state.copyWith(elapsedSeconds: state.elapsedSeconds + 1);
   }
 
   Future<void> _finalizeSession() async {
     if (state.activeSessionId == null || _sessionStart == null) return;
     final db = ref.read(databaseProvider);
     final now = DateTime.now();
-    final duration =
-        now.difference(_sessionStart!).inMinutes;
+    final duration = now.difference(_sessionStart!).inMinutes;
 
     await (db.update(db.sessions)
           ..where((s) => s.id.equals(state.activeSessionId!)))
@@ -174,30 +143,6 @@ class TimerNotifier extends Notifier<TimerState> {
       ));
     }
     _sessionStart = null;
-  }
-
-  void _onPhaseComplete() {
-    final completed = state.phase == TimerPhase.work
-        ? state.completedPomodoros + 1
-        : state.completedPomodoros;
-
-    TimerPhase nextPhase;
-    if (state.phase == TimerPhase.work) {
-      nextPhase =
-          completed % 4 == 0 ? TimerPhase.longBreak : TimerPhase.shortBreak;
-    } else {
-      nextPhase = TimerPhase.work;
-    }
-
-    final secs = _secsForPhase(nextPhase);
-    state = state.copyWith(
-      status: TimerStatus.idle,
-      phase: nextPhase,
-      secondsLeft: secs,
-      totalSeconds: secs,
-      completedPomodoros: completed,
-      activeSessionId: null,
-    );
   }
 }
 

@@ -31,6 +31,8 @@ class Tasks extends Table {
   BoolColumn get recurring => boolean().withDefault(const Constant(false))(); // NEU v4
   TextColumn get recurrenceType => text().nullable()(); // DAILY|WEEKLY|MONTHLY|QUARTERLY
   IntColumn get recurrenceInterval => integer().withDefault(const Constant(1))(); // alle N Einheiten
+  IntColumn get recurrenceWeekday => integer().nullable()(); // 1=Mo..7=So (für WEEKLY) NEU v7
+  IntColumn get recurrenceMonthDay => integer().nullable()(); // 1..31 (für MONTHLY, z.B. "jeden 1.") NEU v7
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -209,7 +211,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -240,6 +242,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 6) {
         // v5 → v6: Task-Priorität
         await m.addColumn(tasks, tasks.priority);
+      }
+      if (from < 7) {
+        // v6 → v7: Wochentag & Monatstag für Wiederholung
+        await m.addColumn(tasks, tasks.recurrenceWeekday);
+        await m.addColumn(tasks, tasks.recurrenceMonthDay);
       }
     },
   );

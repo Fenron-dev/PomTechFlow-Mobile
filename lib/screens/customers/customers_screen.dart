@@ -121,14 +121,23 @@ class _CustomerCard extends StatelessWidget {
                     children: [
                       Text(customer.name,
                           style: Theme.of(context).textTheme.titleSmall),
-                      if (customer.address != null)
-                        Text(customer.address!,
+                      if (customer.address != null) Builder(builder: (_) {
+                        final parts = customer.address!.split('||');
+                        final display = parts.length == 3
+                            ? [
+                                if (parts[0].isNotEmpty) parts[0],
+                                if (parts[1].isNotEmpty || parts[2].isNotEmpty)
+                                  '${parts[1]} ${parts[2]}'.trim(),
+                              ].join(', ')
+                            : customer.address!;
+                        return Text(display,
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall
                                 ?.copyWith(color: cs.outline),
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
+                            overflow: TextOverflow.ellipsis);
+                      }),
                     ],
                   ),
                 ),
@@ -167,15 +176,19 @@ class _CustomerCard extends StatelessWidget {
                           _launch('mailto:${customer.email}'),
                       visualDensity: VisualDensity.compact,
                     ),
-                  if (customer.address != null)
-                    ActionChip(
-                      avatar:
-                          const Icon(Icons.directions_outlined, size: 16),
+                  if (customer.address != null) Builder(builder: (_) {
+                    final parts = customer.address!.split('||');
+                    final mapsAddress = parts.length == 3
+                        ? '${parts[0]} ${parts[1]} ${parts[2]}'.trim()
+                        : customer.address!;
+                    return ActionChip(
+                      avatar: const Icon(Icons.directions_outlined, size: 16),
                       label: const Text('Navigation'),
                       onPressed: () => _launch(
-                          'https://maps.google.com/?q=${Uri.encodeComponent(customer.address!)}'),
+                          'https://maps.google.com/?q=${Uri.encodeComponent(mapsAddress)}'),
                       visualDensity: VisualDensity.compact,
-                    ),
+                    );
+                  }),
                 ],
               ),
             ],
@@ -208,8 +221,28 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
+  final _streetCtrl = TextEditingController();
+  final _zipCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
+
+  /// Encodes street/zip/city into the single address column with "||" separator.
+  static String? _encodeAddress(String street, String zip, String city) {
+    final s = street.trim();
+    final z = zip.trim();
+    final c = city.trim();
+    if (s.isEmpty && z.isEmpty && c.isEmpty) return null;
+    return '$s||$z||$c';
+  }
+
+  /// Decodes the address column into [street, zip, city].
+  static List<String> _decodeAddress(String? address) {
+    if (address == null || address.isEmpty) return ['', '', ''];
+    final parts = address.split('||');
+    if (parts.length == 3) return parts;
+    // Legacy single-line address → put in street
+    return [address, '', ''];
+  }
 
   @override
   void initState() {
@@ -218,7 +251,10 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
       _nameCtrl.text = widget.customer!.name;
       _emailCtrl.text = widget.customer!.email ?? '';
       _phoneCtrl.text = widget.customer!.phone ?? '';
-      _addressCtrl.text = widget.customer!.address ?? '';
+      final addr = _decodeAddress(widget.customer!.address);
+      _streetCtrl.text = addr[0];
+      _zipCtrl.text = addr[1];
+      _cityCtrl.text = addr[2];
       _notesCtrl.text = widget.customer!.notes ?? '';
     }
   }
@@ -228,7 +264,9 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
-    _addressCtrl.dispose();
+    _streetCtrl.dispose();
+    _zipCtrl.dispose();
+    _cityCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
@@ -237,13 +275,15 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
     if (_nameCtrl.text.trim().isEmpty) return;
     final db = ref.read(databaseProvider);
     v(String s) => drift.Value(s.trim().isEmpty ? null : s.trim());
+    final encodedAddress = _encodeAddress(
+        _streetCtrl.text, _zipCtrl.text, _cityCtrl.text);
 
     if (widget.customer == null) {
       await db.into(db.customers).insert(CustomersCompanion.insert(
             name: _nameCtrl.text.trim(),
             email: v(_emailCtrl.text),
             phone: v(_phoneCtrl.text),
-            address: v(_addressCtrl.text),
+            address: drift.Value(encodedAddress),
             notes: v(_notesCtrl.text),
           ));
     } else {
@@ -253,7 +293,7 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
         name: drift.Value(_nameCtrl.text.trim()),
         email: v(_emailCtrl.text),
         phone: v(_phoneCtrl.text),
-        address: v(_addressCtrl.text),
+        address: drift.Value(encodedAddress),
         notes: v(_notesCtrl.text),
       ));
     }
@@ -296,9 +336,30 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: _addressCtrl,
-              decoration: const InputDecoration(labelText: 'Adresse'),
+              controller: _streetCtrl,
+              decoration: const InputDecoration(labelText: 'Straße / Hausnummer'),
               textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                SizedBox(
+                  width: 110,
+                  child: TextField(
+                    controller: _zipCtrl,
+                    decoration: const InputDecoration(labelText: 'PLZ'),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _cityCtrl,
+                    decoration: const InputDecoration(labelText: 'Ort'),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             TextField(

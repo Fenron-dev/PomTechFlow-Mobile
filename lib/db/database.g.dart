@@ -583,6 +583,27 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     requiredDuringInsert: false,
     defaultValue: const Constant(1),
   );
+  static const VerificationMeta _recurrenceWeekdayMeta = const VerificationMeta(
+    'recurrenceWeekday',
+  );
+  @override
+  late final GeneratedColumn<int> recurrenceWeekday = GeneratedColumn<int>(
+    'recurrence_weekday',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recurrenceMonthDayMeta =
+      const VerificationMeta('recurrenceMonthDay');
+  @override
+  late final GeneratedColumn<int> recurrenceMonthDay = GeneratedColumn<int>(
+    'recurrence_month_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -620,6 +641,8 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     recurring,
     recurrenceType,
     recurrenceInterval,
+    recurrenceWeekday,
+    recurrenceMonthDay,
     createdAt,
     updatedAt,
   ];
@@ -715,6 +738,24 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         ),
       );
     }
+    if (data.containsKey('recurrence_weekday')) {
+      context.handle(
+        _recurrenceWeekdayMeta,
+        recurrenceWeekday.isAcceptableOrUnknown(
+          data['recurrence_weekday']!,
+          _recurrenceWeekdayMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recurrence_month_day')) {
+      context.handle(
+        _recurrenceMonthDayMeta,
+        recurrenceMonthDay.isAcceptableOrUnknown(
+          data['recurrence_month_day']!,
+          _recurrenceMonthDayMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -780,6 +821,14 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.int,
         data['${effectivePrefix}recurrence_interval'],
       )!,
+      recurrenceWeekday: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recurrence_weekday'],
+      ),
+      recurrenceMonthDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recurrence_month_day'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -809,6 +858,8 @@ class Task extends DataClass implements Insertable<Task> {
   final bool recurring;
   final String? recurrenceType;
   final int recurrenceInterval;
+  final int? recurrenceWeekday;
+  final int? recurrenceMonthDay;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Task({
@@ -823,6 +874,8 @@ class Task extends DataClass implements Insertable<Task> {
     required this.recurring,
     this.recurrenceType,
     required this.recurrenceInterval,
+    this.recurrenceWeekday,
+    this.recurrenceMonthDay,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -848,6 +901,12 @@ class Task extends DataClass implements Insertable<Task> {
       map['recurrence_type'] = Variable<String>(recurrenceType);
     }
     map['recurrence_interval'] = Variable<int>(recurrenceInterval);
+    if (!nullToAbsent || recurrenceWeekday != null) {
+      map['recurrence_weekday'] = Variable<int>(recurrenceWeekday);
+    }
+    if (!nullToAbsent || recurrenceMonthDay != null) {
+      map['recurrence_month_day'] = Variable<int>(recurrenceMonthDay);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -874,6 +933,12 @@ class Task extends DataClass implements Insertable<Task> {
           ? const Value.absent()
           : Value(recurrenceType),
       recurrenceInterval: Value(recurrenceInterval),
+      recurrenceWeekday: recurrenceWeekday == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrenceWeekday),
+      recurrenceMonthDay: recurrenceMonthDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrenceMonthDay),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -896,6 +961,8 @@ class Task extends DataClass implements Insertable<Task> {
       recurring: serializer.fromJson<bool>(json['recurring']),
       recurrenceType: serializer.fromJson<String?>(json['recurrenceType']),
       recurrenceInterval: serializer.fromJson<int>(json['recurrenceInterval']),
+      recurrenceWeekday: serializer.fromJson<int?>(json['recurrenceWeekday']),
+      recurrenceMonthDay: serializer.fromJson<int?>(json['recurrenceMonthDay']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -915,6 +982,8 @@ class Task extends DataClass implements Insertable<Task> {
       'recurring': serializer.toJson<bool>(recurring),
       'recurrenceType': serializer.toJson<String?>(recurrenceType),
       'recurrenceInterval': serializer.toJson<int>(recurrenceInterval),
+      'recurrenceWeekday': serializer.toJson<int?>(recurrenceWeekday),
+      'recurrenceMonthDay': serializer.toJson<int?>(recurrenceMonthDay),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -932,6 +1001,8 @@ class Task extends DataClass implements Insertable<Task> {
     bool? recurring,
     Value<String?> recurrenceType = const Value.absent(),
     int? recurrenceInterval,
+    Value<int?> recurrenceWeekday = const Value.absent(),
+    Value<int?> recurrenceMonthDay = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Task(
@@ -948,6 +1019,12 @@ class Task extends DataClass implements Insertable<Task> {
         ? recurrenceType.value
         : this.recurrenceType,
     recurrenceInterval: recurrenceInterval ?? this.recurrenceInterval,
+    recurrenceWeekday: recurrenceWeekday.present
+        ? recurrenceWeekday.value
+        : this.recurrenceWeekday,
+    recurrenceMonthDay: recurrenceMonthDay.present
+        ? recurrenceMonthDay.value
+        : this.recurrenceMonthDay,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -976,6 +1053,12 @@ class Task extends DataClass implements Insertable<Task> {
       recurrenceInterval: data.recurrenceInterval.present
           ? data.recurrenceInterval.value
           : this.recurrenceInterval,
+      recurrenceWeekday: data.recurrenceWeekday.present
+          ? data.recurrenceWeekday.value
+          : this.recurrenceWeekday,
+      recurrenceMonthDay: data.recurrenceMonthDay.present
+          ? data.recurrenceMonthDay.value
+          : this.recurrenceMonthDay,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -995,6 +1078,8 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('recurring: $recurring, ')
           ..write('recurrenceType: $recurrenceType, ')
           ..write('recurrenceInterval: $recurrenceInterval, ')
+          ..write('recurrenceWeekday: $recurrenceWeekday, ')
+          ..write('recurrenceMonthDay: $recurrenceMonthDay, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1014,6 +1099,8 @@ class Task extends DataClass implements Insertable<Task> {
     recurring,
     recurrenceType,
     recurrenceInterval,
+    recurrenceWeekday,
+    recurrenceMonthDay,
     createdAt,
     updatedAt,
   );
@@ -1032,6 +1119,8 @@ class Task extends DataClass implements Insertable<Task> {
           other.recurring == this.recurring &&
           other.recurrenceType == this.recurrenceType &&
           other.recurrenceInterval == this.recurrenceInterval &&
+          other.recurrenceWeekday == this.recurrenceWeekday &&
+          other.recurrenceMonthDay == this.recurrenceMonthDay &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1048,6 +1137,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<bool> recurring;
   final Value<String?> recurrenceType;
   final Value<int> recurrenceInterval;
+  final Value<int?> recurrenceWeekday;
+  final Value<int?> recurrenceMonthDay;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -1063,6 +1154,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.recurring = const Value.absent(),
     this.recurrenceType = const Value.absent(),
     this.recurrenceInterval = const Value.absent(),
+    this.recurrenceWeekday = const Value.absent(),
+    this.recurrenceMonthDay = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1079,6 +1172,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.recurring = const Value.absent(),
     this.recurrenceType = const Value.absent(),
     this.recurrenceInterval = const Value.absent(),
+    this.recurrenceWeekday = const Value.absent(),
+    this.recurrenceMonthDay = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1095,6 +1190,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<bool>? recurring,
     Expression<String>? recurrenceType,
     Expression<int>? recurrenceInterval,
+    Expression<int>? recurrenceWeekday,
+    Expression<int>? recurrenceMonthDay,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -1111,6 +1208,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (recurring != null) 'recurring': recurring,
       if (recurrenceType != null) 'recurrence_type': recurrenceType,
       if (recurrenceInterval != null) 'recurrence_interval': recurrenceInterval,
+      if (recurrenceWeekday != null) 'recurrence_weekday': recurrenceWeekday,
+      if (recurrenceMonthDay != null)
+        'recurrence_month_day': recurrenceMonthDay,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1129,6 +1229,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<bool>? recurring,
     Value<String?>? recurrenceType,
     Value<int>? recurrenceInterval,
+    Value<int?>? recurrenceWeekday,
+    Value<int?>? recurrenceMonthDay,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -1145,6 +1247,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       recurring: recurring ?? this.recurring,
       recurrenceType: recurrenceType ?? this.recurrenceType,
       recurrenceInterval: recurrenceInterval ?? this.recurrenceInterval,
+      recurrenceWeekday: recurrenceWeekday ?? this.recurrenceWeekday,
+      recurrenceMonthDay: recurrenceMonthDay ?? this.recurrenceMonthDay,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -1187,6 +1291,12 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (recurrenceInterval.present) {
       map['recurrence_interval'] = Variable<int>(recurrenceInterval.value);
     }
+    if (recurrenceWeekday.present) {
+      map['recurrence_weekday'] = Variable<int>(recurrenceWeekday.value);
+    }
+    if (recurrenceMonthDay.present) {
+      map['recurrence_month_day'] = Variable<int>(recurrenceMonthDay.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1213,6 +1323,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('recurring: $recurring, ')
           ..write('recurrenceType: $recurrenceType, ')
           ..write('recurrenceInterval: $recurrenceInterval, ')
+          ..write('recurrenceWeekday: $recurrenceWeekday, ')
+          ..write('recurrenceMonthDay: $recurrenceMonthDay, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -6558,6 +6670,8 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<bool> recurring,
       Value<String?> recurrenceType,
       Value<int> recurrenceInterval,
+      Value<int?> recurrenceWeekday,
+      Value<int?> recurrenceMonthDay,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -6575,6 +6689,8 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<bool> recurring,
       Value<String?> recurrenceType,
       Value<int> recurrenceInterval,
+      Value<int?> recurrenceWeekday,
+      Value<int?> recurrenceMonthDay,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -6751,6 +6867,16 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<int> get recurrenceInterval => $composableBuilder(
     column: $table.recurrenceInterval,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recurrenceWeekday => $composableBuilder(
+    column: $table.recurrenceWeekday,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recurrenceMonthDay => $composableBuilder(
+    column: $table.recurrenceMonthDay,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6972,6 +7098,16 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get recurrenceWeekday => $composableBuilder(
+    column: $table.recurrenceWeekday,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recurrenceMonthDay => $composableBuilder(
+    column: $table.recurrenceMonthDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -7052,6 +7188,16 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<int> get recurrenceInterval => $composableBuilder(
     column: $table.recurrenceInterval,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get recurrenceWeekday => $composableBuilder(
+    column: $table.recurrenceWeekday,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get recurrenceMonthDay => $composableBuilder(
+    column: $table.recurrenceMonthDay,
     builder: (column) => column,
   );
 
@@ -7256,6 +7402,8 @@ class $$TasksTableTableManager
                 Value<bool> recurring = const Value.absent(),
                 Value<String?> recurrenceType = const Value.absent(),
                 Value<int> recurrenceInterval = const Value.absent(),
+                Value<int?> recurrenceWeekday = const Value.absent(),
+                Value<int?> recurrenceMonthDay = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7271,6 +7419,8 @@ class $$TasksTableTableManager
                 recurring: recurring,
                 recurrenceType: recurrenceType,
                 recurrenceInterval: recurrenceInterval,
+                recurrenceWeekday: recurrenceWeekday,
+                recurrenceMonthDay: recurrenceMonthDay,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -7288,6 +7438,8 @@ class $$TasksTableTableManager
                 Value<bool> recurring = const Value.absent(),
                 Value<String?> recurrenceType = const Value.absent(),
                 Value<int> recurrenceInterval = const Value.absent(),
+                Value<int?> recurrenceWeekday = const Value.absent(),
+                Value<int?> recurrenceMonthDay = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7303,6 +7455,8 @@ class $$TasksTableTableManager
                 recurring: recurring,
                 recurrenceType: recurrenceType,
                 recurrenceInterval: recurrenceInterval,
+                recurrenceWeekday: recurrenceWeekday,
+                recurrenceMonthDay: recurrenceMonthDay,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

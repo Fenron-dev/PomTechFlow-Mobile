@@ -284,7 +284,21 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 icon: Icon(Icons.dark_mode)),
           ],
           selected: {_themeMode},
-          onSelectionChanged: (s) => setState(() => _themeMode = s.first),
+          onSelectionChanged: (s) {
+            setState(() => _themeMode = s.first);
+            // Sofort speichern damit das Theme direkt angewandt wird
+            ref.read(settingsProvider.notifier).save(widget.settings.copyWith(
+                  companyName: _companyCtrl.text.trim(),
+                  technicianName: _techCtrl.text.trim(),
+                  aeMinutes: _aeMinutes,
+                  pomodoroMinutes: _pomodoroMinutes,
+                  shortBreakMinutes: _shortBreakMinutes,
+                  longBreakMinutes: _longBreakMinutes,
+                  themeMode: s.first,
+                  logoPath: _logoPath,
+                  clearLogo: _logoPath == null,
+                ));
+          },
         ),
         const SizedBox(height: 32),
 

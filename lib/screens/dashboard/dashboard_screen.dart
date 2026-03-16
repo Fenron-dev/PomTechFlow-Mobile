@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/tasks_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/timer_provider.dart';
+import '../../widgets/timer_session_dialogs.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -163,13 +164,31 @@ class DashboardScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  ...active.take(3).map((t) => _TaskRow(
-                        task: t,
-                        isTimerRunning: timer.activeTaskId == t.task.id,
-                        aeMin: aeMin,
-                        onTap: () =>
-                            context.push('/tasks/${t.task.id}'),
-                      )),
+                  ...active.take(3).map((t) {
+                    final isRunning = timer.status == TimerStatus.running &&
+                        timer.activeTaskId == t.task.id;
+                    final isPaused = timer.status == TimerStatus.paused &&
+                        timer.activeTaskId == t.task.id;
+                    return _TaskRow(
+                      task: t,
+                      isTimerRunning: isRunning,
+                      isTimerPaused: isPaused,
+                      aeMin: aeMin,
+                      onTap: () => context.push('/tasks/${t.task.id}'),
+                      onTimerStart: timer.status == TimerStatus.idle
+                          ? () => ref.read(timerProvider.notifier).start(t.task.id)
+                          : null,
+                      onTimerPause: isRunning
+                          ? () => ref.read(timerProvider.notifier).pause()
+                          : null,
+                      onTimerResume: isPaused
+                          ? () => ref.read(timerProvider.notifier).resume()
+                          : null,
+                      onTimerStop: (isRunning || isPaused)
+                          ? () => handleTimerStop(context, ref)
+                          : null,
+                    );
+                  }),
                 ],
 
                 // Geplante Tasks
@@ -192,8 +211,12 @@ class DashboardScreen extends ConsumerWidget {
                       .map((t) => _TaskRow(
                             task: t,
                             isTimerRunning: false,
+                            isTimerPaused: false,
                             aeMin: aeMin,
                             onTap: () => context.push('/tasks/${t.task.id}'),
+                            onTimerStart: timer.status == TimerStatus.idle
+                                ? () => ref.read(timerProvider.notifier).start(t.task.id)
+                                : null,
                           )),
                 ],
 
@@ -433,33 +456,75 @@ class _StatCard extends StatelessWidget {
 class _TaskRow extends StatelessWidget {
   final TaskWithDetails task;
   final bool isTimerRunning;
+  final bool isTimerPaused;
   final int aeMin;
   final VoidCallback onTap;
+  final VoidCallback? onTimerStart;
+  final VoidCallback? onTimerPause;
+  final VoidCallback? onTimerResume;
+  final VoidCallback? onTimerStop;
 
   const _TaskRow({
     required this.task,
     required this.isTimerRunning,
+    this.isTimerPaused = false,
     required this.aeMin,
     required this.onTap,
+    this.onTimerStart,
+    this.onTimerPause,
+    this.onTimerResume,
+    this.onTimerStop,
   });
 
   @override
   Widget build(BuildContext context) {
     final ae = task.aeCount(aeMin);
+    final cs = Theme.of(context).colorScheme;
+    final isActive = isTimerRunning || isTimerPaused;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         onTap: onTap,
         leading: isTimerRunning
-            ? Icon(Icons.timer,
-                color: Theme.of(context).colorScheme.primary)
-            : Icon(Icons.radio_button_unchecked,
-                color: Theme.of(context).colorScheme.outline),
+            ? Icon(Icons.timer, color: cs.primary)
+            : Icon(Icons.radio_button_unchecked, color: cs.outline),
         title: Text(task.task.title,
             maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: task.customer != null ? Text(task.customer!.name) : null,
-        trailing: Text('$ae AE',
-            style: Theme.of(context).textTheme.labelMedium),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$ae AE', style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(width: 8),
+            // Play/Pause
+            GestureDetector(
+              onTap: isTimerRunning
+                  ? onTimerPause
+                  : isTimerPaused
+                      ? onTimerResume
+                      : onTimerStart,
+              child: Icon(
+                isTimerRunning
+                    ? Icons.pause_circle
+                    : isTimerPaused
+                        ? Icons.play_circle
+                        : Icons.play_circle_outline,
+                color: isActive ? cs.primary : cs.outline,
+                size: 28,
+              ),
+            ),
+            // Stop (only when active)
+            if (isActive) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: onTimerStop,
+                child: Icon(Icons.stop_circle_outlined,
+                    color: cs.error, size: 26),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

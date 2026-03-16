@@ -167,18 +167,9 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
             onPause: () => timerNotifier.pause(),
             onResume: () => timerNotifier.resume(),
             onStop: () async {
-              final elapsed = timer.totalSeconds - timer.secondsLeft;
-              final mins = (elapsed / 60).ceil();
-              final result = await showTimerStopDialog(
-                  context, ref, task.id, mins);
-              if (result != null) {
-                final db = ref.read(databaseProvider);
-                await applyTimerStopResult(db, task.id, result);
-                await timerNotifier.stop();
-                ref.invalidate(todosProvider(task.id));
-                ref.invalidate(notesProvider(task.id));
-                ref.invalidate(tasksProvider);
-              }
+              await handleTimerStop(context, ref);
+              ref.invalidate(todosProvider(task.id));
+              ref.invalidate(notesProvider(task.id));
             },
             onMarkDone: onMarkDone,
           ),

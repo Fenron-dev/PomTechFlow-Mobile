@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' as drift;
 import '../db/database.dart';
 import '../providers/database_provider.dart';
 import '../providers/tasks_provider.dart';
+import '../providers/timer_provider.dart';
 
 // ─── Start-Dialog: Welche Todos planst du in dieser Session? ─────────────────
 
@@ -337,6 +338,40 @@ class _TimerStopSheetState extends ConsumerState<_TimerStopSheet> {
       ),
     );
   }
+}
+
+// ─── Hilfsfunktion: Kompletten Stop-Flow ausführen ───────────────────────────
+
+/// Stops the running timer, shows the stop dialog, and persists the result.
+/// Can be called from any screen (timer, task list, dashboard).
+Future<void> handleTimerStop(BuildContext context, WidgetRef ref) async {
+  final timer = ref.read(timerProvider);
+  final taskId = timer.activeTaskId;
+  final sessionMins = timer.elapsedSeconds ~/ 60;
+
+  await ref.read(timerProvider.notifier).stop();
+  if (taskId == null || !context.mounted) return;
+
+  final result = await showTimerStopDialog(context, ref, taskId, sessionMins);
+  if (result == null || !context.mounted) return;
+
+  final db = ref.read(databaseProvider);
+  await applyTimerStopResult(db, taskId, result);
+
+  if (result.note != null) {
+    final sessions = await (db.select(db.sessions)
+          ..where((s) => s.taskId.equals(taskId))
+          ..orderBy([(s) => drift.OrderingTerm.desc(s.startTime)])
+          ..limit(1))
+        .get();
+    if (sessions.isNotEmpty) {
+      await (db.update(db.sessions)
+            ..where((s) => s.id.equals(sessions.first.id)))
+          .write(SessionsCompanion(note: drift.Value(result.note)));
+    }
+  }
+
+  ref.invalidate(tasksProvider);
 }
 
 // ─── Hilfsfunktion: Stop-Ergebnis in DB schreiben ────────────────────────────

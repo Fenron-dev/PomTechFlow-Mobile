@@ -8,8 +8,13 @@ class TaskCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final bool isTimerRunning;
+  final bool isTimerPaused;
   final int aeMinutes;
   final bool isSelected;
+  final VoidCallback? onTimerStart;
+  final VoidCallback? onTimerPause;
+  final VoidCallback? onTimerResume;
+  final VoidCallback? onTimerStop;
 
   const TaskCard({
     super.key,
@@ -17,8 +22,13 @@ class TaskCard extends StatelessWidget {
     required this.onTap,
     required this.onDelete,
     this.isTimerRunning = false,
+    this.isTimerPaused = false,
     this.aeMinutes = 10,
     this.isSelected = false,
+    this.onTimerStart,
+    this.onTimerPause,
+    this.onTimerResume,
+    this.onTimerStop,
   });
 
   @override
@@ -32,6 +42,7 @@ class TaskCard extends StatelessWidget {
     final statusIcon = switch (t.status) {
       'ACTIVE' => Icon(Icons.timer, color: cs.primary, size: 22),
       'COMPLETED' => Icon(Icons.check_circle, color: Colors.green, size: 22),
+      'CRM_DONE' => Icon(Icons.cloud_done_outlined, color: Colors.teal, size: 22),
       _ => Icon(Icons.radio_button_unchecked, color: cs.outline, size: 22),
     };
 
@@ -40,19 +51,22 @@ class TaskCard extends StatelessWidget {
       'ACTIVE' => Colors.blue.shade100,
       'COMPLETED' => Colors.green.shade100,
       'PAUSED' => Colors.orange.shade100,
+      'CRM_DONE' => Colors.teal.shade100,
       _ => cs.surfaceContainerHighest,
     };
     final badgeTextColor = switch (t.status) {
       'ACTIVE' => Colors.blue.shade800,
       'COMPLETED' => Colors.green.shade800,
       'PAUSED' => Colors.orange.shade800,
+      'CRM_DONE' => Colors.teal.shade800,
       _ => cs.onSurface,
     };
     final badgeLabel = switch (t.status) {
-      'ACTIVE' => 'ACTIVE',
-      'COMPLETED' => 'COMPLETED',
-      'PAUSED' => 'PAUSED',
-      _ => 'PLANNED',
+      'ACTIVE' => 'AKTIV',
+      'COMPLETED' => 'ERLEDIGT',
+      'PAUSED' => 'PAUSIERT',
+      'CRM_DONE' => 'CRM',
+      _ => 'GEPLANT',
     };
 
     final priorityColor = switch (t.priority) {
@@ -61,6 +75,9 @@ class TaskCard extends StatelessWidget {
       'LOW' => Colors.blueGrey.shade300,
       _ => Colors.transparent,
     };
+
+    final isActiveTimer = isTimerRunning || isTimerPaused;
+    final canStartTimer = t.status != 'COMPLETED' && t.status != 'CRM_DONE';
 
     return Card(
       margin: EdgeInsets.zero,
@@ -131,7 +148,7 @@ class TaskCard extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // Zeile 3: Zeit/AE + Play-Button + Status-Badge + Menü
+              // Zeile 3: Zeit/AE + Timer-Buttons + Status-Badge + Menü
               Row(
                 children: [
                   const SizedBox(width: 32),
@@ -151,17 +168,40 @@ class TaskCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(width: 12),
-                  // Play-Button (nur wenn nicht abgeschlossen)
-                  if (t.status != 'COMPLETED')
-                    InkWell(
-                      onTap: onTap,
-                      borderRadius: BorderRadius.circular(20),
+
+                  // Timer-Buttons
+                  if (canStartTimer) ...[
+                    // Play/Pause button
+                    GestureDetector(
+                      onTap: isTimerRunning
+                          ? onTimerPause
+                          : isTimerPaused
+                              ? onTimerResume
+                              : onTimerStart,
                       child: Icon(
-                        isTimerRunning ? Icons.pause_circle : Icons.play_circle,
-                        color: cs.primary,
+                        isTimerRunning
+                            ? Icons.pause_circle
+                            : isTimerPaused
+                                ? Icons.play_circle
+                                : Icons.play_circle_outline,
+                        color: isActiveTimer ? cs.primary : cs.outline,
                         size: 28,
                       ),
                     ),
+                    // Stop button (only when this task's timer is active)
+                    if (isActiveTimer) ...[
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: onTimerStop,
+                        child: Icon(
+                          Icons.stop_circle_outlined,
+                          color: cs.error,
+                          size: 26,
+                        ),
+                      ),
+                    ],
+                  ],
+
                   const Spacer(),
                   // Status-Badge
                   Container(
