@@ -604,6 +604,28 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _estimatedMinutesMeta = const VerificationMeta(
+    'estimatedMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> estimatedMinutes = GeneratedColumn<int>(
+    'estimated_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _billedAtMeta = const VerificationMeta(
+    'billedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> billedAt = GeneratedColumn<DateTime>(
+    'billed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -643,6 +665,8 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     recurrenceInterval,
     recurrenceWeekday,
     recurrenceMonthDay,
+    estimatedMinutes,
+    billedAt,
     createdAt,
     updatedAt,
   ];
@@ -756,6 +780,21 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         ),
       );
     }
+    if (data.containsKey('estimated_minutes')) {
+      context.handle(
+        _estimatedMinutesMeta,
+        estimatedMinutes.isAcceptableOrUnknown(
+          data['estimated_minutes']!,
+          _estimatedMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('billed_at')) {
+      context.handle(
+        _billedAtMeta,
+        billedAt.isAcceptableOrUnknown(data['billed_at']!, _billedAtMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -829,6 +868,14 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.int,
         data['${effectivePrefix}recurrence_month_day'],
       ),
+      estimatedMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}estimated_minutes'],
+      ),
+      billedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}billed_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -860,6 +907,8 @@ class Task extends DataClass implements Insertable<Task> {
   final int recurrenceInterval;
   final int? recurrenceWeekday;
   final int? recurrenceMonthDay;
+  final int? estimatedMinutes;
+  final DateTime? billedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Task({
@@ -876,6 +925,8 @@ class Task extends DataClass implements Insertable<Task> {
     required this.recurrenceInterval,
     this.recurrenceWeekday,
     this.recurrenceMonthDay,
+    this.estimatedMinutes,
+    this.billedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -906,6 +957,12 @@ class Task extends DataClass implements Insertable<Task> {
     }
     if (!nullToAbsent || recurrenceMonthDay != null) {
       map['recurrence_month_day'] = Variable<int>(recurrenceMonthDay);
+    }
+    if (!nullToAbsent || estimatedMinutes != null) {
+      map['estimated_minutes'] = Variable<int>(estimatedMinutes);
+    }
+    if (!nullToAbsent || billedAt != null) {
+      map['billed_at'] = Variable<DateTime>(billedAt);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -939,6 +996,12 @@ class Task extends DataClass implements Insertable<Task> {
       recurrenceMonthDay: recurrenceMonthDay == null && nullToAbsent
           ? const Value.absent()
           : Value(recurrenceMonthDay),
+      estimatedMinutes: estimatedMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(estimatedMinutes),
+      billedAt: billedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(billedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -963,6 +1026,8 @@ class Task extends DataClass implements Insertable<Task> {
       recurrenceInterval: serializer.fromJson<int>(json['recurrenceInterval']),
       recurrenceWeekday: serializer.fromJson<int?>(json['recurrenceWeekday']),
       recurrenceMonthDay: serializer.fromJson<int?>(json['recurrenceMonthDay']),
+      estimatedMinutes: serializer.fromJson<int?>(json['estimatedMinutes']),
+      billedAt: serializer.fromJson<DateTime?>(json['billedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -984,6 +1049,8 @@ class Task extends DataClass implements Insertable<Task> {
       'recurrenceInterval': serializer.toJson<int>(recurrenceInterval),
       'recurrenceWeekday': serializer.toJson<int?>(recurrenceWeekday),
       'recurrenceMonthDay': serializer.toJson<int?>(recurrenceMonthDay),
+      'estimatedMinutes': serializer.toJson<int?>(estimatedMinutes),
+      'billedAt': serializer.toJson<DateTime?>(billedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1003,6 +1070,8 @@ class Task extends DataClass implements Insertable<Task> {
     int? recurrenceInterval,
     Value<int?> recurrenceWeekday = const Value.absent(),
     Value<int?> recurrenceMonthDay = const Value.absent(),
+    Value<int?> estimatedMinutes = const Value.absent(),
+    Value<DateTime?> billedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Task(
@@ -1025,6 +1094,10 @@ class Task extends DataClass implements Insertable<Task> {
     recurrenceMonthDay: recurrenceMonthDay.present
         ? recurrenceMonthDay.value
         : this.recurrenceMonthDay,
+    estimatedMinutes: estimatedMinutes.present
+        ? estimatedMinutes.value
+        : this.estimatedMinutes,
+    billedAt: billedAt.present ? billedAt.value : this.billedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -1059,6 +1132,10 @@ class Task extends DataClass implements Insertable<Task> {
       recurrenceMonthDay: data.recurrenceMonthDay.present
           ? data.recurrenceMonthDay.value
           : this.recurrenceMonthDay,
+      estimatedMinutes: data.estimatedMinutes.present
+          ? data.estimatedMinutes.value
+          : this.estimatedMinutes,
+      billedAt: data.billedAt.present ? data.billedAt.value : this.billedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1080,6 +1157,8 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('recurrenceInterval: $recurrenceInterval, ')
           ..write('recurrenceWeekday: $recurrenceWeekday, ')
           ..write('recurrenceMonthDay: $recurrenceMonthDay, ')
+          ..write('estimatedMinutes: $estimatedMinutes, ')
+          ..write('billedAt: $billedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1101,6 +1180,8 @@ class Task extends DataClass implements Insertable<Task> {
     recurrenceInterval,
     recurrenceWeekday,
     recurrenceMonthDay,
+    estimatedMinutes,
+    billedAt,
     createdAt,
     updatedAt,
   );
@@ -1121,6 +1202,8 @@ class Task extends DataClass implements Insertable<Task> {
           other.recurrenceInterval == this.recurrenceInterval &&
           other.recurrenceWeekday == this.recurrenceWeekday &&
           other.recurrenceMonthDay == this.recurrenceMonthDay &&
+          other.estimatedMinutes == this.estimatedMinutes &&
+          other.billedAt == this.billedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1139,6 +1222,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<int> recurrenceInterval;
   final Value<int?> recurrenceWeekday;
   final Value<int?> recurrenceMonthDay;
+  final Value<int?> estimatedMinutes;
+  final Value<DateTime?> billedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -1156,6 +1241,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.recurrenceInterval = const Value.absent(),
     this.recurrenceWeekday = const Value.absent(),
     this.recurrenceMonthDay = const Value.absent(),
+    this.estimatedMinutes = const Value.absent(),
+    this.billedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1174,6 +1261,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.recurrenceInterval = const Value.absent(),
     this.recurrenceWeekday = const Value.absent(),
     this.recurrenceMonthDay = const Value.absent(),
+    this.estimatedMinutes = const Value.absent(),
+    this.billedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1192,6 +1281,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<int>? recurrenceInterval,
     Expression<int>? recurrenceWeekday,
     Expression<int>? recurrenceMonthDay,
+    Expression<int>? estimatedMinutes,
+    Expression<DateTime>? billedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -1211,6 +1302,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (recurrenceWeekday != null) 'recurrence_weekday': recurrenceWeekday,
       if (recurrenceMonthDay != null)
         'recurrence_month_day': recurrenceMonthDay,
+      if (estimatedMinutes != null) 'estimated_minutes': estimatedMinutes,
+      if (billedAt != null) 'billed_at': billedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1231,6 +1324,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<int>? recurrenceInterval,
     Value<int?>? recurrenceWeekday,
     Value<int?>? recurrenceMonthDay,
+    Value<int?>? estimatedMinutes,
+    Value<DateTime?>? billedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -1249,6 +1344,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       recurrenceInterval: recurrenceInterval ?? this.recurrenceInterval,
       recurrenceWeekday: recurrenceWeekday ?? this.recurrenceWeekday,
       recurrenceMonthDay: recurrenceMonthDay ?? this.recurrenceMonthDay,
+      estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
+      billedAt: billedAt ?? this.billedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -1297,6 +1394,12 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (recurrenceMonthDay.present) {
       map['recurrence_month_day'] = Variable<int>(recurrenceMonthDay.value);
     }
+    if (estimatedMinutes.present) {
+      map['estimated_minutes'] = Variable<int>(estimatedMinutes.value);
+    }
+    if (billedAt.present) {
+      map['billed_at'] = Variable<DateTime>(billedAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1325,6 +1428,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('recurrenceInterval: $recurrenceInterval, ')
           ..write('recurrenceWeekday: $recurrenceWeekday, ')
           ..write('recurrenceMonthDay: $recurrenceMonthDay, ')
+          ..write('estimatedMinutes: $estimatedMinutes, ')
+          ..write('billedAt: $billedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -6646,6 +6751,369 @@ class TaskTemplateTodosCompanion extends UpdateCompanion<TaskTemplateTodo> {
   }
 }
 
+class $TaskLinksTable extends TaskLinks
+    with TableInfo<$TaskLinksTable, TaskLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaskLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => _uuid(),
+  );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tasks (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _linkedTaskIdMeta = const VerificationMeta(
+    'linkedTaskId',
+  );
+  @override
+  late final GeneratedColumn<String> linkedTaskId = GeneratedColumn<String>(
+    'linked_task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _linkTypeMeta = const VerificationMeta(
+    'linkType',
+  );
+  @override
+  late final GeneratedColumn<String> linkType = GeneratedColumn<String>(
+    'link_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('RELATED'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    taskId,
+    linkedTaskId,
+    linkType,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'task_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TaskLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taskIdMeta);
+    }
+    if (data.containsKey('linked_task_id')) {
+      context.handle(
+        _linkedTaskIdMeta,
+        linkedTaskId.isAcceptableOrUnknown(
+          data['linked_task_id']!,
+          _linkedTaskIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_linkedTaskIdMeta);
+    }
+    if (data.containsKey('link_type')) {
+      context.handle(
+        _linkTypeMeta,
+        linkType.isAcceptableOrUnknown(data['link_type']!, _linkTypeMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TaskLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaskLink(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      )!,
+      linkedTaskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linked_task_id'],
+      )!,
+      linkType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}link_type'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TaskLinksTable createAlias(String alias) {
+    return $TaskLinksTable(attachedDatabase, alias);
+  }
+}
+
+class TaskLink extends DataClass implements Insertable<TaskLink> {
+  final String id;
+  final String taskId;
+  final String linkedTaskId;
+  final String linkType;
+  final DateTime createdAt;
+  const TaskLink({
+    required this.id,
+    required this.taskId,
+    required this.linkedTaskId,
+    required this.linkType,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['task_id'] = Variable<String>(taskId);
+    map['linked_task_id'] = Variable<String>(linkedTaskId);
+    map['link_type'] = Variable<String>(linkType);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  TaskLinksCompanion toCompanion(bool nullToAbsent) {
+    return TaskLinksCompanion(
+      id: Value(id),
+      taskId: Value(taskId),
+      linkedTaskId: Value(linkedTaskId),
+      linkType: Value(linkType),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory TaskLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaskLink(
+      id: serializer.fromJson<String>(json['id']),
+      taskId: serializer.fromJson<String>(json['taskId']),
+      linkedTaskId: serializer.fromJson<String>(json['linkedTaskId']),
+      linkType: serializer.fromJson<String>(json['linkType']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'taskId': serializer.toJson<String>(taskId),
+      'linkedTaskId': serializer.toJson<String>(linkedTaskId),
+      'linkType': serializer.toJson<String>(linkType),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  TaskLink copyWith({
+    String? id,
+    String? taskId,
+    String? linkedTaskId,
+    String? linkType,
+    DateTime? createdAt,
+  }) => TaskLink(
+    id: id ?? this.id,
+    taskId: taskId ?? this.taskId,
+    linkedTaskId: linkedTaskId ?? this.linkedTaskId,
+    linkType: linkType ?? this.linkType,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  TaskLink copyWithCompanion(TaskLinksCompanion data) {
+    return TaskLink(
+      id: data.id.present ? data.id.value : this.id,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      linkedTaskId: data.linkedTaskId.present
+          ? data.linkedTaskId.value
+          : this.linkedTaskId,
+      linkType: data.linkType.present ? data.linkType.value : this.linkType,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskLink(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('linkedTaskId: $linkedTaskId, ')
+          ..write('linkType: $linkType, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, taskId, linkedTaskId, linkType, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaskLink &&
+          other.id == this.id &&
+          other.taskId == this.taskId &&
+          other.linkedTaskId == this.linkedTaskId &&
+          other.linkType == this.linkType &&
+          other.createdAt == this.createdAt);
+}
+
+class TaskLinksCompanion extends UpdateCompanion<TaskLink> {
+  final Value<String> id;
+  final Value<String> taskId;
+  final Value<String> linkedTaskId;
+  final Value<String> linkType;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const TaskLinksCompanion({
+    this.id = const Value.absent(),
+    this.taskId = const Value.absent(),
+    this.linkedTaskId = const Value.absent(),
+    this.linkType = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TaskLinksCompanion.insert({
+    this.id = const Value.absent(),
+    required String taskId,
+    required String linkedTaskId,
+    this.linkType = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : taskId = Value(taskId),
+       linkedTaskId = Value(linkedTaskId);
+  static Insertable<TaskLink> custom({
+    Expression<String>? id,
+    Expression<String>? taskId,
+    Expression<String>? linkedTaskId,
+    Expression<String>? linkType,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (taskId != null) 'task_id': taskId,
+      if (linkedTaskId != null) 'linked_task_id': linkedTaskId,
+      if (linkType != null) 'link_type': linkType,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TaskLinksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? taskId,
+    Value<String>? linkedTaskId,
+    Value<String>? linkType,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return TaskLinksCompanion(
+      id: id ?? this.id,
+      taskId: taskId ?? this.taskId,
+      linkedTaskId: linkedTaskId ?? this.linkedTaskId,
+      linkType: linkType ?? this.linkType,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
+    if (linkedTaskId.present) {
+      map['linked_task_id'] = Variable<String>(linkedTaskId.value);
+    }
+    if (linkType.present) {
+      map['link_type'] = Variable<String>(linkType.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskLinksCompanion(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('linkedTaskId: $linkedTaskId, ')
+          ..write('linkType: $linkType, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6672,6 +7140,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $TaskTemplateWorkflowsTable(this);
   late final $TaskTemplateTodosTable taskTemplateTodos =
       $TaskTemplateTodosTable(this);
+  late final $TaskLinksTable taskLinks = $TaskLinksTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6694,6 +7163,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     taskTemplates,
     taskTemplateWorkflows,
     taskTemplateTodos,
+    taskLinks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6773,6 +7243,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('task_template_todos', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tasks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('task_links', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -7234,6 +7711,8 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<int> recurrenceInterval,
       Value<int?> recurrenceWeekday,
       Value<int?> recurrenceMonthDay,
+      Value<int?> estimatedMinutes,
+      Value<DateTime?> billedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -7253,6 +7732,8 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<int> recurrenceInterval,
       Value<int?> recurrenceWeekday,
       Value<int?> recurrenceMonthDay,
+      Value<int?> estimatedMinutes,
+      Value<DateTime?> billedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -7372,6 +7853,24 @@ final class $$TasksTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$TaskLinksTable, List<TaskLink>>
+  _taskLinksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.taskLinks,
+    aliasName: $_aliasNameGenerator(db.tasks.id, db.taskLinks.taskId),
+  );
+
+  $$TaskLinksTableProcessedTableManager get taskLinksRefs {
+    final manager = $$TaskLinksTableTableManager(
+      $_db,
+      $_db.taskLinks,
+    ).filter((f) => f.taskId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_taskLinksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
@@ -7439,6 +7938,16 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<int> get recurrenceMonthDay => $composableBuilder(
     column: $table.recurrenceMonthDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get estimatedMinutes => $composableBuilder(
+    column: $table.estimatedMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get billedAt => $composableBuilder(
+    column: $table.billedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7599,6 +8108,31 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
     );
     return f(composer);
   }
+
+  Expression<bool> taskLinksRefs(
+    Expression<bool> Function($$TaskLinksTableFilterComposer f) f,
+  ) {
+    final $$TaskLinksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.taskLinks,
+      getReferencedColumn: (t) => t.taskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskLinksTableFilterComposer(
+            $db: $db,
+            $table: $db.taskLinks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TasksTableOrderingComposer
@@ -7667,6 +8201,16 @@ class $$TasksTableOrderingComposer
 
   ColumnOrderings<int> get recurrenceMonthDay => $composableBuilder(
     column: $table.recurrenceMonthDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get estimatedMinutes => $composableBuilder(
+    column: $table.estimatedMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get billedAt => $composableBuilder(
+    column: $table.billedAt,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7762,6 +8306,14 @@ class $$TasksTableAnnotationComposer
     column: $table.recurrenceMonthDay,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get estimatedMinutes => $composableBuilder(
+    column: $table.estimatedMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get billedAt =>
+      $composableBuilder(column: $table.billedAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -7916,6 +8468,31 @@ class $$TasksTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> taskLinksRefs<T extends Object>(
+    Expression<T> Function($$TaskLinksTableAnnotationComposer a) f,
+  ) {
+    final $$TaskLinksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.taskLinks,
+      getReferencedColumn: (t) => t.taskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskLinksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.taskLinks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TasksTableTableManager
@@ -7938,6 +8515,7 @@ class $$TasksTableTableManager
             bool hardwareRefs,
             bool notesRefs,
             bool photosRefs,
+            bool taskLinksRefs,
           })
         > {
   $$TasksTableTableManager(_$AppDatabase db, $TasksTable table)
@@ -7966,6 +8544,8 @@ class $$TasksTableTableManager
                 Value<int> recurrenceInterval = const Value.absent(),
                 Value<int?> recurrenceWeekday = const Value.absent(),
                 Value<int?> recurrenceMonthDay = const Value.absent(),
+                Value<int?> estimatedMinutes = const Value.absent(),
+                Value<DateTime?> billedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7983,6 +8563,8 @@ class $$TasksTableTableManager
                 recurrenceInterval: recurrenceInterval,
                 recurrenceWeekday: recurrenceWeekday,
                 recurrenceMonthDay: recurrenceMonthDay,
+                estimatedMinutes: estimatedMinutes,
+                billedAt: billedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -8002,6 +8584,8 @@ class $$TasksTableTableManager
                 Value<int> recurrenceInterval = const Value.absent(),
                 Value<int?> recurrenceWeekday = const Value.absent(),
                 Value<int?> recurrenceMonthDay = const Value.absent(),
+                Value<int?> estimatedMinutes = const Value.absent(),
+                Value<DateTime?> billedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8019,6 +8603,8 @@ class $$TasksTableTableManager
                 recurrenceInterval: recurrenceInterval,
                 recurrenceWeekday: recurrenceWeekday,
                 recurrenceMonthDay: recurrenceMonthDay,
+                estimatedMinutes: estimatedMinutes,
+                billedAt: billedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -8037,6 +8623,7 @@ class $$TasksTableTableManager
                 hardwareRefs = false,
                 notesRefs = false,
                 photosRefs = false,
+                taskLinksRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -8046,6 +8633,7 @@ class $$TasksTableTableManager
                     if (hardwareRefs) db.hardware,
                     if (notesRefs) db.notes,
                     if (photosRefs) db.photos,
+                    if (taskLinksRefs) db.taskLinks,
                   ],
                   addJoins:
                       <
@@ -8158,6 +8746,23 @@ class $$TasksTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (taskLinksRefs)
+                        await $_getPrefetchedData<Task, $TasksTable, TaskLink>(
+                          currentTable: table,
+                          referencedTable: $$TasksTableReferences
+                              ._taskLinksRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TasksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).taskLinksRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.taskId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -8185,6 +8790,7 @@ typedef $$TasksTableProcessedTableManager =
         bool hardwareRefs,
         bool notesRefs,
         bool photosRefs,
+        bool taskLinksRefs,
       })
     >;
 typedef $$SessionsTableCreateCompanionBuilder =
@@ -13073,6 +13679,326 @@ typedef $$TaskTemplateTodosTableProcessedTableManager =
       TaskTemplateTodo,
       PrefetchHooks Function({bool templateId})
     >;
+typedef $$TaskLinksTableCreateCompanionBuilder =
+    TaskLinksCompanion Function({
+      Value<String> id,
+      required String taskId,
+      required String linkedTaskId,
+      Value<String> linkType,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$TaskLinksTableUpdateCompanionBuilder =
+    TaskLinksCompanion Function({
+      Value<String> id,
+      Value<String> taskId,
+      Value<String> linkedTaskId,
+      Value<String> linkType,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$TaskLinksTableReferences
+    extends BaseReferences<_$AppDatabase, $TaskLinksTable, TaskLink> {
+  $$TaskLinksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TasksTable _taskIdTable(_$AppDatabase db) => db.tasks.createAlias(
+    $_aliasNameGenerator(db.taskLinks.taskId, db.tasks.id),
+  );
+
+  $$TasksTableProcessedTableManager get taskId {
+    final $_column = $_itemColumn<String>('task_id')!;
+
+    final manager = $$TasksTableTableManager(
+      $_db,
+      $_db.tasks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_taskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$TaskLinksTableFilterComposer
+    extends Composer<_$AppDatabase, $TaskLinksTable> {
+  $$TaskLinksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linkedTaskId => $composableBuilder(
+    column: $table.linkedTaskId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linkType => $composableBuilder(
+    column: $table.linkType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TasksTableFilterComposer get taskId {
+    final $$TasksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableFilterComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskLinksTableOrderingComposer
+    extends Composer<_$AppDatabase, $TaskLinksTable> {
+  $$TaskLinksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linkedTaskId => $composableBuilder(
+    column: $table.linkedTaskId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linkType => $composableBuilder(
+    column: $table.linkType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TasksTableOrderingComposer get taskId {
+    final $$TasksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableOrderingComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskLinksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TaskLinksTable> {
+  $$TaskLinksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get linkedTaskId => $composableBuilder(
+    column: $table.linkedTaskId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get linkType =>
+      $composableBuilder(column: $table.linkType, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$TasksTableAnnotationComposer get taskId {
+    final $$TasksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskLinksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaskLinksTable,
+          TaskLink,
+          $$TaskLinksTableFilterComposer,
+          $$TaskLinksTableOrderingComposer,
+          $$TaskLinksTableAnnotationComposer,
+          $$TaskLinksTableCreateCompanionBuilder,
+          $$TaskLinksTableUpdateCompanionBuilder,
+          (TaskLink, $$TaskLinksTableReferences),
+          TaskLink,
+          PrefetchHooks Function({bool taskId})
+        > {
+  $$TaskLinksTableTableManager(_$AppDatabase db, $TaskLinksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TaskLinksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TaskLinksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TaskLinksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> taskId = const Value.absent(),
+                Value<String> linkedTaskId = const Value.absent(),
+                Value<String> linkType = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskLinksCompanion(
+                id: id,
+                taskId: taskId,
+                linkedTaskId: linkedTaskId,
+                linkType: linkType,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String taskId,
+                required String linkedTaskId,
+                Value<String> linkType = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskLinksCompanion.insert(
+                id: id,
+                taskId: taskId,
+                linkedTaskId: linkedTaskId,
+                linkType: linkType,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TaskLinksTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({taskId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (taskId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.taskId,
+                                referencedTable: $$TaskLinksTableReferences
+                                    ._taskIdTable(db),
+                                referencedColumn: $$TaskLinksTableReferences
+                                    ._taskIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TaskLinksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaskLinksTable,
+      TaskLink,
+      $$TaskLinksTableFilterComposer,
+      $$TaskLinksTableOrderingComposer,
+      $$TaskLinksTableAnnotationComposer,
+      $$TaskLinksTableCreateCompanionBuilder,
+      $$TaskLinksTableUpdateCompanionBuilder,
+      (TaskLink, $$TaskLinksTableReferences),
+      TaskLink,
+      PrefetchHooks Function({bool taskId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -13111,4 +14037,6 @@ class $AppDatabaseManager {
       $$TaskTemplateWorkflowsTableTableManager(_db, _db.taskTemplateWorkflows);
   $$TaskTemplateTodosTableTableManager get taskTemplateTodos =>
       $$TaskTemplateTodosTableTableManager(_db, _db.taskTemplateTodos);
+  $$TaskLinksTableTableManager get taskLinks =>
+      $$TaskLinksTableTableManager(_db, _db.taskLinks);
 }

@@ -33,6 +33,104 @@ class _NotesTabState extends ConsumerState<NotesTab> {
     ref.invalidate(notesProvider(widget.taskId));
   }
 
+  Future<void> _showRemoteSupportTemplate() async {
+    final problemCtrl = TextEditingController();
+    final causeCtrl = TextEditingController();
+    final solutionCtrl = TextEditingController();
+    final resultCtrl = TextEditingController();
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetCtx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollCtrl) => Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.computer_outlined),
+                    const SizedBox(width: 10),
+                    Text('Fernwartungs-Vorlage',
+                        style: Theme.of(sheetCtx).textTheme.titleLarge),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(sheetCtx, true),
+                      child: const Text('Speichern'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  children: [
+                    _TemplateField(
+                        ctrl: problemCtrl,
+                        label: 'Problem *',
+                        hint: 'Was war das Problem?'),
+                    const SizedBox(height: 12),
+                    _TemplateField(
+                        ctrl: causeCtrl,
+                        label: 'Ursache',
+                        hint: 'Was hat das Problem verursacht?'),
+                    const SizedBox(height: 12),
+                    _TemplateField(
+                        ctrl: solutionCtrl,
+                        label: 'Lösung *',
+                        hint: 'Was wurde gemacht?'),
+                    const SizedBox(height: 12),
+                    _TemplateField(
+                        ctrl: resultCtrl,
+                        label: 'Ergebnis',
+                        hint: 'Was ist das Ergebnis?'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      final problem = problemCtrl.text.trim();
+      final solution = solutionCtrl.text.trim();
+      if (problem.isEmpty && solution.isEmpty) {
+        problemCtrl.dispose();
+        causeCtrl.dispose();
+        solutionCtrl.dispose();
+        resultCtrl.dispose();
+        return;
+      }
+      final lines = <String>['[Fernwartung]'];
+      if (problem.isNotEmpty) lines.add('Problem: $problem');
+      if (causeCtrl.text.trim().isNotEmpty) lines.add('Ursache: ${causeCtrl.text.trim()}');
+      if (solution.isNotEmpty) lines.add('Lösung: $solution');
+      if (resultCtrl.text.trim().isNotEmpty) lines.add('Ergebnis: ${resultCtrl.text.trim()}');
+      final db = ref.read(databaseProvider);
+      await db.into(db.notes).insert(
+            NotesCompanion.insert(taskId: widget.taskId, content: lines.join('\n')),
+          );
+      ref.invalidate(notesProvider(widget.taskId));
+    }
+
+    problemCtrl.dispose();
+    causeCtrl.dispose();
+    solutionCtrl.dispose();
+    resultCtrl.dispose();
+  }
+
   Future<void> _deleteNote(String id) async {
     final db = ref.read(databaseProvider);
     await (db.delete(db.notes)..where((n) => n.id.equals(id))).go();
@@ -68,6 +166,12 @@ class _NotesTabState extends ConsumerState<NotesTab> {
                 icon: const Icon(Icons.send),
                 onPressed: _addNote,
               ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.computer_outlined),
+                tooltip: 'Fernwartungs-Vorlage',
+                onPressed: _showRemoteSupportTemplate,
+              ),
             ],
           ),
         ),
@@ -97,6 +201,30 @@ class _NotesTabState extends ConsumerState<NotesTab> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TemplateField extends StatelessWidget {
+  final TextEditingController ctrl;
+  final String label;
+  final String hint;
+  const _TemplateField(
+      {required this.ctrl, required this.label, required this.hint});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: ctrl,
+      maxLines: 3,
+      minLines: 2,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        alignLabelWithHint: true,
+        border: const OutlineInputBorder(),
+      ),
+      textCapitalization: TextCapitalization.sentences,
     );
   }
 }

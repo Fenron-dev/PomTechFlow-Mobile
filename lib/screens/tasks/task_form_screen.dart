@@ -29,6 +29,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   int _recurrenceInterval = 1;
   int? _recurrenceWeekday; // 1=Mo..7=So
   int? _recurrenceMonthDay; // 1..31
+  final _budgetCtrl = TextEditingController();
   bool _loading = false;
 
   @override
@@ -54,6 +55,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       _recurrenceInterval = task.recurrenceInterval;
       _recurrenceWeekday = task.recurrenceWeekday;
       _recurrenceMonthDay = task.recurrenceMonthDay;
+      if (task.estimatedMinutes != null) {
+        _budgetCtrl.text = task.estimatedMinutes.toString();
+      }
     });
   }
 
@@ -61,6 +65,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _budgetCtrl.dispose();
     super.dispose();
   }
 
@@ -95,6 +100,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       final db = ref.read(databaseProvider);
       final now = DateTime.now();
 
+      final budget = int.tryParse(_budgetCtrl.text.trim());
       if (widget.taskId == null) {
         await db.into(db.tasks).insert(TasksCompanion.insert(
               title: _titleCtrl.text.trim(),
@@ -116,6 +122,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   _recurring && _recurrenceType == 'MONTHLY'
                       ? _recurrenceMonthDay
                       : null),
+              estimatedMinutes: drift.Value(budget),
               updatedAt: drift.Value(now),
             ));
       } else {
@@ -139,6 +146,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               _recurring && _recurrenceType == 'MONTHLY'
                   ? _recurrenceMonthDay
                   : null),
+          estimatedMinutes: drift.Value(budget),
           updatedAt: drift.Value(now),
         ));
       }
@@ -321,6 +329,19 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Zeitbudget ────────────────────────────────────────────
+            TextField(
+              controller: _budgetCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Zeitbudget (Minuten, optional)',
+                hintText: 'z.B. 60',
+                helperText: 'Warnung wenn Aufwand das Budget überschreitet',
+                suffixText: 'Min',
+              ),
+              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -70,6 +71,9 @@ class DashboardScreen extends ConsumerWidget {
                 child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // Schnellnotiz
+                _ScratchPadCard(settings: settings),
+                const SizedBox(height: 12),
                 // Stats
                 LayoutBuilder(builder: (context, constraints) {
                   final cols = constraints.maxWidth >= 500 ? 4 : 2;
@@ -459,6 +463,74 @@ class _TaskRow extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+// ─── Scratch-Pad ──────────────────────────────────────────────────────────────
+
+class _ScratchPadCard extends ConsumerStatefulWidget {
+  final AppSettings? settings;
+  const _ScratchPadCard({this.settings});
+
+  @override
+  ConsumerState<_ScratchPadCard> createState() => _ScratchPadCardState();
+}
+
+class _ScratchPadCardState extends ConsumerState<_ScratchPadCard> {
+  late final TextEditingController _ctrl;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.settings?.scratchPad ?? '');
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      final current = ref.read(settingsProvider).valueOrNull;
+      if (current == null) return;
+      ref.read(settingsProvider.notifier).save(
+            current.copyWith(scratchPad: value),
+          );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasText = widget.settings?.scratchPad.isNotEmpty ?? false;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ExpansionTile(
+        initiallyExpanded: hasText,
+        leading: const Icon(Icons.edit_note_outlined),
+        title: const Text('Schnellnotiz'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: TextField(
+              controller: _ctrl,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                hintText: 'Kurze Notiz, Gedanken, Aufgaben...',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.sentences,
+              onChanged: _onChanged,
+            ),
+          ),
+        ],
       ),
     );
   }

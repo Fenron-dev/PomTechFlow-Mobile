@@ -155,10 +155,27 @@ class TaskCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${mins}m',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${mins}m',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.bold),
+                          ),
+                          if (t.estimatedMinutes != null &&
+                              mins > t.estimatedMinutes!)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4),
+                              child: Tooltip(
+                                message: 'Zeitbudget überschritten (${t.estimatedMinutes} Min)',
+                                child: const Icon(
+                                    Icons.warning_amber_rounded,
+                                    size: 14,
+                                    color: Colors.orange),
+                              ),
+                            ),
+                        ],
                       ),
                       Text(
                         '$ae AE',

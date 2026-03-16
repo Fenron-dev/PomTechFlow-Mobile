@@ -14,6 +14,10 @@ class AppSettings {
   final String themeMode;
   /// Absolute path to a logo image (PNG/JPG) for PDF reports. Null = no logo.
   final String? logoPath;
+  /// Internal billing email address (never sent to customers).
+  final String billingEmail;
+  /// Scratch-pad text shown on dashboard.
+  final String scratchPad;
 
   const AppSettings({
     this.companyName = 'Meine IT-Firma',
@@ -25,6 +29,8 @@ class AppSettings {
     this.primaryColor = '#2563EB',
     this.themeMode = 'system',
     this.logoPath,
+    this.billingEmail = '',
+    this.scratchPad = '',
   });
 
   AppSettings copyWith({
@@ -38,6 +44,8 @@ class AppSettings {
     String? themeMode,
     String? logoPath,
     bool clearLogo = false,
+    String? billingEmail,
+    String? scratchPad,
   }) =>
       AppSettings(
         companyName: companyName ?? this.companyName,
@@ -49,6 +57,8 @@ class AppSettings {
         primaryColor: primaryColor ?? this.primaryColor,
         themeMode: themeMode ?? this.themeMode,
         logoPath: clearLogo ? null : (logoPath ?? this.logoPath),
+        billingEmail: billingEmail ?? this.billingEmail,
+        scratchPad: scratchPad ?? this.scratchPad,
       );
 }
 
@@ -69,6 +79,8 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       primaryColor: map['primaryColor'] ?? '#2563EB',
       themeMode: map['themeMode'] ?? 'system',
       logoPath: map['logoPath'],
+      billingEmail: map['billingEmail'] ?? '',
+      scratchPad: map['scratchPad'] ?? '',
     );
   }
 
@@ -84,6 +96,8 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       'primaryColor': settings.primaryColor,
       'themeMode': settings.themeMode,
       if (settings.logoPath != null) 'logoPath': settings.logoPath!,
+      'billingEmail': settings.billingEmail,
+      'scratchPad': settings.scratchPad,
     };
     // If logoPath was cleared (null), delete the key from DB
     if (settings.logoPath == null) {

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../providers/tasks_provider.dart';
@@ -13,6 +14,7 @@ import '../../../services/pdf_service.dart';
 import '../../../services/email_service.dart';
 import '../../../services/zip_export_service.dart';
 import '../../../widgets/timer_session_dialogs.dart';
+import '../../../providers/task_links_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class OverviewTab extends ConsumerStatefulWidget {
@@ -119,15 +121,48 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
     final settings = ref.read(settingsProvider).valueOrNull;
     final detail = widget.detail;
     final aeMin = settings?.aeMinutes ?? 10;
-    await EmailService.sendReportEmail(
-      customerEmail: detail.customer?.email,
-      customerName: detail.customer?.name,
+    await EmailService.sendBillingDraft(
+      billingEmail: settings?.billingEmail ?? '',
       taskTitle: detail.task.title,
+      customerName: detail.customer?.name,
       totalMinutes: detail.task.totalMinutes,
       aeCount: detail.aeCount(aeMin),
       technicianName: settings?.technicianName ?? '',
       companyName: settings?.companyName ?? '',
+      billedAt: detail.task.billedAt,
+      estimatedMinutes: detail.task.estimatedMinutes,
     );
+  }
+
+  Future<void> _copyAe() async {
+    final settings = ref.read(settingsProvider).valueOrNull;
+    final task = widget.detail.task;
+    final ae = widget.detail.aeCount(settings?.aeMinutes ?? 10);
+    final budgetPart = task.estimatedMinutes != null
+        ? ' | Budget: ${task.estimatedMinutes} Min'
+        : '';
+    final text =
+        'Task: ${task.title} | Zeit: ${task.totalMinutes} Min$budgetPart | AE: $ae';
+    await Clipboard.setData(ClipboardData(text: text));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('In Zwischenablage kopiert'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleBilled() async {
+    final db = ref.read(databaseProvider);
+    final task = widget.detail.task;
+    final newBilledAt = task.billedAt == null ? DateTime.now() : null;
+    await (db.update(db.tasks)..where((t) => t.id.equals(task.id))).write(
+      TasksCompanion(billedAt: drift.Value(newBilledAt)),
+    );
+    ref.invalidate(taskDetailProvider(task.id));
+    ref.invalidate(tasksProvider);
   }
 
   @override
@@ -237,13 +272,29 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
               child: _StatCard(
                 label: 'Zeitaufwand',
                 value: task.totalMinutes.toString(),
-                unit: 'Min',
-                icon: Icons.schedule,
-                color: cs.secondaryContainer,
+                unit: task.estimatedMinutes != null
+                    ? 'Min / ${task.estimatedMinutes} Min'
+                    : 'Min',
+                icon: task.estimatedMinutes != null &&
+                        task.totalMinutes > task.estimatedMinutes!
+                    ? Icons.warning_amber_rounded
+                    : Icons.schedule,
+                color: task.estimatedMinutes != null &&
+                        task.totalMinutes > task.estimatedMinutes!
+                    ? Colors.orange.shade100
+                    : cs.secondaryContainer,
               ),
             ),
           ],
         ),
+        // Budget-Fortschrittsbalken
+        if (task.estimatedMinutes != null) ...[
+          const SizedBox(height: 8),
+          _BudgetProgressBar(
+            totalMinutes: task.totalMinutes,
+            estimatedMinutes: task.estimatedMinutes!,
+          ),
+        ],
         const SizedBox(height: 12),
         Row(
           children: [
@@ -268,6 +319,40 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
             ),
           ],
         ),
+        const SizedBox(height: 8),
+        // Aktionen: AE kopieren + Abgerechnet-Toggle
+        Row(
+          children: [
+            TextButton.icon(
+              onPressed: _copyAe,
+              icon: const Icon(Icons.content_copy, size: 16),
+              label: const Text('AE kopieren'),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: _toggleBilled,
+              icon: Icon(
+                task.billedAt != null
+                    ? Icons.receipt_long
+                    : Icons.receipt_long_outlined,
+                size: 16,
+                color: task.billedAt != null ? cs.primary : null,
+              ),
+              label: Text(
+                task.billedAt != null ? 'Abgerechnet ✓' : 'Als abgerechnet',
+                style: TextStyle(
+                  color: task.billedAt != null ? cs.primary : null,
+                ),
+              ),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Verknüpfte Tasks
+        _TaskLinksSection(taskId: task.id),
         const SizedBox(height: 20),
 
         // Sessions
@@ -299,6 +384,58 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
           label: 'Erstellt',
           value: DateFormat('dd.MM.yyyy HH:mm').format(task.createdAt.toLocal()),
         ),
+      ],
+    );
+  }
+}
+
+class _BudgetProgressBar extends StatelessWidget {
+  final int totalMinutes;
+  final int estimatedMinutes;
+  const _BudgetProgressBar({
+    required this.totalMinutes,
+    required this.estimatedMinutes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = (totalMinutes / estimatedMinutes).clamp(0.0, 1.0);
+    final overBudget = totalMinutes > estimatedMinutes;
+    final color = overBudget ? Colors.red : Colors.orange;
+    final barColor = overBudget
+        ? Colors.red
+        : (progress > 0.8 ? Colors.orange : Theme.of(context).colorScheme.primary);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            backgroundColor:
+                Theme.of(context).colorScheme.surfaceContainerHighest,
+            color: barColor,
+          ),
+        ),
+        if (overBudget)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded,
+                    size: 14, color: color),
+                const SizedBox(width: 4),
+                Text(
+                  'Zeitbudget überschritten (+${totalMinutes - estimatedMinutes} Min)',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: color),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -1041,6 +1178,235 @@ class _SessionFormState extends State<_SessionForm> {
             child: const Text('Speichern'),
           ),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Task-Verknüpfungen ───────────────────────────────────────────────────────
+
+class _TaskLinksSection extends ConsumerWidget {
+  final String taskId;
+  const _TaskLinksSection({required this.taskId});
+
+  static const _linkLabels = {
+    'RELATED': 'Verwandt',
+    'BLOCKS': 'Blockiert',
+    'FOLLOW_UP': 'Folge-Task',
+  };
+  static const _linkIcons = {
+    'RELATED': Icons.link,
+    'BLOCKS': Icons.block,
+    'FOLLOW_UP': Icons.arrow_forward,
+  };
+
+  Future<void> _addLink(BuildContext context, WidgetRef ref) async {
+    final result = await showModalBottomSheet<_LinkResult>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _AddLinkSheet(currentTaskId: taskId),
+    );
+    if (result == null) return;
+    final db = ref.read(databaseProvider);
+    await db.into(db.taskLinks).insert(TaskLinksCompanion.insert(
+          taskId: taskId,
+          linkedTaskId: result.linkedTaskId,
+          linkType: drift.Value(result.linkType),
+        ));
+    ref.invalidate(taskLinksProvider(taskId));
+  }
+
+  Future<void> _removeLink(WidgetRef ref, String linkId) async {
+    final db = ref.read(databaseProvider);
+    await (db.delete(db.taskLinks)..where((l) => l.id.equals(linkId))).go();
+    ref.invalidate(taskLinksProvider(taskId));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final linksAsync = ref.watch(taskLinksProvider(taskId));
+    final cs = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.link, size: 16, color: cs.outline),
+            const SizedBox(width: 6),
+            Text('Verknüpfte Tasks',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelMedium
+                    ?.copyWith(color: cs.outline)),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: () => _addLink(context, ref),
+              icon: const Icon(Icons.add, size: 14),
+              label: const Text('Verknüpfen'),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+            ),
+          ],
+        ),
+        linksAsync.when(
+          loading: () => const SizedBox(
+              height: 24,
+              child: Center(
+                  child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2)))),
+          error: (_, __) => const SizedBox(),
+          data: (links) {
+            if (links.isEmpty) return const SizedBox();
+            return Column(
+              children: links
+                  .map((e) => ListTile(
+                        dense: true,
+                        leading: Icon(
+                          _linkIcons[e.link.linkType] ?? Icons.link,
+                          size: 18,
+                          color: cs.primary,
+                        ),
+                        title: Text(e.linkedTask.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                        subtitle: Text(
+                            _linkLabels[e.link.linkType] ?? e.link.linkType),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close, size: 16),
+                          onPressed: () => _removeLink(ref, e.link.id),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                      ))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _LinkResult {
+  final String linkedTaskId;
+  final String linkType;
+  const _LinkResult({required this.linkedTaskId, required this.linkType});
+}
+
+class _AddLinkSheet extends ConsumerStatefulWidget {
+  final String currentTaskId;
+  const _AddLinkSheet({required this.currentTaskId});
+
+  @override
+  ConsumerState<_AddLinkSheet> createState() => _AddLinkSheetState();
+}
+
+class _AddLinkSheetState extends ConsumerState<_AddLinkSheet> {
+  final _searchCtrl = TextEditingController();
+  String _linkType = 'RELATED';
+  String _filter = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tasksAsync = ref.watch(tasksProvider);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollCtrl) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Text('Task verknüpfen',
+                        style: Theme.of(context).textTheme.titleLarge),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                        value: 'RELATED',
+                        icon: Icon(Icons.link, size: 16),
+                        label: Text('Verwandt')),
+                    ButtonSegment(
+                        value: 'BLOCKS',
+                        icon: Icon(Icons.block, size: 16),
+                        label: Text('Blockiert')),
+                    ButtonSegment(
+                        value: 'FOLLOW_UP',
+                        icon: Icon(Icons.arrow_forward, size: 16),
+                        label: Text('Folge-Task')),
+                  ],
+                  selected: {_linkType},
+                  onSelectionChanged: (s) =>
+                      setState(() => _linkType = s.first),
+                  style: ButtonStyle(
+                      visualDensity: VisualDensity.compact),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _searchCtrl,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search, size: 18),
+                    hintText: 'Task suchen...',
+                    isDense: true,
+                  ),
+                  onChanged: (v) => setState(() => _filter = v.toLowerCase()),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: tasksAsync.when(
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Fehler: $e')),
+              data: (tasks) {
+                final filtered = tasks
+                    .where((t) =>
+                        t.task.id != widget.currentTaskId &&
+                        (_filter.isEmpty ||
+                            t.task.title
+                                .toLowerCase()
+                                .contains(_filter)))
+                    .toList();
+                return ListView.builder(
+                  controller: scrollCtrl,
+                  itemCount: filtered.length,
+                  itemBuilder: (_, i) {
+                    final t = filtered[i];
+                    return ListTile(
+                      title: Text(t.task.title,
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      subtitle:
+                          t.customer != null ? Text(t.customer!.name) : null,
+                      onTap: () => Navigator.pop(
+                        context,
+                        _LinkResult(
+                            linkedTaskId: t.task.id, linkType: _linkType),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
         ],
       ),
     );

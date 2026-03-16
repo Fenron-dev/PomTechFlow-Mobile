@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
@@ -96,6 +97,11 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
       appBar: AppBar(
         title: const Text('Alle Berichte'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month_outlined),
+            tooltip: 'Monatsabschluss',
+            onPressed: () => context.push('/reports/monthly'),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadReports,

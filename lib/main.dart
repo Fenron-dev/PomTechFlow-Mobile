@@ -14,6 +14,7 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/statistics/statistics_screen.dart';
 import 'screens/reports/all_reports_screen.dart';
+import 'screens/reports/monthly_report_screen.dart';
 import 'services/notification_service.dart';
 import 'services/badge_service.dart';
 import 'providers/tasks_provider.dart';
@@ -40,6 +41,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/reports',
       builder: (_, __) => const AllReportsScreen(),
+    ),
+    GoRoute(
+      path: '/reports/monthly',
+      builder: (_, __) => const MonthlyReportScreen(),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AdaptiveShell(shell: shell),

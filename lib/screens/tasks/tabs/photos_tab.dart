@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
-import 'package:drift/drift.dart' show OrderingTerm, OrderingMode;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import '../../../providers/database_provider.dart';
 import '../../../db/database.dart';
 
@@ -57,10 +57,11 @@ class PhotosTab extends ConsumerWidget {
             itemCount: photos.length,
             itemBuilder: (_, i) => _PhotoTile(
               photo: photos[i],
+              taskId: taskId,
               onDelete: () async {
                 await _deletePhoto(ref, photos[i]);
               },
-              onTap: () => _showPhoto(context, photos[i]),
+              onTap: () => _showPhoto(context, ref, photos[i]),
             ),
           );
         },
@@ -160,65 +161,202 @@ class PhotosTab extends ConsumerWidget {
     ref.invalidate(_photosProvider(taskId));
   }
 
-  void _showPhoto(BuildContext context, Photo photo) {
+  void _showPhoto(BuildContext context, WidgetRef ref, Photo photo) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => _PhotoViewer(photo: photo),
+        builder: (_) => _PhotoViewer(photo: photo, taskId: taskId),
         fullscreenDialog: true,
       ),
     );
   }
 }
 
-class _PhotoTile extends StatelessWidget {
+// ─── Photo Tile ───────────────────────────────────────────────────────────────
+
+class _PhotoTile extends ConsumerWidget {
   final Photo photo;
+  final String taskId;
   final VoidCallback onDelete;
   final VoidCallback onTap;
-  const _PhotoTile(
-      {required this.photo, required this.onDelete, required this.onTap});
+  const _PhotoTile({
+    required this.photo,
+    required this.taskId,
+    required this.onDelete,
+    required this.onTap,
+  });
+
+  Future<void> _editCaption(BuildContext context, WidgetRef ref) async {
+    final ctrl = TextEditingController(text: photo.caption ?? '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Beschriftung'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            hintText: 'Beschreibung eingeben...',
+          ),
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Abbrechen'),
+          ),
+          if (photo.caption != null)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, ''),
+              child: const Text('Löschen'),
+            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, ctrl.text),
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (result == null) return;
+    final db = ref.read(databaseProvider);
+    await (db.update(db.photos)..where((p) => p.id.equals(photo.id))).write(
+      PhotosCompanion(caption: Value(result.trim().isEmpty ? null : result.trim())),
+    );
+    ref.invalidate(_photosProvider(taskId));
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final file = File(photo.filePath);
+    final hasCaption = photo.caption != null && photo.caption!.isNotEmpty;
     return GestureDetector(
       onTap: onTap,
       onLongPress: () async {
-        final del = await showDialog<bool>(
+        final action = await showModalBottomSheet<String>(
           context: context,
-          builder: (dialogCtx) => AlertDialog(
-            title: const Text('Foto löschen?'),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx, false),
-                  child: const Text('Abbrechen')),
-              FilledButton(
-                  onPressed: () => Navigator.pop(dialogCtx, true),
-                  child: const Text('Löschen')),
-            ],
+          builder: (_) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('Beschriftung bearbeiten'),
+                  onTap: () => Navigator.pop(context, 'caption'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.red),
+                  title: const Text('Foto löschen',
+                      style: TextStyle(color: Colors.red)),
+                  onTap: () => Navigator.pop(context, 'delete'),
+                ),
+              ],
+            ),
           ),
         );
-        if (del == true) onDelete();
+        if (action == 'caption' && context.mounted) {
+          await _editCaption(context, ref);
+        } else if (action == 'delete') {
+          onDelete();
+        }
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(6),
-        child: file.existsSync()
-            ? Image.file(file, fit: BoxFit.cover)
-            : Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.broken_image_outlined),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            file.existsSync()
+                ? Image.file(file, fit: BoxFit.cover)
+                : Container(
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: const Icon(Icons.broken_image_outlined),
+                  ),
+            if (hasCaption)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Colors.black87, Colors.transparent],
+                    ),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                  child: Text(
+                    photo.caption!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _PhotoViewer extends StatelessWidget {
+// ─── Photo Viewer ─────────────────────────────────────────────────────────────
+
+class _PhotoViewer extends ConsumerWidget {
   final Photo photo;
-  const _PhotoViewer({required this.photo});
+  final String taskId;
+  const _PhotoViewer({required this.photo, required this.taskId});
+
+  Future<void> _editCaption(BuildContext context, WidgetRef ref) async {
+    final ctrl = TextEditingController(text: photo.caption ?? '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Beschriftung'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLines: 2,
+          decoration: const InputDecoration(hintText: 'Beschreibung eingeben...'),
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Abbrechen'),
+          ),
+          if (photo.caption != null)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, ''),
+              child: const Text('Löschen'),
+            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, ctrl.text),
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (result == null) return;
+    final db = ref.read(databaseProvider);
+    await (db.update(db.photos)..where((p) => p.id.equals(photo.id))).write(
+      PhotosCompanion(caption: Value(result.trim().isEmpty ? null : result.trim())),
+    );
+    ref.invalidate(_photosProvider(taskId));
+    if (context.mounted) Navigator.pop(context); // close viewer, reopen updated
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasCaption = photo.caption != null && photo.caption!.isNotEmpty;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -228,11 +366,35 @@ class _PhotoViewer extends StatelessWidget {
           DateFormat('dd.MM.yyyy HH:mm').format(photo.createdAt.toLocal()),
           style: const TextStyle(color: Colors.white),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Beschriftung bearbeiten',
+            onPressed: () => _editCaption(context, ref),
+          ),
+        ],
       ),
-      body: Center(
-        child: InteractiveViewer(
-          child: Image.file(File(photo.filePath)),
-        ),
+      body: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: InteractiveViewer(
+                child: Image.file(File(photo.filePath)),
+              ),
+            ),
+          ),
+          if (hasCaption)
+            Container(
+              width: double.infinity,
+              color: Colors.black87,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Text(
+                photo.caption!,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ),
+        ],
       ),
     );
   }

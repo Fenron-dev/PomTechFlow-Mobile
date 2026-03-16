@@ -41,6 +41,7 @@ class _SettingsForm extends ConsumerStatefulWidget {
 class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late final TextEditingController _companyCtrl;
   late final TextEditingController _techCtrl;
+  late final TextEditingController _billingEmailCtrl;
   late int _aeMinutes;
   String? _logoPath;
   late int _pomodoroMinutes;
@@ -54,6 +55,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     super.initState();
     _companyCtrl = TextEditingController(text: widget.settings.companyName);
     _techCtrl = TextEditingController(text: widget.settings.technicianName);
+    _billingEmailCtrl = TextEditingController(text: widget.settings.billingEmail);
     _aeMinutes = widget.settings.aeMinutes;
     _logoPath = widget.settings.logoPath;
     _pomodoroMinutes = widget.settings.pomodoroMinutes;
@@ -66,6 +68,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   void dispose() {
     _companyCtrl.dispose();
     _techCtrl.dispose();
+    _billingEmailCtrl.dispose();
     super.dispose();
   }
 
@@ -91,6 +94,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             themeMode: _themeMode,
             logoPath: _logoPath,
             clearLogo: _logoPath == null,
+            billingEmail: _billingEmailCtrl.text.trim(),
           ),
         );
     if (mounted) {
@@ -172,6 +176,16 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         TextField(
           controller: _techCtrl,
           decoration: const InputDecoration(labelText: 'Techniker Name'),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _billingEmailCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Abrechnungs-E-Mail (intern)',
+            hintText: 'z.B. buchhaltung@firma.de',
+            helperText: 'Wird für interne Abrechnungsentwürfe verwendet',
+          ),
+          keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 16),
         // Logo für PDF-Berichte
@@ -297,6 +311,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   themeMode: s.first,
                   logoPath: _logoPath,
                   clearLogo: _logoPath == null,
+                  billingEmail: _billingEmailCtrl.text.trim(),
                 ));
           },
         ),

@@ -34,6 +34,8 @@ class Tasks extends Table {
   IntColumn get recurrenceInterval => integer().withDefault(const Constant(1))(); // alle N Einheiten
   IntColumn get recurrenceWeekday => integer().nullable()(); // 1=Mo..7=So (für WEEKLY) NEU v7
   IntColumn get recurrenceMonthDay => integer().nullable()(); // 1..31 (für MONTHLY, z.B. "jeden 1.") NEU v7
+  IntColumn get estimatedMinutes => integer().nullable()(); // NEU v9: Zeitbudget
+  DateTimeColumn get billedAt => dateTime().nullable()(); // NEU v9: null=offen, gesetzt=abgerechnet am Datum
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -196,6 +198,19 @@ class TaskTemplateTodos extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class TaskLinks extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get taskId =>
+      text().references(Tasks, #id, onDelete: KeyAction.cascade)();
+  TextColumn get linkedTaskId => text()(); // soft ref — cascade via app logic
+  TextColumn get linkType => text().withDefault(const Constant('RELATED'))();
+  // RELATED | BLOCKS | FOLLOW_UP
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class DevicePresets extends Table {
   TextColumn get id => text().clientDefault(() => _uuid())();
   TextColumn get type => text()();
@@ -229,12 +244,13 @@ class DevicePresets extends Table {
   TaskTemplates,
   TaskTemplateWorkflows,
   TaskTemplateTodos,
+  TaskLinks,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -275,6 +291,12 @@ class AppDatabase extends _$AppDatabase {
         // v7 → v8: Template multi-workflow + custom todos
         await m.createTable(taskTemplateWorkflows);
         await m.createTable(taskTemplateTodos);
+      }
+      if (from < 9) {
+        // v8 → v9: Zeitbudget, Abrechnungsstatus, Task-Verknüpfungen
+        await m.addColumn(tasks, tasks.estimatedMinutes);
+        await m.addColumn(tasks, tasks.billedAt);
+        await m.createTable(taskLinks);
       }
     },
   );

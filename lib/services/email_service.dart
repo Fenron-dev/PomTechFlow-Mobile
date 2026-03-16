@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 
 class EmailService {
@@ -22,6 +21,43 @@ class EmailService {
     if (await canLaunchUrl(encoded)) {
       await launchUrl(encoded);
     }
+  }
+
+  /// Interner Abrechnungsentwurf — geht an die interne Billing-Adresse, NICHT an den Kunden.
+  static Future<void> sendBillingDraft({
+    required String billingEmail,
+    required String taskTitle,
+    String? customerName,
+    required int totalMinutes,
+    required int aeCount,
+    required String technicianName,
+    required String companyName,
+    DateTime? billedAt,
+    int? estimatedMinutes,
+  }) async {
+    final subject = 'Abrechnung: $taskTitle'
+        '${customerName != null ? ' – $customerName' : ''}';
+    final statusLine = billedAt != null
+        ? 'Abgerechnet: ${billedAt.toLocal().day.toString().padLeft(2, '0')}.${billedAt.toLocal().month.toString().padLeft(2, '0')}.${billedAt.toLocal().year}'
+        : 'Status: Noch nicht abgerechnet';
+    final budgetLine = estimatedMinutes != null
+        ? '\nBudget:      $estimatedMinutes Min (${totalMinutes > estimatedMinutes ? '⚠ überschritten' : 'eingehalten'})'
+        : '';
+    final body =
+        'Interner Abrechnungsvorschlag\n\n'
+        'Auftrag:    $taskTitle\n'
+        '${customerName != null ? 'Kunde:      $customerName\n' : ''}'
+        'Zeitaufwand: $totalMinutes Min\n'
+        'AE:          $aeCount'
+        '$budgetLine\n'
+        'Techniker:  $technicianName\n'
+        'Firma:      $companyName\n'
+        '$statusLine';
+    await sendEmail(
+      recipient: billingEmail.isEmpty ? null : billingEmail,
+      subject: subject,
+      body: body,
+    );
   }
 
   /// Erstellt eine vorausgefüllte E-Mail für einen IT-Support-Bericht.

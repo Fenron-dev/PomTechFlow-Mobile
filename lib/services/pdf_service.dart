@@ -435,6 +435,154 @@ class PdfService {
         _ => 'Geplant',
       };
 
+  /// Generates a monthly summary PDF for all tasks in a given month.
+  static Future<File> generateMonthlyReport({
+    required List<TaskWithDetails> tasks,
+    required Customer? customer,
+    required DateTime month,
+    required String companyName,
+    required String technicianName,
+    required double aeMinutes,
+    Uint8List? logoBytes,
+  }) async {
+    final pdf = pw.Document();
+    final font = await PdfGoogleFonts.nunitoRegular();
+    final fontBold = await PdfGoogleFonts.nunitoBold();
+    final dateStr =
+        DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now().toLocal());
+    final monthLabel = DateFormat('MMMM yyyy', 'de_DE').format(month);
+
+    final totalMinutes = tasks.fold<int>(0, (s, t) => s + t.task.totalMinutes);
+    final totalAe = tasks.fold<double>(
+        0,
+        (s, t) => s +
+            (t.task.totalMinutes == 0
+                ? 0
+                : (t.task.totalMinutes / aeMinutes).ceilToDouble()));
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(30),
+          theme: pw.ThemeData.withFont(base: font, bold: fontBold),
+        ),
+        header: (ctx) {
+          final headerWidget = _buildHeader(
+            companyName,
+            technicianName,
+            dateStr,
+            font,
+            fontBold,
+            logoBytes: logoBytes,
+          );
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              headerWidget,
+              pw.SizedBox(height: 8),
+              pw.Text('Monatsabschluss: $monthLabel'
+                  '${customer != null ? ' – ${customer.name}' : ' – Alle Kunden'}',
+                  style: pw.TextStyle(
+                      font: fontBold, fontSize: 13, color: PdfColors.blue800)),
+            ],
+          );
+        },
+        footer: (ctx) => pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(companyName,
+                style: pw.TextStyle(
+                    font: font, fontSize: 8, color: PdfColors.grey600)),
+            pw.Text('Seite ${ctx.pageNumber} / ${ctx.pagesCount}',
+                style: pw.TextStyle(
+                    font: font, fontSize: 8, color: PdfColors.grey600)),
+          ],
+        ),
+        build: (ctx) => [
+          pw.SizedBox(height: 16),
+          _sectionTitle('Aufgaben ($monthLabel)', fontBold),
+          pw.Table(
+            border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+            columnWidths: {
+              0: const pw.FlexColumnWidth(3),
+              1: const pw.FlexColumnWidth(1.5),
+              2: const pw.FlexColumnWidth(1),
+              3: const pw.FlexColumnWidth(1),
+              4: const pw.FlexColumnWidth(1.2),
+            },
+            children: [
+              _tableHeaderRow(
+                  ['Titel', 'Kunde', 'Status', 'Min', 'AE'], fontBold),
+              ...tasks.map((t) {
+                final taskAe = t.task.totalMinutes == 0
+                    ? 0.0
+                    : (t.task.totalMinutes / aeMinutes).ceilToDouble();
+                return _tableRow([
+                  t.task.title,
+                  t.customer?.name ?? '-',
+                  _statusLabel(t.task.status),
+                  '${t.task.totalMinutes}',
+                  taskAe.toStringAsFixed(0),
+                ], font);
+              }),
+              // Summenzeile
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text('Gesamt',
+                        style: pw.TextStyle(font: fontBold, fontSize: 9)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text('${tasks.length} Tasks',
+                        style: pw.TextStyle(
+                            font: font, fontSize: 9, color: PdfColors.grey700)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text('',
+                        style: pw.TextStyle(font: font, fontSize: 9)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text('$totalMinutes',
+                        style: pw.TextStyle(font: fontBold, fontSize: 9)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text(totalAe.toStringAsFixed(0),
+                        style: pw.TextStyle(font: fontBold, fontSize: 9,
+                            color: PdfColors.blue800)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 32),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              _signatureLine('Datum / Techniker', 180, font),
+              _signatureLine('Datum / Bestätigung', 180, font),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    final dir = await getApplicationDocumentsDirectory();
+    final monthStr = DateFormat('yyyy-MM').format(month);
+    final customerSlug = _slug(customer?.name ?? 'alle-kunden');
+    final baseName = '${monthStr}_monatsabschluss_$customerSlug';
+    final fileName = await _uniqueFilename(dir.path, baseName, 'pdf');
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsBytes(await pdf.save());
+    return file;
+  }
+
   // PDF drucken / teilen
   static Future<void> shareReport(File file) async {
     await Printing.sharePdf(
