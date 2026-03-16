@@ -48,29 +48,33 @@ class NotificationService {
 
     final scheduledDate = tz.TZDateTime.from(plannedDate, tz.local);
 
-    await _plugin.zonedSchedule(
-      taskId.hashCode.abs() % 100000,
-      'Task fällig: $title',
-      'Dieser Task ist für heute geplant.',
-      scheduledDate,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'task_reminders',
-          'Task Erinnerungen',
-          channelDescription: 'Erinnerungen für geplante Tasks',
-          importance: Importance.high,
-          priority: Priority.high,
+    try {
+      await _plugin.zonedSchedule(
+        taskId.hashCode.abs() % 100000,
+        'Task fällig: $title',
+        'Dieser Task ist für heute geplant.',
+        scheduledDate,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'task_reminders',
+            'Task Erinnerungen',
+            channelDescription: 'Erinnerungen für geplante Tasks',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (_) {
+      // Exakte Alarme können ohne SCHEDULE_EXACT_ALARM-Berechtigung fehlschlagen
+    }
   }
 
   static Future<void> cancelTaskReminder(String taskId) async {

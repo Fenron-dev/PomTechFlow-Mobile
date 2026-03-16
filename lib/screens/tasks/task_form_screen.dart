@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/customers_provider.dart';
@@ -86,53 +87,69 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
 
-    final db = ref.read(databaseProvider);
-    final now = DateTime.now();
+    try {
+      final db = ref.read(databaseProvider);
+      final now = DateTime.now();
 
-    if (widget.taskId == null) {
-      await db.into(db.tasks).insert(TasksCompanion.insert(
-            title: _titleCtrl.text.trim(),
-            description: drift.Value(_descCtrl.text.trim().isEmpty
-                ? null
-                : _descCtrl.text.trim()),
-            customerId: drift.Value(_customerId),
-            priority: drift.Value(_priority),
-            plannedDate: drift.Value(_plannedDate),
-            recurring: drift.Value(_recurring),
-            recurrenceType:
-                drift.Value(_recurring ? _recurrenceType : null),
-            recurrenceInterval: drift.Value(_recurrenceInterval),
-            updatedAt: drift.Value(now),
-          ));
-    } else {
-      await (db.update(db.tasks)
-            ..where((t) => t.id.equals(widget.taskId!)))
-          .write(TasksCompanion(
-        title: drift.Value(_titleCtrl.text.trim()),
-        description: drift.Value(
-            _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim()),
-        customerId: drift.Value(_customerId),
-        priority: drift.Value(_priority),
-        plannedDate: drift.Value(_plannedDate),
-        recurring: drift.Value(_recurring),
-        recurrenceType: drift.Value(_recurring ? _recurrenceType : null),
-        recurrenceInterval: drift.Value(_recurrenceInterval),
-        updatedAt: drift.Value(now),
-      ));
-    }
+      if (widget.taskId == null) {
+        await db.into(db.tasks).insert(TasksCompanion.insert(
+              title: _titleCtrl.text.trim(),
+              description: drift.Value(_descCtrl.text.trim().isEmpty
+                  ? null
+                  : _descCtrl.text.trim()),
+              customerId: drift.Value(_customerId),
+              priority: drift.Value(_priority),
+              plannedDate: drift.Value(_plannedDate),
+              recurring: drift.Value(_recurring),
+              recurrenceType:
+                  drift.Value(_recurring ? _recurrenceType : null),
+              recurrenceInterval: drift.Value(_recurrenceInterval),
+              updatedAt: drift.Value(now),
+            ));
+      } else {
+        await (db.update(db.tasks)
+              ..where((t) => t.id.equals(widget.taskId!)))
+            .write(TasksCompanion(
+          title: drift.Value(_titleCtrl.text.trim()),
+          description: drift.Value(
+              _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim()),
+          customerId: drift.Value(_customerId),
+          priority: drift.Value(_priority),
+          plannedDate: drift.Value(_plannedDate),
+          recurring: drift.Value(_recurring),
+          recurrenceType: drift.Value(_recurring ? _recurrenceType : null),
+          recurrenceInterval: drift.Value(_recurrenceInterval),
+          updatedAt: drift.Value(now),
+        ));
+      }
 
-    ref.invalidate(tasksProvider);
-    // Notification schedulieren/abbrechen
-    if (_plannedDate != null && _plannedDate!.isAfter(DateTime.now())) {
-      await NotificationService.scheduleTaskReminder(
-        widget.taskId ?? 'new_${DateTime.now().millisecondsSinceEpoch}',
-        _titleCtrl.text.trim(),
-        _plannedDate!,
-      );
-    } else if (widget.taskId != null) {
-      await NotificationService.cancelTaskReminder(widget.taskId!);
+      ref.invalidate(tasksProvider);
+
+      // Notification schedulieren/abbrechen — Fehler blockieren das Speichern nicht
+      try {
+        if (_plannedDate != null && _plannedDate!.isAfter(DateTime.now())) {
+          await NotificationService.scheduleTaskReminder(
+            widget.taskId ?? 'new_${DateTime.now().millisecondsSinceEpoch}',
+            _titleCtrl.text.trim(),
+            _plannedDate!,
+          );
+        } else if (widget.taskId != null) {
+          await NotificationService.cancelTaskReminder(widget.taskId!);
+        }
+      } catch (_) {
+        // Notification-Fehler (z.B. fehlende Berechtigung) blockieren das Speichern nicht
+      }
+
+      if (mounted) context.pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Speichern: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-    if (mounted) Navigator.of(context).pop();
   }
 
   @override

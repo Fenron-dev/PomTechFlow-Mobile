@@ -210,7 +210,7 @@ class PdfService {
 
     final dir = await getApplicationDocumentsDirectory();
     final fileName =
-        'bericht_${task.id.substring(0, 8)}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        'bericht_${task.id.substring(0, task.id.length.clamp(0, 8))}_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final file = File('${dir.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
     return file;
@@ -417,7 +417,7 @@ class PdfService {
   /// Lists all previously generated PDF reports for a task
   static Future<List<File>> listReports(String taskId) async {
     final dir = await getApplicationDocumentsDirectory();
-    final prefix = 'bericht_${taskId.substring(0, 8)}_';
+    final prefix = 'bericht_${taskId.substring(0, taskId.length.clamp(0, 8))}_';
     final docDir = Directory(dir.path);
     if (!await docDir.exists()) return [];
     return docDir

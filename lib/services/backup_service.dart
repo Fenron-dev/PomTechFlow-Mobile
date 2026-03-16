@@ -24,13 +24,17 @@ class BackupService {
       'exportedAt': DateTime.now().toIso8601String(),
       'customers': customers.map((c) => {
         'id': c.id, 'name': c.name, 'email': c.email,
-        'phone': c.phone, 'notes': c.notes,
+        'phone': c.phone, 'address': c.address, 'notes': c.notes,
         'createdAt': c.createdAt.toIso8601String(),
       }).toList(),
       'tasks': tasks.map((t) => {
         'id': t.id, 'title': t.title, 'description': t.description,
         'status': t.status, 'customerId': t.customerId,
-        'totalMinutes': t.totalMinutes,
+        'priority': t.priority, 'totalMinutes': t.totalMinutes,
+        'plannedDate': t.plannedDate?.toIso8601String(),
+        'recurring': t.recurring,
+        'recurrenceType': t.recurrenceType,
+        'recurrenceInterval': t.recurrenceInterval,
         'createdAt': t.createdAt.toIso8601String(),
         'updatedAt': t.updatedAt.toIso8601String(),
       }).toList(),
@@ -49,6 +53,7 @@ class BackupService {
       }).toList(),
       'sessions': sessions.map((s) => {
         'id': s.id, 'taskId': s.taskId, 'duration': s.duration,
+        'type': s.type, 'note': s.note,
         'startTime': s.startTime.toIso8601String(),
         'endTime': s.endTime?.toIso8601String(),
       }).toList(),
@@ -85,9 +90,16 @@ class BackupService {
     );
     if (result == null || result.files.isEmpty) return 'Abgebrochen';
 
-    final file = File(result.files.single.path!);
-    final json = await file.readAsString();
-    final Map<String, dynamic> backup = jsonDecode(json);
+    final filePath = result.files.single.path;
+    if (filePath == null) return 'Datei konnte nicht gelesen werden';
+
+    final Map<String, dynamic> backup;
+    try {
+      final json = await File(filePath).readAsString();
+      backup = jsonDecode(json) as Map<String, dynamic>;
+    } catch (_) {
+      return 'Ungültige Backup-Datei (kein gültiges JSON)';
+    }
 
     final version = backup['version'] as int? ?? 0;
     if (version != 1) return 'Unbekanntes Backup-Format (Version $version)';
@@ -107,6 +119,7 @@ class BackupService {
           name: Value(c['name']),
           email: Value(c['email']),
           phone: Value(c['phone']),
+          address: Value(c['address']),
           notes: Value(c['notes']),
           createdAt: Value(DateTime.parse(c['createdAt'])),
         ));
@@ -141,7 +154,14 @@ class BackupService {
           description: Value(t['description']),
           status: Value(t['status']),
           customerId: Value(t['customerId']),
+          priority: Value(t['priority'] ?? 'NORMAL'),
           totalMinutes: Value(t['totalMinutes'] ?? 0),
+          plannedDate: Value(t['plannedDate'] != null
+              ? DateTime.parse(t['plannedDate'])
+              : null),
+          recurring: Value(t['recurring'] ?? false),
+          recurrenceType: Value(t['recurrenceType']),
+          recurrenceInterval: Value(t['recurrenceInterval'] ?? 1),
           createdAt: Value(DateTime.parse(t['createdAt'])),
           updatedAt: Value(DateTime.parse(t['updatedAt'])),
         ));
@@ -192,6 +212,8 @@ class BackupService {
           id: Value(s['id']),
           taskId: Value(s['taskId']),
           duration: Value(s['duration'] ?? 0),
+          type: Value(s['type'] ?? 'WORK'),
+          note: Value(s['note']),
           startTime: Value(DateTime.parse(s['startTime'])),
           endTime: Value(s['endTime'] != null
               ? DateTime.parse(s['endTime'])
