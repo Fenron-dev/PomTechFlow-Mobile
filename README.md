@@ -14,12 +14,15 @@
 - [Dashboard](#dashboard)
 - [Tasks](#tasks)
 - [Prioritäten](#prioritäten)
+- [Zeitbudget & Abrechnung](#zeitbudget--abrechnung)
 - [Timer & Sessions](#timer--sessions)
 - [Checkliste](#checkliste)
 - [Hardware](#hardware)
 - [Notizen](#notizen)
 - [Fotos](#fotos)
+- [Task-Verknüpfungen](#task-verknüpfungen)
 - [PDF-Berichte & Vorschau](#pdf-berichte--vorschau)
+- [Monats-Abschluss-Report](#monats-abschluss-report)
 - [Task-Übergabe (.ptf)](#task-übergabe-ptf)
 - [Übergabepaket (ZIP)](#übergabepaket-zip)
 - [Wiederkehrende Tasks](#wiederkehrende-tasks)
@@ -75,9 +78,10 @@ Builds sind als Artifacts in GitHub Actions verfügbar:
 2. **Firmenname** und **Techniker Name** eintragen
 3. **Firmen-Logo** hochladen (PNG/JPG, erscheint oben links im PDF-Bericht)
 4. **Arbeitseinheiten (AE)** konfigurieren (Standard: 10 Min = 1 AE)
-5. Optional: **Kunden** anlegen → Einstellungen → Kunden
-6. Optional: **Workflows** (Checklisten-Vorlagen) anlegen
-7. Ersten Task erstellen über **Tasks → + (Plus-Button)**
+5. Optional: **Abrechnungs-E-Mail (intern)** eintragen (für interne Abrechnungsentwürfe)
+6. Optional: **Kunden** anlegen → Einstellungen → Kunden
+7. Optional: **Workflows** (Checklisten-Vorlagen) anlegen
+8. Ersten Task erstellen über **Tasks → + (Plus-Button)**
 
 ---
 
@@ -98,6 +102,7 @@ Builds sind als Artifacts in GitHub Actions verfügbar:
 
 ## Dashboard
 
+- **Schnellnotiz (Scratchpad)** – aufklappbare Notizfläche ganz oben; Text wird per Debounce (500 ms) automatisch gespeichert und bleibt nach App-Neustart erhalten. Klappt automatisch auf, wenn Text vorhanden ist.
 - **Timer-Banner** – läuft ein Timer, erscheint er hier mit Countdown. Antippen öffnet den Task.
 - **Statistik-Kacheln** – Gesamt-AE, aktive Tasks, abgeschlossene Tasks, AE-Konfiguration
   *(auf Desktop: 4 Spalten nebeneinander)*
@@ -121,6 +126,7 @@ Jede Karte zeigt:
 - Titel, Kunde, Checklisten-Fortschritt
 - Zeit in Minuten und AE, Status-Badge
 - **Wiederholungs-Icon** bei wiederkehrenden Tasks
+- **Warn-Icon** (orange) wenn die Zeit das eingestellte Zeitbudget überschreitet
 
 **Suchen:** Lupe-Icon in der AppBar
 **Sortieren & Filtern:** Sortier-Icon in der AppBar öffnet Popup:
@@ -145,6 +151,7 @@ Jede Karte zeigt:
 | Kunde | Auswahl aus angelegten Kunden |
 | **Priorität** | Niedrig / Normal / Hoch / Kritisch |
 | Geplantes Datum | Datum + Uhrzeit, löst Erinnerung aus |
+| **Zeitbudget (Min)** | Optionales Zeitbudget in Minuten; löst Warnsymbol aus wenn überschritten |
 | Wiederkehrend | Täglich / Wöchentlich / Monatlich / Vierteljährlich |
 
 ---
@@ -161,6 +168,44 @@ Vier Stufen:
 | **Kritisch** | Rot | Sofort erledigen |
 
 Priorität wird im Task-Formular gesetzt und ist in der Task-Karte als farbiger Balken sichtbar. Sortierung nach Priorität bringt Kritisch/Hoch zuerst.
+
+---
+
+## Zeitbudget & Abrechnung
+
+### Zeitbudget
+
+Im Task-Formular kann optional ein **Zeitbudget in Minuten** hinterlegt werden:
+
+- **Warn-Icon** (orange) in der Task-Karte wenn `Gesamtzeit > Budget`
+- Im **Übersicht-Tab** zeigt ein `LinearProgressIndicator` den Budgetverbrauch (orange/rot bei Überschreitung)
+- Beim E-Mail-Entwurf und im Monats-Report wird eine Budgetwarnung (`⚠ überschritten`) angezeigt
+
+### AE kopieren
+
+Im **Übersicht-Tab** → **"AE kopieren"**-Button:
+- Kopiert `Task: [Titel] | Zeit: X Min | AE: Y` in die Zwischenablage
+- Inkl. Budgetwarnung wenn Budget gesetzt und überschritten
+- SnackBar-Bestätigung erscheint kurz
+
+### Abrechnungsstatus
+
+Im **Übersicht-Tab** → **"Als abgerechnet"**-Toggle:
+- Setzt den Abrechnungszeitstempel (`billedAt`) auf den aktuellen Zeitpunkt
+- Erneutes Antippen setzt den Status zurück (auf "Noch nicht abgerechnet")
+- Datum der Abrechnung wird im E-Mail-Entwurf und im Monats-Report angezeigt
+- Abgerechnete Tasks erscheinen im Monats-Report mit Quittungs-Icon
+
+### Interner Abrechnungsentwurf (E-Mail)
+
+Im **Übersicht-Tab** → **Mail-Icon**-Button (neben PDF):
+- Öffnet den nativen E-Mail-Client mit vorausgefülltem Entwurf
+- **Empfänger:** Abrechnungs-E-Mail aus den Einstellungen (kein Kunden-Versand)
+- **Betreff:** `Abrechnung: [Task] – [Kunde]`
+- **Body:** Auftrag, Kunde, Zeitaufwand, AE, Budget-Status, Techniker, Firma, Abrechnungsstatus
+- Kein eigenes E-Mail-Package – nutzt `mailto:` URI via `url_launcher`
+
+> Die Abrechnungs-E-Mail wird unter **Einstellungen → Firma → "Abrechnungs-E-Mail (intern)"** eingetragen.
 
 ---
 
@@ -236,6 +281,20 @@ Einstellungen → Geräte-Bibliothek: Individuelle Einzelgeräte mit Seriennumme
 - **Long-Press** – Löschen
 - Notizen aus Timer-Stop-Dialog werden hier ebenfalls gespeichert
 
+### Fernwartungs-Vorlage
+
+Computer-Icon neben dem Senden-Button:
+- Öffnet einen Eingabe-Bogen mit 4 Feldern: **Problem / Ursache / Lösung / Ergebnis**
+- "Einfügen"-Button speichert die Eingaben als formatierte Notiz:
+  ```
+  [Fernwartung]
+  Problem: ...
+  Ursache: ...
+  Lösung: ...
+  Ergebnis: ...
+  ```
+- Ideal für schnelle strukturierte Dokumentation nach Remote-Support-Einsätzen
+
 ---
 
 ## Fotos
@@ -243,8 +302,29 @@ Einstellungen → Geräte-Bibliothek: Individuelle Einzelgeräte mit Seriennumme
 - 3-Spalten Raster-Ansicht
 - **Kamera-FAB** – direkt aufnehmen
 - **Galerie-FAB** – aus Galerie wählen
-- **Antippen** – Vollbild mit Zoom
-- **Long-Press** – Löschen
+- **Antippen** – Vollbild mit Zoom (pinch-to-zoom, zoombares Bild)
+- **Long-Press** – Kontextmenü mit zwei Optionen:
+  - **Beschriftung bearbeiten** – Dialog mit TextField; Text erscheint als halbtransparentes Overlay am unteren Rand des Kachel-Bilds
+  - **Foto löschen** – löscht Datenbankeinträg und Bilddatei
+- Im **Vollbild-Viewer**: Stift-Icon in der AppBar zum Bearbeiten der Beschriftung; Caption erscheint als Textblock unterhalb des Bilds
+
+---
+
+## Task-Verknüpfungen
+
+Im **Übersicht-Tab** ganz unten → **"Verknüpfte Tasks"**-Sektion:
+
+- Zeigt alle verknüpften Tasks gruppiert nach Beziehungstyp
+- **"Verknüpfung hinzufügen"**-Button öffnet ein Bottom Sheet:
+  - **Suche** – Tasks nach Titel filtern
+  - **Beziehungstyp** (SegmentedButton):
+    | Typ | Bedeutung |
+    |-----|-----------|
+    | **Verwandt** | Inhaltlich zusammenhängende Tasks |
+    | **Blockiert** | Dieser Task blockiert den verknüpften Task |
+    | **Folge-Task** | Der verknüpfte Task ist Nachfolgeaufgabe |
+- Antippen eines verknüpften Tasks → direkt zum Task-Detail
+- Verknüpfungen können einzeln entfernt werden (Löschen-Icon)
 
 ---
 
@@ -269,6 +349,38 @@ Logo einrichten: **Einstellungen → Firma → "Firmen-Logo (PDF-Berichte)" → 
 - Datum/Uhrzeit der Erstellung
 - **Antippen** → **In-App-Vorschau** (scrollbar, zoombar, druckbar)
 - **Teilen-Button** zum erneuten Versenden
+
+---
+
+## Monats-Abschluss-Report
+
+**Alle Berichte → Kalender-Icon** (AppBar oben rechts) → `/reports/monthly`:
+
+### Bedienung
+
+1. **Monat auswählen** – Pfeiltasten (← MMMM yyyy →)
+2. **Kunde auswählen** – Dropdown (inkl. "Alle Kunden")
+3. Vorschau zeigt sofort:
+   - Zusammenfassungs-Chips: Anzahl Tasks / Gesamt-Minuten / Gesamt-AE
+   - Task-Liste mit Titel, Minuten, AE, Status
+   - Abgerechnete Tasks mit Quittungs-Icon und dezenter Hintergrundfarbe
+
+### PDF erstellen
+
+- **"PDF erstellen"**-Button generiert die Übersichtstabelle:
+  - Kopfzeile: Firmen-Logo, Firma, Techniker, Monat, Kundenfilter
+  - Tabelle: Titel · Kunde · Status · Minuten · AE
+  - Gesamt-Zeile am Ende
+  - Unterschriftsfelder
+- **Teilen-Dialog** öffnet sich automatisch
+- **Dateiname:** `YYYY-MM_monatsabschluss_<kundenName>.pdf`
+
+### Als abgerechnet markieren
+
+- Checkbox **"Alle als abgerechnet markieren"** setzt `billedAt` auf alle gefilterten Tasks beim PDF-Erstellen
+- Bereits abgerechnete Tasks werden im Report deutlich gekennzeichnet
+
+> **Hinweis:** Die Filterung basiert auf `Geplantes Datum` des Tasks, Fallback auf `Erstellt am`.
 
 ---
 
@@ -388,6 +500,7 @@ Globale Suche (4. NavBar-Punkt):
 | Firmenname | Erscheint im Dashboard-Titel und im PDF-Header |
 | Techniker Name | Erscheint im PDF-Bericht |
 | **Firmen-Logo** | PNG/JPG, erscheint oben links im PDF-Bericht |
+| **Abrechnungs-E-Mail (intern)** | Empfänger für interne Abrechnungsentwürfe; kein Kunden-Versand |
 
 ### Arbeitseinheiten (AE)
 
@@ -498,7 +611,7 @@ Nach Änderungen in `lib/db/database.dart`:
 2. Migration in `MigrationStrategy.onUpgrade` ergänzen
 3. `dart run build_runner build --delete-conflicting-outputs`
 
-Aktuelle Version: **v6**
+Aktuelle Version: **v9**
 
 ### Automatischer Build (GitHub Actions)
 
