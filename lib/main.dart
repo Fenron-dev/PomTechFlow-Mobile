@@ -12,6 +12,7 @@ import 'screens/workflows/workflows_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/statistics/statistics_screen.dart';
+import 'screens/reports/all_reports_screen.dart';
 import 'services/notification_service.dart';
 import 'widgets/adaptive_shell.dart';
 
@@ -31,6 +32,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/statistics',
       builder: (_, __) => const StatisticsScreen(),
+    ),
+    GoRoute(
+      path: '/reports',
+      builder: (_, __) => const AllReportsScreen(),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AdaptiveShell(shell: shell),

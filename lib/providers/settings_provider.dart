@@ -12,6 +12,8 @@ class AppSettings {
   final String primaryColor;
   // 'system' | 'light' | 'dark'
   final String themeMode;
+  /// Absolute path to a logo image (PNG/JPG) for PDF reports. Null = no logo.
+  final String? logoPath;
 
   const AppSettings({
     this.companyName = 'Meine IT-Firma',
@@ -22,6 +24,7 @@ class AppSettings {
     this.longBreakMinutes = 15,
     this.primaryColor = '#2563EB',
     this.themeMode = 'system',
+    this.logoPath,
   });
 
   AppSettings copyWith({
@@ -33,6 +36,8 @@ class AppSettings {
     int? longBreakMinutes,
     String? primaryColor,
     String? themeMode,
+    String? logoPath,
+    bool clearLogo = false,
   }) =>
       AppSettings(
         companyName: companyName ?? this.companyName,
@@ -43,6 +48,7 @@ class AppSettings {
         longBreakMinutes: longBreakMinutes ?? this.longBreakMinutes,
         primaryColor: primaryColor ?? this.primaryColor,
         themeMode: themeMode ?? this.themeMode,
+        logoPath: clearLogo ? null : (logoPath ?? this.logoPath),
       );
 }
 
@@ -62,6 +68,7 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       longBreakMinutes: int.tryParse(map['longBreakMinutes'] ?? '') ?? 15,
       primaryColor: map['primaryColor'] ?? '#2563EB',
       themeMode: map['themeMode'] ?? 'system',
+      logoPath: map['logoPath'],
     );
   }
 
@@ -76,7 +83,14 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       'longBreakMinutes': settings.longBreakMinutes.toString(),
       'primaryColor': settings.primaryColor,
       'themeMode': settings.themeMode,
+      if (settings.logoPath != null) 'logoPath': settings.logoPath!,
     };
+    // If logoPath was cleared (null), delete the key from DB
+    if (settings.logoPath == null) {
+      await (db.delete(db.appSettings)
+            ..where((s) => s.key.equals('logoPath')))
+          .go();
+    }
     for (final e in entries.entries) {
       await db.into(db.appSettings).insertOnConflictUpdate(
             AppSettingsCompanion.insert(key: e.key, value: e.value),

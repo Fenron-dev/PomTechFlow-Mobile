@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:archive/archive_io.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -27,6 +28,13 @@ class ZipExportService {
     final photos =
         await (db.select(db.photos)..where((p) => p.taskId.equals(taskId))).get();
 
+    // Logo laden
+    Uint8List? logoBytes;
+    if (settings?.logoPath != null) {
+      final logoFile = File(settings!.logoPath!);
+      if (await logoFile.exists()) logoBytes = await logoFile.readAsBytes();
+    }
+
     // PDF generieren
     final pdfFile = await PdfService.generateReport(PdfReportData(
       taskDetail: detail,
@@ -36,6 +44,7 @@ class ZipExportService {
       companyName: settings?.companyName ?? 'IT-Firma',
       technicianName: settings?.technicianName ?? '',
       aeMinutes: aeMin.toDouble(),
+      logoBytes: logoBytes,
     ));
 
     // ZIP erstellen

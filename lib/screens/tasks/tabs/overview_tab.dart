@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -6,6 +7,8 @@ import '../../../providers/tasks_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/timer_provider.dart';
+import '../../../db/database.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../../services/pdf_service.dart';
 import '../../../services/email_service.dart';
 import '../../../services/zip_export_service.dart';
@@ -63,6 +66,11 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
             ..where((n) => n.taskId.equals(taskId)))
           .get();
 
+      Uint8List? logoBytes;
+      if (settings?.logoPath != null) {
+        final logoFile = File(settings!.logoPath!);
+        if (await logoFile.exists()) logoBytes = await logoFile.readAsBytes();
+      }
       final file = await PdfService.generateReport(PdfReportData(
         taskDetail: widget.detail,
         todos: todos,
@@ -71,6 +79,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         companyName: settings?.companyName ?? 'IT-Firma',
         technicianName: settings?.technicianName ?? '',
         aeMinutes: (settings?.aeMinutes ?? 10).toDouble(),
+        logoBytes: logoBytes,
       ));
       await PdfService.shareReport(file);
       _loadReports();
@@ -270,6 +279,15 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         ),
         const SizedBox(height: 20),
 
+        // Sessions
+        _SessionsSection(taskId: task.id, onChanged: () {
+          ref.invalidate(sessionsProvider(task.id));
+          ref.invalidate(tasksProvider);
+          ref.invalidate(taskDetailProvider(task.id));
+        }),
+
+        const SizedBox(height: 20),
+
         // Kunde mit Kontakt-Buttons
         if (detail.customer != null)
           _CustomerContactRow(customer: detail.customer!),
@@ -344,25 +362,43 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration:
-          BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+      child: Row(
         children: [
-          Icon(icon, size: 20),
-          const SizedBox(height: 8),
-          Text(value,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          Text(unit,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.outline)),
-          const SizedBox(height: 2),
-          Text(label, style: Theme.of(context).textTheme.labelSmall),
+          Icon(icon, size: 18, color: cs.onSurface.withValues(alpha: 0.6)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(value,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 3),
+                    Text(unit,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: cs.outline)),
+                  ],
+                ),
+                Text(label,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: cs.outline)),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -507,7 +543,7 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _CustomerContactRow extends StatelessWidget {
-  final customer;
+  final dynamic customer;
   const _CustomerContactRow({required this.customer});
 
   Future<void> _launch(String url) async {
@@ -626,6 +662,320 @@ class _ReportHistory extends StatelessWidget {
           );
         }),
       ],
+    );
+  }
+}
+
+// ─── Sessions Section ────────────────────────────────────────────────────────
+
+class _SessionsSection extends ConsumerWidget {
+  final String taskId;
+  final VoidCallback onChanged;
+  const _SessionsSection({required this.taskId, required this.onChanged});
+
+  String _typeLabel(String type) => switch (type) {
+        'SHORT_BREAK' => 'Kurze Pause',
+        'LONG_BREAK' => 'Lange Pause',
+        _ => 'Arbeit',
+      };
+
+  Future<void> _recalcTotal(AppDatabase db) async {
+    final sessions = await (db.select(db.sessions)
+          ..where((s) => s.taskId.equals(taskId)))
+        .get();
+    final total = sessions.fold<int>(0, (s, r) => s + r.duration);
+    await (db.update(db.tasks)..where((t) => t.id.equals(taskId))).write(
+      TasksCompanion(
+        totalMinutes: drift.Value(total),
+        updatedAt: drift.Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> _addOrEdit(
+      BuildContext context, WidgetRef ref, Session? existing) async {
+    final result = await showModalBottomSheet<_SessionResult>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _SessionForm(taskId: taskId, session: existing),
+    );
+    if (result == null) return;
+    final db = ref.read(databaseProvider);
+    if (existing == null) {
+      await db.into(db.sessions).insert(SessionsCompanion.insert(
+            taskId: taskId,
+            startTime: result.start,
+            endTime: drift.Value(result.end),
+            duration: drift.Value(result.duration),
+            type: drift.Value(result.type),
+          ));
+    } else {
+      await (db.update(db.sessions)..where((s) => s.id.equals(existing.id)))
+          .write(SessionsCompanion(
+        startTime: drift.Value(result.start),
+        endTime: drift.Value(result.end),
+        duration: drift.Value(result.duration),
+        type: drift.Value(result.type),
+      ));
+    }
+    await _recalcTotal(db);
+    onChanged();
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref, Session s) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Session löschen?'),
+        content: const Text('Die Zeiterfassung dieser Session wird entfernt.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Abbrechen')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Löschen')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final db = ref.read(databaseProvider);
+    await (db.delete(db.sessions)..where((r) => r.id.equals(s.id))).go();
+    await _recalcTotal(db);
+    onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessionsAsync = ref.watch(sessionsProvider(taskId));
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.history, size: 16, color: cs.primary),
+            const SizedBox(width: 6),
+            Text('Sessions',
+                style: Theme.of(context).textTheme.titleSmall),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: () => _addOrEdit(context, ref, null),
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Hinzufügen'),
+              style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        sessionsAsync.when(
+          loading: () => const LinearProgressIndicator(),
+          error: (e, _) => Text('Fehler: $e',
+              style: TextStyle(color: cs.error)),
+          data: (sessions) {
+            if (sessions.isEmpty) {
+              return Text('Noch keine Sessions',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: cs.outline));
+            }
+            return Column(
+              children: sessions.map((s) {
+                final start =
+                    DateFormat('dd.MM. HH:mm').format(s.startTime.toLocal());
+                final end = s.endTime != null
+                    ? DateFormat('HH:mm').format(s.endTime!.toLocal())
+                    : '—';
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 4),
+                  child: ListTile(
+                    dense: true,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    leading: Icon(
+                      s.type == 'WORK'
+                          ? Icons.timer_outlined
+                          : Icons.coffee_outlined,
+                      size: 18,
+                      color: s.type == 'WORK' ? cs.primary : cs.tertiary,
+                    ),
+                    title: Text('$start – $end',
+                        style: Theme.of(context).textTheme.bodySmall),
+                    subtitle: Text(
+                        '${s.duration} Min · ${_typeLabel(s.type)}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(color: cs.outline)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _addOrEdit(context, ref, s),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline,
+                              size: 16, color: cs.error),
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _delete(context, ref, s),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _SessionResult {
+  final DateTime start;
+  final DateTime end;
+  final int duration; // minutes
+  final String type;
+  _SessionResult(
+      {required this.start,
+      required this.end,
+      required this.duration,
+      required this.type});
+}
+
+class _SessionForm extends StatefulWidget {
+  final String taskId;
+  final Session? session;
+  const _SessionForm({required this.taskId, this.session});
+
+  @override
+  State<_SessionForm> createState() => _SessionFormState();
+}
+
+class _SessionFormState extends State<_SessionForm> {
+  late DateTime _start;
+  late DateTime _end;
+  String _type = 'WORK';
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _start = widget.session?.startTime.toLocal() ??
+        now.subtract(const Duration(minutes: 25));
+    _end = widget.session?.endTime?.toLocal() ?? now;
+    _type = widget.session?.type ?? 'WORK';
+  }
+
+  int get _durationMinutes {
+    final diff = _end.difference(_start);
+    return diff.inMinutes < 0 ? 0 : diff.inMinutes;
+  }
+
+  Future<void> _pickDateTime(bool isStart) async {
+    final initial = isStart ? _start : _end;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (time == null || !mounted) return;
+    final dt = DateTime(
+        date.year, date.month, date.day, time.hour, time.minute);
+    setState(() {
+      if (isStart) {
+        _start = dt;
+        // Ensure end is not before start
+        if (_end.isBefore(_start)) _end = _start.add(const Duration(minutes: 1));
+      } else {
+        _end = dt;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('dd.MM.yyyy HH:mm');
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 16, right: 16, top: 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            widget.session == null ? 'Session hinzufügen' : 'Session bearbeiten',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 16),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.play_arrow_outlined),
+            title: const Text('Startzeit'),
+            subtitle: Text(fmt.format(_start)),
+            trailing: const Icon(Icons.edit_outlined, size: 18),
+            onTap: () => _pickDateTime(true),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.stop_outlined),
+            title: const Text('Endzeit'),
+            subtitle: Text(fmt.format(_end)),
+            trailing: const Icon(Icons.edit_outlined, size: 18),
+            onTap: () => _pickDateTime(false),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text('Dauer: $_durationMinutes Minuten',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _type,
+            decoration: const InputDecoration(labelText: 'Typ'),
+            items: const [
+              DropdownMenuItem(value: 'WORK', child: Text('Arbeit')),
+              DropdownMenuItem(
+                  value: 'SHORT_BREAK', child: Text('Kurze Pause')),
+              DropdownMenuItem(
+                  value: 'LONG_BREAK', child: Text('Lange Pause')),
+            ],
+            onChanged: (v) => setState(() => _type = v ?? 'WORK'),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: _durationMinutes > 0
+                ? () => Navigator.pop(
+                      context,
+                      _SessionResult(
+                        start: _start.toUtc(),
+                        end: _end.toUtc(),
+                        duration: _durationMinutes,
+                        type: _type,
+                      ),
+                    )
+                : null,
+            child: const Text('Speichern'),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }

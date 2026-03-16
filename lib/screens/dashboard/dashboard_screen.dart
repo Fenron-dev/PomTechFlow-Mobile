@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../providers/tasks_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/timer_provider.dart';
@@ -20,6 +19,11 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(settings?.companyName ?? 'PomTechFlow'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Alle Berichte',
+            onPressed: () => context.push('/reports'),
+          ),
           IconButton(
             icon: const Icon(Icons.bar_chart_outlined),
             tooltip: 'Statistiken',
@@ -63,7 +67,11 @@ class DashboardScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(tasksProvider),
-            child: ListView(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 700),
+                child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 // Aktiver Timer Banner
@@ -216,6 +224,8 @@ class DashboardScreen extends ConsumerWidget {
                 ],
               ],
             ),
+          ),
+        ),
           );
         },
       ),

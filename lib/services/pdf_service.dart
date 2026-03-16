@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -24,6 +25,8 @@ class PdfReportData {
   final String companyName;
   final String technicianName;
   final double aeMinutes;
+  /// Raw bytes of the company logo (PNG/JPG). Null = no logo.
+  final Uint8List? logoBytes;
 
   const PdfReportData({
     required this.taskDetail,
@@ -33,6 +36,7 @@ class PdfReportData {
     required this.companyName,
     required this.technicianName,
     required this.aeMinutes,
+    this.logoBytes,
   });
 }
 
@@ -70,6 +74,7 @@ class PdfService {
           dateStr,
           font,
           fontBold,
+          logoBytes: data.logoBytes,
         ),
         footer: (ctx) => pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -216,8 +221,9 @@ class PdfService {
     String technician,
     String date,
     pw.Font font,
-    pw.Font fontBold,
-  ) {
+    pw.Font fontBold, {
+    Uint8List? logoBytes,
+  }) {
     return pw.Container(
       padding: const pw.EdgeInsets.only(bottom: 12),
       decoration: const pw.BoxDecoration(
@@ -226,16 +232,30 @@ class PdfService {
       ),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text(company,
-                  style: pw.TextStyle(
-                      font: fontBold, fontSize: 16, color: PdfColors.blue800)),
-              pw.Text('IT-Support Bericht',
-                  style: pw.TextStyle(
-                      font: font, fontSize: 10, color: PdfColors.grey600)),
+              if (logoBytes != null) ...[
+                pw.Image(
+                  pw.MemoryImage(logoBytes),
+                  height: 36,
+                  fit: pw.BoxFit.contain,
+                ),
+                pw.SizedBox(width: 10),
+              ],
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(company,
+                      style: pw.TextStyle(
+                          font: fontBold, fontSize: 16, color: PdfColors.blue800)),
+                  pw.Text('IT-Support Bericht',
+                      style: pw.TextStyle(
+                          font: font, fontSize: 10, color: PdfColors.grey600)),
+                ],
+              ),
             ],
           ),
           pw.Column(

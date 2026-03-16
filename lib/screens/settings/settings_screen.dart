@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../providers/settings_provider.dart' hide AppSettings;
 import '../../providers/settings_provider.dart' as sp;
 import '../../providers/database_provider.dart';
@@ -40,6 +42,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late final TextEditingController _companyCtrl;
   late final TextEditingController _techCtrl;
   late int _aeMinutes;
+  String? _logoPath;
   late int _pomodoroMinutes;
   late int _shortBreakMinutes;
   late int _longBreakMinutes;
@@ -52,6 +55,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     _companyCtrl = TextEditingController(text: widget.settings.companyName);
     _techCtrl = TextEditingController(text: widget.settings.technicianName);
     _aeMinutes = widget.settings.aeMinutes;
+    _logoPath = widget.settings.logoPath;
     _pomodoroMinutes = widget.settings.pomodoroMinutes;
     _shortBreakMinutes = widget.settings.shortBreakMinutes;
     _longBreakMinutes = widget.settings.longBreakMinutes;
@@ -65,6 +69,16 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     super.dispose();
   }
 
+  Future<void> _pickLogo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['png', 'jpg', 'jpeg'],
+    );
+    if (result != null && result.files.single.path != null) {
+      setState(() => _logoPath = result.files.single.path);
+    }
+  }
+
   Future<void> _save() async {
     await ref.read(settingsProvider.notifier).save(
           widget.settings.copyWith(
@@ -75,6 +89,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             shortBreakMinutes: _shortBreakMinutes,
             longBreakMinutes: _longBreakMinutes,
             themeMode: _themeMode,
+            logoPath: _logoPath,
+            clearLogo: _logoPath == null,
           ),
         );
     if (mounted) {
@@ -156,6 +172,59 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         TextField(
           controller: _techCtrl,
           decoration: const InputDecoration(labelText: 'Techniker Name'),
+        ),
+        const SizedBox(height: 16),
+        // Logo für PDF-Berichte
+        Row(
+          children: [
+            if (_logoPath != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.file(
+                  File(_logoPath!),
+                  height: 48,
+                  width: 80,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.broken_image_outlined, size: 48),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ] else
+              Container(
+                height: 48,
+                width: 80,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(Icons.image_outlined,
+                    color: Theme.of(context).colorScheme.outline),
+              ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Firmen-Logo (PDF-Berichte)',
+                      style: Theme.of(context).textTheme.bodyMedium),
+                  Text('PNG oder JPG, erscheint oben links',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline)),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: _pickLogo,
+              child: const Text('Auswählen'),
+            ),
+            if (_logoPath != null)
+              IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () => setState(() => _logoPath = null),
+              ),
+          ],
         ),
         const SizedBox(height: 24),
 

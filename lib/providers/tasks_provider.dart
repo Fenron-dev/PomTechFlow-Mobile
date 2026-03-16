@@ -118,3 +118,13 @@ final notesProvider =
         ..orderBy([(n) => drift.OrderingTerm.desc(n.createdAt)]))
       .get();
 });
+
+// Sessions eines Tasks (für manuelle Bearbeitung)
+final sessionsProvider =
+    FutureProvider.family<List<Session>, String>((ref, taskId) async {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.sessions)
+        ..where((s) => s.taskId.equals(taskId))
+        ..orderBy([(s) => drift.OrderingTerm.desc(s.startTime)]))
+      .get();
+});
