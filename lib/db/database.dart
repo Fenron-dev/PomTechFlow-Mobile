@@ -27,6 +27,9 @@ class Tasks extends Table {
   // Status: PLANNED | ACTIVE | PAUSED | COMPLETED
   IntColumn get totalMinutes => integer().withDefault(const Constant(0))();
   DateTimeColumn get plannedDate => dateTime().nullable()(); // NEU v2
+  BoolColumn get recurring => boolean().withDefault(const Constant(false))(); // NEU v4
+  TextColumn get recurrenceType => text().nullable()(); // DAILY|WEEKLY|MONTHLY|QUARTERLY
+  IntColumn get recurrenceInterval => integer().withDefault(const Constant(1))(); // alle N Einheiten
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -154,6 +157,33 @@ class AppSettings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+class TaskTemplates extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get title => text()();
+  TextColumn get description => text().nullable()();
+  TextColumn get customerId => text().nullable()();
+  TextColumn get workflowId => text().nullable()();
+  TextColumn get hardwareBundleId => text().nullable()();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class DevicePresets extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get type => text()();
+  // Type: PC | LAPTOP | MONITOR | PRINTER | ROUTER | SWITCH | SERVER | PHONE | TABLET | OTHER
+  TextColumn get name => text()();
+  TextColumn get serial => text().nullable()();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // ─── Datenbank ────────────────────────────────────────────────────────────────
 
 @DriftDatabase(tables: [
@@ -170,12 +200,14 @@ class AppSettings extends Table {
   HardwareBundles,
   HardwareBundleItems,
   AppSettings,
+  DevicePresets,
+  TaskTemplates,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -187,6 +219,17 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(photos);
         await m.createTable(hardwareBundles);
         await m.createTable(hardwareBundleItems);
+      }
+      if (from < 3) {
+        // v2 → v3: DevicePresets (Geräte-Bibliothek)
+        await m.createTable(devicePresets);
+      }
+      if (from < 4) {
+        // v3 → v4: Recurring Tasks + Task-Vorlagen
+        await m.addColumn(tasks, tasks.recurring);
+        await m.addColumn(tasks, tasks.recurrenceType);
+        await m.addColumn(tasks, tasks.recurrenceInterval);
+        await m.createTable(taskTemplates);
       }
     },
   );

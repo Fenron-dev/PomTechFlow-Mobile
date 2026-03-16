@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../providers/tasks_provider.dart';
 import '../../../providers/hardware_bundle_provider.dart';
+import '../../../providers/device_library_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../db/database.dart';
 
@@ -65,6 +66,14 @@ class HardwareTab extends ConsumerWidget {
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Aus Bibliothek
+          FloatingActionButton.small(
+            heroTag: 'library',
+            onPressed: () => _addFromLibrary(context, ref),
+            tooltip: 'Aus Bibliothek',
+            child: const Icon(Icons.devices_outlined),
+          ),
+          const SizedBox(height: 8),
           // Bundle anwenden
           FloatingActionButton.small(
             heroTag: 'bundle',
@@ -89,6 +98,37 @@ class HardwareTab extends ConsumerWidget {
       isScrollControlled: true,
       builder: (_) => _HardwareForm(taskId: taskId, ref: ref),
     );
+    ref.invalidate(hardwareProvider(taskId));
+  }
+
+  Future<void> _addFromLibrary(BuildContext context, WidgetRef ref) async {
+    final devices = ref.read(deviceLibraryProvider).valueOrNull ?? [];
+    if (devices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Keine Geräte in der Bibliothek. Erst in Einstellungen anlegen.')),
+      );
+      return;
+    }
+    final selected = await showModalBottomSheet<DevicePreset>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _LibraryPicker(devices: devices),
+    );
+    if (selected == null) return;
+    final db = ref.read(databaseProvider);
+    final existing = await (db.select(db.hardware)
+          ..where((h) => h.taskId.equals(taskId)))
+        .get();
+    await db.into(db.hardware).insert(HardwareCompanion.insert(
+          taskId: taskId,
+          type: selected.type,
+          name: drift.Value(selected.name),
+          serial: drift.Value(selected.serial),
+          notes: drift.Value(selected.notes),
+          sortOrder: drift.Value(existing.length),
+        ));
     ref.invalidate(hardwareProvider(taskId));
   }
 
@@ -270,6 +310,131 @@ class _HardwareFormState extends ConsumerState<_HardwareForm> {
           const SizedBox(height: 20),
           FilledButton(onPressed: _save, child: const Text('Hinzufügen')),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Bibliotheks-Picker ───────────────────────────────────────────────────────
+
+class _LibraryPicker extends StatefulWidget {
+  final List<DevicePreset> devices;
+  const _LibraryPicker({required this.devices});
+
+  @override
+  State<_LibraryPicker> createState() => _LibraryPickerState();
+}
+
+class _LibraryPickerState extends State<_LibraryPicker> {
+  String _filter = '';
+  String? _typeFilter;
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.devices.where((d) {
+      if (_typeFilter != null && d.type != _typeFilter) return false;
+      if (_filter.isEmpty) return true;
+      return d.name.toLowerCase().contains(_filter) ||
+          (d.serial?.toLowerCase().contains(_filter) ?? false) ||
+          (_hardwareLabels[d.type]?.toLowerCase().contains(_filter) ?? false);
+    }).toList();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollCtrl) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              children: [
+                Text('Aus Bibliothek wählen',
+                    style: Theme.of(context).textTheme.titleLarge),
+                const Spacer(),
+                IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Suchen...',
+                prefixIcon: Icon(Icons.search),
+                isDense: true,
+              ),
+              onChanged: (v) => setState(() => _filter = v.toLowerCase()),
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                FilterChip(
+                  label: const Text('Alle'),
+                  selected: _typeFilter == null,
+                  onSelected: (_) => setState(() => _typeFilter = null),
+                ),
+                const SizedBox(width: 6),
+                ..._hardwareTypes.map((t) {
+                  if (!widget.devices.any((d) => d.type == t)) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(_hardwareLabels[t] ?? t),
+                      selected: _typeFilter == t,
+                      onSelected: (_) => setState(
+                          () => _typeFilter = _typeFilter == t ? null : t),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: filtered.isEmpty
+                ? const Center(child: Text('Keine Geräte gefunden'))
+                : ListView.builder(
+                    controller: scrollCtrl,
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) {
+                      final d = filtered[i];
+                      final icon =
+                          _hardwareIcons[d.type] ?? Icons.devices_other;
+                      final label =
+                          _hardwareLabels[d.type] ?? d.type;
+                      return ListTile(
+                        leading: Icon(icon,
+                            color: Theme.of(context).colorScheme.primary),
+                        title: Text(d.name),
+                        subtitle: Text(label,
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary)),
+                        trailing: d.serial != null
+                            ? Text('S/N: ${d.serial}',
+                                style:
+                                    Theme.of(context).textTheme.bodySmall)
+                            : null,
+                        onTap: () => Navigator.pop(context, d),
+                      );
+                    },
+                  ),
+          ),
         ],
       ),
     );

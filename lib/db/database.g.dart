@@ -534,6 +534,43 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _recurringMeta = const VerificationMeta(
+    'recurring',
+  );
+  @override
+  late final GeneratedColumn<bool> recurring = GeneratedColumn<bool>(
+    'recurring',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("recurring" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _recurrenceTypeMeta = const VerificationMeta(
+    'recurrenceType',
+  );
+  @override
+  late final GeneratedColumn<String> recurrenceType = GeneratedColumn<String>(
+    'recurrence_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recurrenceIntervalMeta =
+      const VerificationMeta('recurrenceInterval');
+  @override
+  late final GeneratedColumn<int> recurrenceInterval = GeneratedColumn<int>(
+    'recurrence_interval',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -567,6 +604,9 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     status,
     totalMinutes,
     plannedDate,
+    recurring,
+    recurrenceType,
+    recurrenceInterval,
     createdAt,
     updatedAt,
   ];
@@ -632,6 +672,30 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         ),
       );
     }
+    if (data.containsKey('recurring')) {
+      context.handle(
+        _recurringMeta,
+        recurring.isAcceptableOrUnknown(data['recurring']!, _recurringMeta),
+      );
+    }
+    if (data.containsKey('recurrence_type')) {
+      context.handle(
+        _recurrenceTypeMeta,
+        recurrenceType.isAcceptableOrUnknown(
+          data['recurrence_type']!,
+          _recurrenceTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recurrence_interval')) {
+      context.handle(
+        _recurrenceIntervalMeta,
+        recurrenceInterval.isAcceptableOrUnknown(
+          data['recurrence_interval']!,
+          _recurrenceIntervalMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -681,6 +745,18 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}planned_date'],
       ),
+      recurring: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}recurring'],
+      )!,
+      recurrenceType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence_type'],
+      ),
+      recurrenceInterval: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recurrence_interval'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -706,6 +782,9 @@ class Task extends DataClass implements Insertable<Task> {
   final String status;
   final int totalMinutes;
   final DateTime? plannedDate;
+  final bool recurring;
+  final String? recurrenceType;
+  final int recurrenceInterval;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Task({
@@ -716,6 +795,9 @@ class Task extends DataClass implements Insertable<Task> {
     required this.status,
     required this.totalMinutes,
     this.plannedDate,
+    required this.recurring,
+    this.recurrenceType,
+    required this.recurrenceInterval,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -735,6 +817,11 @@ class Task extends DataClass implements Insertable<Task> {
     if (!nullToAbsent || plannedDate != null) {
       map['planned_date'] = Variable<DateTime>(plannedDate);
     }
+    map['recurring'] = Variable<bool>(recurring);
+    if (!nullToAbsent || recurrenceType != null) {
+      map['recurrence_type'] = Variable<String>(recurrenceType);
+    }
+    map['recurrence_interval'] = Variable<int>(recurrenceInterval);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -755,6 +842,11 @@ class Task extends DataClass implements Insertable<Task> {
       plannedDate: plannedDate == null && nullToAbsent
           ? const Value.absent()
           : Value(plannedDate),
+      recurring: Value(recurring),
+      recurrenceType: recurrenceType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrenceType),
+      recurrenceInterval: Value(recurrenceInterval),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -773,6 +865,9 @@ class Task extends DataClass implements Insertable<Task> {
       status: serializer.fromJson<String>(json['status']),
       totalMinutes: serializer.fromJson<int>(json['totalMinutes']),
       plannedDate: serializer.fromJson<DateTime?>(json['plannedDate']),
+      recurring: serializer.fromJson<bool>(json['recurring']),
+      recurrenceType: serializer.fromJson<String?>(json['recurrenceType']),
+      recurrenceInterval: serializer.fromJson<int>(json['recurrenceInterval']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -788,6 +883,9 @@ class Task extends DataClass implements Insertable<Task> {
       'status': serializer.toJson<String>(status),
       'totalMinutes': serializer.toJson<int>(totalMinutes),
       'plannedDate': serializer.toJson<DateTime?>(plannedDate),
+      'recurring': serializer.toJson<bool>(recurring),
+      'recurrenceType': serializer.toJson<String?>(recurrenceType),
+      'recurrenceInterval': serializer.toJson<int>(recurrenceInterval),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -801,6 +899,9 @@ class Task extends DataClass implements Insertable<Task> {
     String? status,
     int? totalMinutes,
     Value<DateTime?> plannedDate = const Value.absent(),
+    bool? recurring,
+    Value<String?> recurrenceType = const Value.absent(),
+    int? recurrenceInterval,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Task(
@@ -811,6 +912,11 @@ class Task extends DataClass implements Insertable<Task> {
     status: status ?? this.status,
     totalMinutes: totalMinutes ?? this.totalMinutes,
     plannedDate: plannedDate.present ? plannedDate.value : this.plannedDate,
+    recurring: recurring ?? this.recurring,
+    recurrenceType: recurrenceType.present
+        ? recurrenceType.value
+        : this.recurrenceType,
+    recurrenceInterval: recurrenceInterval ?? this.recurrenceInterval,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -831,6 +937,13 @@ class Task extends DataClass implements Insertable<Task> {
       plannedDate: data.plannedDate.present
           ? data.plannedDate.value
           : this.plannedDate,
+      recurring: data.recurring.present ? data.recurring.value : this.recurring,
+      recurrenceType: data.recurrenceType.present
+          ? data.recurrenceType.value
+          : this.recurrenceType,
+      recurrenceInterval: data.recurrenceInterval.present
+          ? data.recurrenceInterval.value
+          : this.recurrenceInterval,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -846,6 +959,9 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('status: $status, ')
           ..write('totalMinutes: $totalMinutes, ')
           ..write('plannedDate: $plannedDate, ')
+          ..write('recurring: $recurring, ')
+          ..write('recurrenceType: $recurrenceType, ')
+          ..write('recurrenceInterval: $recurrenceInterval, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -861,6 +977,9 @@ class Task extends DataClass implements Insertable<Task> {
     status,
     totalMinutes,
     plannedDate,
+    recurring,
+    recurrenceType,
+    recurrenceInterval,
     createdAt,
     updatedAt,
   );
@@ -875,6 +994,9 @@ class Task extends DataClass implements Insertable<Task> {
           other.status == this.status &&
           other.totalMinutes == this.totalMinutes &&
           other.plannedDate == this.plannedDate &&
+          other.recurring == this.recurring &&
+          other.recurrenceType == this.recurrenceType &&
+          other.recurrenceInterval == this.recurrenceInterval &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -887,6 +1009,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String> status;
   final Value<int> totalMinutes;
   final Value<DateTime?> plannedDate;
+  final Value<bool> recurring;
+  final Value<String?> recurrenceType;
+  final Value<int> recurrenceInterval;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -898,6 +1023,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.status = const Value.absent(),
     this.totalMinutes = const Value.absent(),
     this.plannedDate = const Value.absent(),
+    this.recurring = const Value.absent(),
+    this.recurrenceType = const Value.absent(),
+    this.recurrenceInterval = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -910,6 +1038,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.status = const Value.absent(),
     this.totalMinutes = const Value.absent(),
     this.plannedDate = const Value.absent(),
+    this.recurring = const Value.absent(),
+    this.recurrenceType = const Value.absent(),
+    this.recurrenceInterval = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -922,6 +1053,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? status,
     Expression<int>? totalMinutes,
     Expression<DateTime>? plannedDate,
+    Expression<bool>? recurring,
+    Expression<String>? recurrenceType,
+    Expression<int>? recurrenceInterval,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -934,6 +1068,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (status != null) 'status': status,
       if (totalMinutes != null) 'total_minutes': totalMinutes,
       if (plannedDate != null) 'planned_date': plannedDate,
+      if (recurring != null) 'recurring': recurring,
+      if (recurrenceType != null) 'recurrence_type': recurrenceType,
+      if (recurrenceInterval != null) 'recurrence_interval': recurrenceInterval,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -948,6 +1085,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String>? status,
     Value<int>? totalMinutes,
     Value<DateTime?>? plannedDate,
+    Value<bool>? recurring,
+    Value<String?>? recurrenceType,
+    Value<int>? recurrenceInterval,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -960,6 +1100,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
       status: status ?? this.status,
       totalMinutes: totalMinutes ?? this.totalMinutes,
       plannedDate: plannedDate ?? this.plannedDate,
+      recurring: recurring ?? this.recurring,
+      recurrenceType: recurrenceType ?? this.recurrenceType,
+      recurrenceInterval: recurrenceInterval ?? this.recurrenceInterval,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -990,6 +1133,15 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (plannedDate.present) {
       map['planned_date'] = Variable<DateTime>(plannedDate.value);
     }
+    if (recurring.present) {
+      map['recurring'] = Variable<bool>(recurring.value);
+    }
+    if (recurrenceType.present) {
+      map['recurrence_type'] = Variable<String>(recurrenceType.value);
+    }
+    if (recurrenceInterval.present) {
+      map['recurrence_interval'] = Variable<int>(recurrenceInterval.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1012,6 +1164,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('status: $status, ')
           ..write('totalMinutes: $totalMinutes, ')
           ..write('plannedDate: $plannedDate, ')
+          ..write('recurring: $recurring, ')
+          ..write('recurrenceType: $recurrenceType, ')
+          ..write('recurrenceInterval: $recurrenceInterval, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -4823,6 +4978,930 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   }
 }
 
+class $DevicePresetsTable extends DevicePresets
+    with TableInfo<$DevicePresetsTable, DevicePreset> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DevicePresetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => _uuid(),
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _serialMeta = const VerificationMeta('serial');
+  @override
+  late final GeneratedColumn<String> serial = GeneratedColumn<String>(
+    'serial',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    type,
+    name,
+    serial,
+    notes,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'device_presets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DevicePreset> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('serial')) {
+      context.handle(
+        _serialMeta,
+        serial.isAcceptableOrUnknown(data['serial']!, _serialMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DevicePreset map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DevicePreset(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      serial: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}serial'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DevicePresetsTable createAlias(String alias) {
+    return $DevicePresetsTable(attachedDatabase, alias);
+  }
+}
+
+class DevicePreset extends DataClass implements Insertable<DevicePreset> {
+  final String id;
+  final String type;
+  final String name;
+  final String? serial;
+  final String? notes;
+  final DateTime createdAt;
+  const DevicePreset({
+    required this.id,
+    required this.type,
+    required this.name,
+    this.serial,
+    this.notes,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['type'] = Variable<String>(type);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || serial != null) {
+      map['serial'] = Variable<String>(serial);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  DevicePresetsCompanion toCompanion(bool nullToAbsent) {
+    return DevicePresetsCompanion(
+      id: Value(id),
+      type: Value(type),
+      name: Value(name),
+      serial: serial == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serial),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory DevicePreset.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DevicePreset(
+      id: serializer.fromJson<String>(json['id']),
+      type: serializer.fromJson<String>(json['type']),
+      name: serializer.fromJson<String>(json['name']),
+      serial: serializer.fromJson<String?>(json['serial']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'type': serializer.toJson<String>(type),
+      'name': serializer.toJson<String>(name),
+      'serial': serializer.toJson<String?>(serial),
+      'notes': serializer.toJson<String?>(notes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  DevicePreset copyWith({
+    String? id,
+    String? type,
+    String? name,
+    Value<String?> serial = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
+    DateTime? createdAt,
+  }) => DevicePreset(
+    id: id ?? this.id,
+    type: type ?? this.type,
+    name: name ?? this.name,
+    serial: serial.present ? serial.value : this.serial,
+    notes: notes.present ? notes.value : this.notes,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  DevicePreset copyWithCompanion(DevicePresetsCompanion data) {
+    return DevicePreset(
+      id: data.id.present ? data.id.value : this.id,
+      type: data.type.present ? data.type.value : this.type,
+      name: data.name.present ? data.name.value : this.name,
+      serial: data.serial.present ? data.serial.value : this.serial,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DevicePreset(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('name: $name, ')
+          ..write('serial: $serial, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, type, name, serial, notes, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DevicePreset &&
+          other.id == this.id &&
+          other.type == this.type &&
+          other.name == this.name &&
+          other.serial == this.serial &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt);
+}
+
+class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
+  final Value<String> id;
+  final Value<String> type;
+  final Value<String> name;
+  final Value<String?> serial;
+  final Value<String?> notes;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const DevicePresetsCompanion({
+    this.id = const Value.absent(),
+    this.type = const Value.absent(),
+    this.name = const Value.absent(),
+    this.serial = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DevicePresetsCompanion.insert({
+    this.id = const Value.absent(),
+    required String type,
+    required String name,
+    this.serial = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : type = Value(type),
+       name = Value(name);
+  static Insertable<DevicePreset> custom({
+    Expression<String>? id,
+    Expression<String>? type,
+    Expression<String>? name,
+    Expression<String>? serial,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (type != null) 'type': type,
+      if (name != null) 'name': name,
+      if (serial != null) 'serial': serial,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DevicePresetsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? type,
+    Value<String>? name,
+    Value<String?>? serial,
+    Value<String?>? notes,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return DevicePresetsCompanion(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      name: name ?? this.name,
+      serial: serial ?? this.serial,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (serial.present) {
+      map['serial'] = Variable<String>(serial.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DevicePresetsCompanion(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('name: $name, ')
+          ..write('serial: $serial, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TaskTemplatesTable extends TaskTemplates
+    with TableInfo<$TaskTemplatesTable, TaskTemplate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaskTemplatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => _uuid(),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customerIdMeta = const VerificationMeta(
+    'customerId',
+  );
+  @override
+  late final GeneratedColumn<String> customerId = GeneratedColumn<String>(
+    'customer_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _workflowIdMeta = const VerificationMeta(
+    'workflowId',
+  );
+  @override
+  late final GeneratedColumn<String> workflowId = GeneratedColumn<String>(
+    'workflow_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hardwareBundleIdMeta = const VerificationMeta(
+    'hardwareBundleId',
+  );
+  @override
+  late final GeneratedColumn<String> hardwareBundleId = GeneratedColumn<String>(
+    'hardware_bundle_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    description,
+    customerId,
+    workflowId,
+    hardwareBundleId,
+    notes,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'task_templates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TaskTemplate> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('customer_id')) {
+      context.handle(
+        _customerIdMeta,
+        customerId.isAcceptableOrUnknown(data['customer_id']!, _customerIdMeta),
+      );
+    }
+    if (data.containsKey('workflow_id')) {
+      context.handle(
+        _workflowIdMeta,
+        workflowId.isAcceptableOrUnknown(data['workflow_id']!, _workflowIdMeta),
+      );
+    }
+    if (data.containsKey('hardware_bundle_id')) {
+      context.handle(
+        _hardwareBundleIdMeta,
+        hardwareBundleId.isAcceptableOrUnknown(
+          data['hardware_bundle_id']!,
+          _hardwareBundleIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TaskTemplate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaskTemplate(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      customerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}customer_id'],
+      ),
+      workflowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workflow_id'],
+      ),
+      hardwareBundleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hardware_bundle_id'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TaskTemplatesTable createAlias(String alias) {
+    return $TaskTemplatesTable(attachedDatabase, alias);
+  }
+}
+
+class TaskTemplate extends DataClass implements Insertable<TaskTemplate> {
+  final String id;
+  final String title;
+  final String? description;
+  final String? customerId;
+  final String? workflowId;
+  final String? hardwareBundleId;
+  final String? notes;
+  final DateTime createdAt;
+  const TaskTemplate({
+    required this.id,
+    required this.title,
+    this.description,
+    this.customerId,
+    this.workflowId,
+    this.hardwareBundleId,
+    this.notes,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || customerId != null) {
+      map['customer_id'] = Variable<String>(customerId);
+    }
+    if (!nullToAbsent || workflowId != null) {
+      map['workflow_id'] = Variable<String>(workflowId);
+    }
+    if (!nullToAbsent || hardwareBundleId != null) {
+      map['hardware_bundle_id'] = Variable<String>(hardwareBundleId);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  TaskTemplatesCompanion toCompanion(bool nullToAbsent) {
+    return TaskTemplatesCompanion(
+      id: Value(id),
+      title: Value(title),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      customerId: customerId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customerId),
+      workflowId: workflowId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(workflowId),
+      hardwareBundleId: hardwareBundleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(hardwareBundleId),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory TaskTemplate.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaskTemplate(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      description: serializer.fromJson<String?>(json['description']),
+      customerId: serializer.fromJson<String?>(json['customerId']),
+      workflowId: serializer.fromJson<String?>(json['workflowId']),
+      hardwareBundleId: serializer.fromJson<String?>(json['hardwareBundleId']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'description': serializer.toJson<String?>(description),
+      'customerId': serializer.toJson<String?>(customerId),
+      'workflowId': serializer.toJson<String?>(workflowId),
+      'hardwareBundleId': serializer.toJson<String?>(hardwareBundleId),
+      'notes': serializer.toJson<String?>(notes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  TaskTemplate copyWith({
+    String? id,
+    String? title,
+    Value<String?> description = const Value.absent(),
+    Value<String?> customerId = const Value.absent(),
+    Value<String?> workflowId = const Value.absent(),
+    Value<String?> hardwareBundleId = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
+    DateTime? createdAt,
+  }) => TaskTemplate(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    description: description.present ? description.value : this.description,
+    customerId: customerId.present ? customerId.value : this.customerId,
+    workflowId: workflowId.present ? workflowId.value : this.workflowId,
+    hardwareBundleId: hardwareBundleId.present
+        ? hardwareBundleId.value
+        : this.hardwareBundleId,
+    notes: notes.present ? notes.value : this.notes,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  TaskTemplate copyWithCompanion(TaskTemplatesCompanion data) {
+    return TaskTemplate(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      customerId: data.customerId.present
+          ? data.customerId.value
+          : this.customerId,
+      workflowId: data.workflowId.present
+          ? data.workflowId.value
+          : this.workflowId,
+      hardwareBundleId: data.hardwareBundleId.present
+          ? data.hardwareBundleId.value
+          : this.hardwareBundleId,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskTemplate(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('customerId: $customerId, ')
+          ..write('workflowId: $workflowId, ')
+          ..write('hardwareBundleId: $hardwareBundleId, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    title,
+    description,
+    customerId,
+    workflowId,
+    hardwareBundleId,
+    notes,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaskTemplate &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.description == this.description &&
+          other.customerId == this.customerId &&
+          other.workflowId == this.workflowId &&
+          other.hardwareBundleId == this.hardwareBundleId &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt);
+}
+
+class TaskTemplatesCompanion extends UpdateCompanion<TaskTemplate> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String?> description;
+  final Value<String?> customerId;
+  final Value<String?> workflowId;
+  final Value<String?> hardwareBundleId;
+  final Value<String?> notes;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const TaskTemplatesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.customerId = const Value.absent(),
+    this.workflowId = const Value.absent(),
+    this.hardwareBundleId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TaskTemplatesCompanion.insert({
+    this.id = const Value.absent(),
+    required String title,
+    this.description = const Value.absent(),
+    this.customerId = const Value.absent(),
+    this.workflowId = const Value.absent(),
+    this.hardwareBundleId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : title = Value(title);
+  static Insertable<TaskTemplate> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<String>? customerId,
+    Expression<String>? workflowId,
+    Expression<String>? hardwareBundleId,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (customerId != null) 'customer_id': customerId,
+      if (workflowId != null) 'workflow_id': workflowId,
+      if (hardwareBundleId != null) 'hardware_bundle_id': hardwareBundleId,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TaskTemplatesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String?>? description,
+    Value<String?>? customerId,
+    Value<String?>? workflowId,
+    Value<String?>? hardwareBundleId,
+    Value<String?>? notes,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return TaskTemplatesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      customerId: customerId ?? this.customerId,
+      workflowId: workflowId ?? this.workflowId,
+      hardwareBundleId: hardwareBundleId ?? this.hardwareBundleId,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (customerId.present) {
+      map['customer_id'] = Variable<String>(customerId.value);
+    }
+    if (workflowId.present) {
+      map['workflow_id'] = Variable<String>(workflowId.value);
+    }
+    if (hardwareBundleId.present) {
+      map['hardware_bundle_id'] = Variable<String>(hardwareBundleId.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskTemplatesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('customerId: $customerId, ')
+          ..write('workflowId: $workflowId, ')
+          ..write('hardwareBundleId: $hardwareBundleId, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4843,6 +5922,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $HardwareBundleItemsTable hardwareBundleItems =
       $HardwareBundleItemsTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $DevicePresetsTable devicePresets = $DevicePresetsTable(this);
+  late final $TaskTemplatesTable taskTemplates = $TaskTemplatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4861,6 +5942,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     hardwareBundles,
     hardwareBundleItems,
     appSettings,
+    devicePresets,
+    taskTemplates,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -5381,6 +6464,9 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<String> status,
       Value<int> totalMinutes,
       Value<DateTime?> plannedDate,
+      Value<bool> recurring,
+      Value<String?> recurrenceType,
+      Value<int> recurrenceInterval,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -5394,6 +6480,9 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String> status,
       Value<int> totalMinutes,
       Value<DateTime?> plannedDate,
+      Value<bool> recurring,
+      Value<String?> recurrenceType,
+      Value<int> recurrenceInterval,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -5550,6 +6639,21 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<DateTime> get plannedDate => $composableBuilder(
     column: $table.plannedDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get recurring => $composableBuilder(
+    column: $table.recurring,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurrenceType => $composableBuilder(
+    column: $table.recurrenceType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recurrenceInterval => $composableBuilder(
+    column: $table.recurrenceInterval,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5751,6 +6855,21 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get recurring => $composableBuilder(
+    column: $table.recurring,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recurrenceType => $composableBuilder(
+    column: $table.recurrenceType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recurrenceInterval => $composableBuilder(
+    column: $table.recurrenceInterval,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5815,6 +6934,19 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get plannedDate => $composableBuilder(
     column: $table.plannedDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get recurring =>
+      $composableBuilder(column: $table.recurring, builder: (column) => column);
+
+  GeneratedColumn<String> get recurrenceType => $composableBuilder(
+    column: $table.recurrenceType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get recurrenceInterval => $composableBuilder(
+    column: $table.recurrenceInterval,
     builder: (column) => column,
   );
 
@@ -6015,6 +7147,9 @@ class $$TasksTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int> totalMinutes = const Value.absent(),
                 Value<DateTime?> plannedDate = const Value.absent(),
+                Value<bool> recurring = const Value.absent(),
+                Value<String?> recurrenceType = const Value.absent(),
+                Value<int> recurrenceInterval = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -6026,6 +7161,9 @@ class $$TasksTableTableManager
                 status: status,
                 totalMinutes: totalMinutes,
                 plannedDate: plannedDate,
+                recurring: recurring,
+                recurrenceType: recurrenceType,
+                recurrenceInterval: recurrenceInterval,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -6039,6 +7177,9 @@ class $$TasksTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int> totalMinutes = const Value.absent(),
                 Value<DateTime?> plannedDate = const Value.absent(),
+                Value<bool> recurring = const Value.absent(),
+                Value<String?> recurrenceType = const Value.absent(),
+                Value<int> recurrenceInterval = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -6050,6 +7191,9 @@ class $$TasksTableTableManager
                 status: status,
                 totalMinutes: totalMinutes,
                 plannedDate: plannedDate,
+                recurring: recurring,
+                recurrenceType: recurrenceType,
+                recurrenceInterval: recurrenceInterval,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -9765,6 +10909,490 @@ typedef $$AppSettingsTableProcessedTableManager =
       AppSetting,
       PrefetchHooks Function()
     >;
+typedef $$DevicePresetsTableCreateCompanionBuilder =
+    DevicePresetsCompanion Function({
+      Value<String> id,
+      required String type,
+      required String name,
+      Value<String?> serial,
+      Value<String?> notes,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$DevicePresetsTableUpdateCompanionBuilder =
+    DevicePresetsCompanion Function({
+      Value<String> id,
+      Value<String> type,
+      Value<String> name,
+      Value<String?> serial,
+      Value<String?> notes,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$DevicePresetsTableFilterComposer
+    extends Composer<_$AppDatabase, $DevicePresetsTable> {
+  $$DevicePresetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get serial => $composableBuilder(
+    column: $table.serial,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DevicePresetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DevicePresetsTable> {
+  $$DevicePresetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get serial => $composableBuilder(
+    column: $table.serial,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DevicePresetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DevicePresetsTable> {
+  $$DevicePresetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get serial =>
+      $composableBuilder(column: $table.serial, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$DevicePresetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DevicePresetsTable,
+          DevicePreset,
+          $$DevicePresetsTableFilterComposer,
+          $$DevicePresetsTableOrderingComposer,
+          $$DevicePresetsTableAnnotationComposer,
+          $$DevicePresetsTableCreateCompanionBuilder,
+          $$DevicePresetsTableUpdateCompanionBuilder,
+          (
+            DevicePreset,
+            BaseReferences<_$AppDatabase, $DevicePresetsTable, DevicePreset>,
+          ),
+          DevicePreset,
+          PrefetchHooks Function()
+        > {
+  $$DevicePresetsTableTableManager(_$AppDatabase db, $DevicePresetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DevicePresetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DevicePresetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DevicePresetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> serial = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DevicePresetsCompanion(
+                id: id,
+                type: type,
+                name: name,
+                serial: serial,
+                notes: notes,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String type,
+                required String name,
+                Value<String?> serial = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DevicePresetsCompanion.insert(
+                id: id,
+                type: type,
+                name: name,
+                serial: serial,
+                notes: notes,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DevicePresetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DevicePresetsTable,
+      DevicePreset,
+      $$DevicePresetsTableFilterComposer,
+      $$DevicePresetsTableOrderingComposer,
+      $$DevicePresetsTableAnnotationComposer,
+      $$DevicePresetsTableCreateCompanionBuilder,
+      $$DevicePresetsTableUpdateCompanionBuilder,
+      (
+        DevicePreset,
+        BaseReferences<_$AppDatabase, $DevicePresetsTable, DevicePreset>,
+      ),
+      DevicePreset,
+      PrefetchHooks Function()
+    >;
+typedef $$TaskTemplatesTableCreateCompanionBuilder =
+    TaskTemplatesCompanion Function({
+      Value<String> id,
+      required String title,
+      Value<String?> description,
+      Value<String?> customerId,
+      Value<String?> workflowId,
+      Value<String?> hardwareBundleId,
+      Value<String?> notes,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$TaskTemplatesTableUpdateCompanionBuilder =
+    TaskTemplatesCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<String?> description,
+      Value<String?> customerId,
+      Value<String?> workflowId,
+      Value<String?> hardwareBundleId,
+      Value<String?> notes,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$TaskTemplatesTableFilterComposer
+    extends Composer<_$AppDatabase, $TaskTemplatesTable> {
+  $$TaskTemplatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customerId => $composableBuilder(
+    column: $table.customerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get workflowId => $composableBuilder(
+    column: $table.workflowId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hardwareBundleId => $composableBuilder(
+    column: $table.hardwareBundleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TaskTemplatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TaskTemplatesTable> {
+  $$TaskTemplatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customerId => $composableBuilder(
+    column: $table.customerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get workflowId => $composableBuilder(
+    column: $table.workflowId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hardwareBundleId => $composableBuilder(
+    column: $table.hardwareBundleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TaskTemplatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TaskTemplatesTable> {
+  $$TaskTemplatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customerId => $composableBuilder(
+    column: $table.customerId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get workflowId => $composableBuilder(
+    column: $table.workflowId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get hardwareBundleId => $composableBuilder(
+    column: $table.hardwareBundleId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$TaskTemplatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaskTemplatesTable,
+          TaskTemplate,
+          $$TaskTemplatesTableFilterComposer,
+          $$TaskTemplatesTableOrderingComposer,
+          $$TaskTemplatesTableAnnotationComposer,
+          $$TaskTemplatesTableCreateCompanionBuilder,
+          $$TaskTemplatesTableUpdateCompanionBuilder,
+          (
+            TaskTemplate,
+            BaseReferences<_$AppDatabase, $TaskTemplatesTable, TaskTemplate>,
+          ),
+          TaskTemplate,
+          PrefetchHooks Function()
+        > {
+  $$TaskTemplatesTableTableManager(_$AppDatabase db, $TaskTemplatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TaskTemplatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TaskTemplatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TaskTemplatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<String?> customerId = const Value.absent(),
+                Value<String?> workflowId = const Value.absent(),
+                Value<String?> hardwareBundleId = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskTemplatesCompanion(
+                id: id,
+                title: title,
+                description: description,
+                customerId: customerId,
+                workflowId: workflowId,
+                hardwareBundleId: hardwareBundleId,
+                notes: notes,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String title,
+                Value<String?> description = const Value.absent(),
+                Value<String?> customerId = const Value.absent(),
+                Value<String?> workflowId = const Value.absent(),
+                Value<String?> hardwareBundleId = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskTemplatesCompanion.insert(
+                id: id,
+                title: title,
+                description: description,
+                customerId: customerId,
+                workflowId: workflowId,
+                hardwareBundleId: hardwareBundleId,
+                notes: notes,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TaskTemplatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaskTemplatesTable,
+      TaskTemplate,
+      $$TaskTemplatesTableFilterComposer,
+      $$TaskTemplatesTableOrderingComposer,
+      $$TaskTemplatesTableAnnotationComposer,
+      $$TaskTemplatesTableCreateCompanionBuilder,
+      $$TaskTemplatesTableUpdateCompanionBuilder,
+      (
+        TaskTemplate,
+        BaseReferences<_$AppDatabase, $TaskTemplatesTable, TaskTemplate>,
+      ),
+      TaskTemplate,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9795,4 +11423,8 @@ class $AppDatabaseManager {
       $$HardwareBundleItemsTableTableManager(_db, _db.hardwareBundleItems);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$DevicePresetsTableTableManager get devicePresets =>
+      $$DevicePresetsTableTableManager(_db, _db.devicePresets);
+  $$TaskTemplatesTableTableManager get taskTemplates =>
+      $$TaskTemplatesTableTableManager(_db, _db.taskTemplates);
 }

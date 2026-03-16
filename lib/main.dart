@@ -69,14 +69,19 @@ final _router = GoRouter(
         // 2 - Einstellungen (inkl. Kunden, Workflows, Backup)
         StatefulShellBranch(routes: [
           GoRoute(
-              path: '/settings',
-              builder: (_, __) => const SettingsScreen()),
-          GoRoute(
-              path: '/customers',
-              builder: (_, __) => const CustomersScreen()),
-          GoRoute(
-              path: '/workflows',
-              builder: (_, __) => const WorkflowsScreen()),
+            path: '/settings',
+            builder: (_, __) => const SettingsScreen(),
+            routes: [
+              GoRoute(
+                path: 'customers',
+                builder: (_, __) => const CustomersScreen(),
+              ),
+              GoRoute(
+                path: 'workflows',
+                builder: (_, __) => const WorkflowsScreen(),
+              ),
+            ],
+          ),
         ]),
       ],
     ),

@@ -71,7 +71,11 @@ class DashboardScreen extends ConsumerWidget {
                   _TimerBanner(
                     timer: timer,
                     taskTitle: activeTimerTask?.task.title,
-                    onTap: () => context.go('/timer'),
+                    onTap: () {
+                      if (timer.activeTaskId != null) {
+                        context.push('/tasks/${timer.activeTaskId}');
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
                 ],

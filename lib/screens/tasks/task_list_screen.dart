@@ -5,8 +5,13 @@ import '../../providers/tasks_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/timer_provider.dart';
+import '../../providers/task_templates_provider.dart';
+import '../../providers/workflows_provider.dart';
+import '../../providers/hardware_bundle_provider.dart';
+import '../../db/database.dart';
 import '../../widgets/task_card.dart';
 import '../../services/task_handover_service.dart';
+import 'package:drift/drift.dart' as drift;
 
 class TaskListScreen extends ConsumerStatefulWidget {
   const TaskListScreen({super.key});
@@ -130,7 +135,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Theme.of(context).colorScheme.outline),
                   ),
-                  if (_search.isEmpty) ...[
+                          if (_search.isEmpty) ...[
                     const SizedBox(height: 8),
                     FilledButton.icon(
                       onPressed: () async {
@@ -139,6 +144,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                       },
                       icon: const Icon(Icons.add),
                       label: const Text('Neuer Task'),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          _createFromTemplate(context, ref),
+                      icon: const Icon(Icons.copy_outlined),
+                      label: const Text('Aus Vorlage'),
                     ),
                   ],
                 ],
@@ -167,6 +179,114 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _createFromTemplate(
+      BuildContext context, WidgetRef ref) async {
+    final templates =
+        ref.read(taskTemplatesProvider).valueOrNull ?? [];
+    if (templates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Keine Vorlagen. Erst in Einstellungen anlegen.')),
+      );
+      return;
+    }
+    final selected = await showModalBottomSheet<TemplateWithDetails>(
+      context: context,
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Vorlage wählen',
+                style: Theme.of(context).textTheme.titleLarge),
+          ),
+          const Divider(height: 1),
+          ...templates.map((twd) => ListTile(
+                leading: const Icon(Icons.copy_outlined),
+                title: Text(twd.template.title),
+                subtitle: [
+                  if (twd.customer != null) twd.customer!.name,
+                  if (twd.workflow != null) twd.workflow!.name,
+                  if (twd.bundle != null) twd.bundle!.name,
+                ].join(' · ').isEmpty
+                    ? null
+                    : Text([
+                        if (twd.customer != null) twd.customer!.name,
+                        if (twd.workflow != null) twd.workflow!.name,
+                        if (twd.bundle != null) twd.bundle!.name,
+                      ].join(' · ')),
+                onTap: () => Navigator.pop(context, twd),
+              )),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+    if (selected == null || !context.mounted) return;
+
+    final db = ref.read(databaseProvider);
+    final now = DateTime.now();
+    final newTaskId =
+        'task_${now.millisecondsSinceEpoch}';
+
+    // Task aus Vorlage erstellen
+    await db.into(db.tasks).insert(TasksCompanion.insert(
+          id: drift.Value(newTaskId),
+          title: selected.template.title,
+          description: drift.Value(selected.template.description),
+          customerId: drift.Value(selected.template.customerId),
+          updatedAt: drift.Value(now),
+        ));
+
+    // Workflow-Checkliste anwenden
+    if (selected.template.workflowId != null) {
+      final items = await (db.select(db.workflowItems)
+            ..where((i) =>
+                i.workflowId.equals(selected.template.workflowId!))
+            ..orderBy([(i) => drift.OrderingTerm.asc(i.sortOrder)]))
+          .get();
+      final workflow = selected.workflow;
+      for (var i = 0; i < items.length; i++) {
+        await db.into(db.todos).insert(TodosCompanion.insert(
+              taskId: newTaskId,
+              content: items[i].itemText,
+              sortOrder: drift.Value(i),
+              workflowId: drift.Value(selected.template.workflowId),
+              workflowName: drift.Value(workflow?.name),
+            ));
+      }
+    }
+
+    // Hardware Bundle anwenden
+    if (selected.template.hardwareBundleId != null) {
+      final bundleItems = await (db.select(db.hardwareBundleItems)
+            ..where((i) =>
+                i.bundleId.equals(selected.template.hardwareBundleId!))
+            ..orderBy([(i) => drift.OrderingTerm.asc(i.sortOrder)]))
+          .get();
+      for (var i = 0; i < bundleItems.length; i++) {
+        await db.into(db.hardware).insert(HardwareCompanion.insert(
+              taskId: newTaskId,
+              type: bundleItems[i].type,
+              name: drift.Value(bundleItems[i].name),
+              serial: drift.Value(bundleItems[i].serial),
+              notes: drift.Value(bundleItems[i].notes),
+              sortOrder: drift.Value(i),
+            ));
+      }
+    }
+
+    ref.invalidate(tasksProvider);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(
+              'Task erstellt: ${selected.template.title}')),
+    );
+    await context.push('/tasks/$newTaskId');
+    ref.invalidate(tasksProvider);
   }
 
   String _filterLabel(String f) => switch (f) {

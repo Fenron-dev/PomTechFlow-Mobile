@@ -77,6 +77,12 @@ class TaskCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (t.recurring)
+                    Tooltip(
+                      message: 'Wiederkehrender Task',
+                      child: Icon(Icons.repeat,
+                          size: 16, color: cs.primary),
+                    ),
                 ],
               ),
 

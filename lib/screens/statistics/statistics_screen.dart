@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../providers/tasks_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/database_provider.dart';
+import '../../services/csv_service.dart';
 
 class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
@@ -15,7 +16,34 @@ class StatisticsScreen extends ConsumerWidget {
     final aeMin = settings?.aeMinutes ?? 10;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Statistiken')),
+      appBar: AppBar(
+        title: const Text('Statistiken'),
+        actions: [
+          tasksAsync.maybeWhen(
+            data: (tasks) => IconButton(
+              icon: const Icon(Icons.table_chart_outlined),
+              tooltip: 'Als CSV exportieren',
+              onPressed: () async {
+                try {
+                  final db = ref.read(databaseProvider);
+                  await CsvService.exportTasks(
+                    db: db,
+                    tasks: tasks,
+                    aeMinutes: aeMin,
+                  );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('CSV Fehler: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+            orElse: () => const SizedBox(),
+          ),
+        ],
+      ),
       body: tasksAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Fehler: $e')),

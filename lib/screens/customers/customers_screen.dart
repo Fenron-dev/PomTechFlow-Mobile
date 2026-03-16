@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/customers_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../db/database.dart';
@@ -92,24 +93,102 @@ class _CustomerCard extends StatelessWidget {
   const _CustomerCard(
       {required this.customer, required this.onEdit, required this.onDelete});
 
+  Future<void> _launch(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          child: Text(customer.name[0].toUpperCase()),
-        ),
-        title: Text(customer.name),
-        subtitle: customer.email != null ? Text(customer.email!) : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(icon: const Icon(Icons.edit_outlined), onPressed: onEdit),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              color: Theme.of(context).colorScheme.error,
-              onPressed: onDelete,
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: cs.primaryContainer,
+                  child: Text(customer.name[0].toUpperCase(),
+                      style: TextStyle(color: cs.primary)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(customer.name,
+                          style: Theme.of(context).textTheme.titleSmall),
+                      if (customer.address != null)
+                        Text(customer.address!,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: cs.outline),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+                IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: onEdit,
+                    visualDensity: VisualDensity.compact),
+                IconButton(
+                  icon: Icon(Icons.delete_outline, color: cs.error),
+                  onPressed: onDelete,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
             ),
+            if (customer.phone != null ||
+                customer.email != null ||
+                customer.address != null) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  if (customer.phone != null)
+                    ActionChip(
+                      avatar: const Icon(Icons.phone_outlined, size: 16),
+                      label: Text(customer.phone!),
+                      onPressed: () =>
+                          _launch('tel:${customer.phone}'),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  if (customer.email != null)
+                    ActionChip(
+                      avatar: const Icon(Icons.email_outlined, size: 16),
+                      label: Text(customer.email!),
+                      onPressed: () =>
+                          _launch('mailto:${customer.email}'),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  if (customer.address != null)
+                    ActionChip(
+                      avatar:
+                          const Icon(Icons.directions_outlined, size: 16),
+                      label: const Text('Navigation'),
+                      onPressed: () => _launch(
+                          'https://maps.google.com/?q=${Uri.encodeComponent(customer.address!)}'),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                ],
+              ),
+            ],
+            if (customer.notes != null && customer.notes!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(customer.notes!,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: cs.outline),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
+            ],
           ],
         ),
       ),

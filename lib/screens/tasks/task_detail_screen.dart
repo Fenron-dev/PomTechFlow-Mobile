@@ -102,13 +102,49 @@ class TaskDetailScreen extends ConsumerWidget {
 
   Future<void> _markDone(WidgetRef ref, String taskId) async {
     final db = ref.read(databaseProvider);
+    final task = await (db.select(db.tasks)..where((t) => t.id.equals(taskId)))
+        .getSingleOrNull();
     await (db.update(db.tasks)..where((t) => t.id.equals(taskId))).write(
       TasksCompanion(
         status: const drift.Value('COMPLETED'),
         updatedAt: drift.Value(DateTime.now()),
       ),
     );
+
+    // Wiederkehrenden Task anlegen
+    if (task != null && task.recurring && task.recurrenceType != null) {
+      final nextDate = _nextRecurrenceDate(
+          task.plannedDate ?? DateTime.now(),
+          task.recurrenceType!,
+          task.recurrenceInterval);
+      await db.into(db.tasks).insert(TasksCompanion.insert(
+            title: task.title,
+            description: drift.Value(task.description),
+            customerId: drift.Value(task.customerId),
+            plannedDate: drift.Value(nextDate),
+            recurring: const drift.Value(true),
+            recurrenceType: drift.Value(task.recurrenceType),
+            recurrenceInterval: drift.Value(task.recurrenceInterval),
+            updatedAt: drift.Value(DateTime.now()),
+          ));
+    }
+
     ref.invalidate(taskDetailProvider(taskId));
     ref.invalidate(tasksProvider);
+  }
+
+  DateTime _nextRecurrenceDate(
+      DateTime base, String type, int interval) {
+    return switch (type) {
+      'DAILY' => base.add(Duration(days: interval)),
+      'WEEKLY' => base.add(Duration(days: 7 * interval)),
+      'MONTHLY' => DateTime(
+          base.year, base.month + interval, base.day,
+          base.hour, base.minute),
+      'QUARTERLY' => DateTime(
+          base.year, base.month + (3 * interval), base.day,
+          base.hour, base.minute),
+      _ => base.add(Duration(days: 7 * interval)),
+    };
   }
 }

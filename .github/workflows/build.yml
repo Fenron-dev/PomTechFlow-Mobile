@@ -145,7 +145,7 @@ jobs:
       - name: ZIP erstellen
         run: |
           cd build/macos/Build/Products/Release
-          zip -r PomTechFlow-macOS.zip PomTechFlow.app
+          zip -r PomTechFlow-macOS.zip *.app
 
       - name: macOS Artifact hochladen
         uses: actions/upload-artifact@v4

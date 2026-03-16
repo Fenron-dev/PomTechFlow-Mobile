@@ -6,6 +6,8 @@ import '../../providers/settings_provider.dart' as sp;
 import '../../providers/database_provider.dart';
 import '../../services/backup_service.dart';
 import 'hardware_bundle_screen.dart' show HardwareBundleScreen;
+import 'device_library_screen.dart';
+import 'task_templates_screen.dart';
 import 'data_exchange_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -234,7 +236,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 title: const Text('Kunden'),
                 subtitle: const Text('Kunden verwalten'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/customers'),
+                onTap: () => context.push('/settings/customers'),
               ),
               const Divider(height: 1),
               ListTile(
@@ -242,7 +244,31 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 title: const Text('Workflows'),
                 subtitle: const Text('Checklisten-Vorlagen'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/workflows'),
+                onTap: () => context.push('/settings/workflows'),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.copy_outlined),
+                title: const Text('Task-Vorlagen'),
+                subtitle: const Text('Komplette Tasks als Vorlage'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const TaskTemplatesScreen()),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.devices_outlined),
+                title: const Text('Geräte-Bibliothek'),
+                subtitle: const Text('Vordefinierte Einzelgeräte'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const DeviceLibraryScreen()),
+                ),
               ),
               const Divider(height: 1),
               ListTile(

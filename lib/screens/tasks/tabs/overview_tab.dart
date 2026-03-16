@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../providers/tasks_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/timer_provider.dart';
 import '../../../services/pdf_service.dart';
 import '../../../services/email_service.dart';
+import '../../../services/zip_export_service.dart';
 import '../../../widgets/timer_session_dialogs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -30,6 +32,7 @@ class OverviewTab extends ConsumerStatefulWidget {
 
 class _OverviewTabState extends ConsumerState<OverviewTab> {
   bool _generatingPdf = false;
+  bool _exportingZip = false;
   List<File> _previousReports = [];
 
   @override
@@ -79,6 +82,27 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
       }
     } finally {
       if (mounted) setState(() => _generatingPdf = false);
+    }
+  }
+
+  Future<void> _exportZip() async {
+    setState(() => _exportingZip = true);
+    try {
+      final db = ref.read(databaseProvider);
+      final settings = ref.read(settingsProvider).valueOrNull;
+      await ZipExportService.exportTaskPackage(
+        db: db,
+        detail: widget.detail,
+        settings: settings,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ZIP Fehler: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exportingZip = false);
     }
   }
 
@@ -150,7 +174,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
             onMarkDone: onMarkDone,
           ),
         const SizedBox(height: 8),
-        // PDF Bericht
+        // PDF Bericht + ZIP Paket
         Row(
           children: [
             Expanded(
@@ -162,14 +186,27 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.picture_as_pdf_outlined),
-                label: Text(_generatingPdf ? 'Erstelle PDF...' : 'Bericht erstellen'),
+                label: Text(_generatingPdf ? 'Erstelle...' : 'PDF'),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _exportingZip ? null : _exportZip,
+                icon: _exportingZip
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.folder_zip_outlined),
+                label: Text(_exportingZip ? 'Erstelle...' : 'ZIP Paket'),
+              ),
+            ),
+            const SizedBox(width: 6),
             OutlinedButton.icon(
               onPressed: _emailReport,
               icon: const Icon(Icons.email_outlined),
-              label: const Text('Per Mail'),
+              label: const Text('Mail'),
             ),
           ],
         ),
@@ -233,13 +270,9 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         ),
         const SizedBox(height: 20),
 
-        // Kunde
+        // Kunde mit Kontakt-Buttons
         if (detail.customer != null)
-          _InfoRow(
-            icon: Icons.business_outlined,
-            label: 'Kunde',
-            value: detail.customer!.name,
-          ),
+          _CustomerContactRow(customer: detail.customer!),
 
         // Beschreibung
         if (task.description != null && task.description!.isNotEmpty) ...[
@@ -468,6 +501,83 @@ class _InfoRow extends StatelessWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _CustomerContactRow extends StatelessWidget {
+  final customer;
+  const _CustomerContactRow({required this.customer});
+
+  Future<void> _launch(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.business_outlined, size: 18, color: cs.outline),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Kunde',
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall
+                          ?.copyWith(color: cs.outline)),
+                  Text(customer.name,
+                      style: Theme.of(context).textTheme.bodyMedium),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (customer.phone != null ||
+            customer.email != null ||
+            customer.address != null) ...[
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              if (customer.phone != null)
+                ActionChip(
+                  avatar: const Icon(Icons.phone_outlined, size: 14),
+                  label: Text(customer.phone!,
+                      style: Theme.of(context).textTheme.labelSmall),
+                  onPressed: () => _launch('tel:${customer.phone}'),
+                  visualDensity: VisualDensity.compact,
+                ),
+              if (customer.email != null)
+                ActionChip(
+                  avatar: const Icon(Icons.email_outlined, size: 14),
+                  label: Text(customer.email!,
+                      style: Theme.of(context).textTheme.labelSmall),
+                  onPressed: () =>
+                      _launch('mailto:${customer.email}'),
+                  visualDensity: VisualDensity.compact,
+                ),
+              if (customer.address != null)
+                ActionChip(
+                  avatar: const Icon(Icons.directions_outlined, size: 14),
+                  label: const Text('Navigation'),
+                  onPressed: () => _launch(
+                      'https://maps.google.com/?q=${Uri.encodeComponent(customer.address!)}'),
+                  visualDensity: VisualDensity.compact,
+                ),
+            ],
+          ),
+        ],
       ],
     );
   }

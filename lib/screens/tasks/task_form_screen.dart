@@ -22,6 +22,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   final _descCtrl = TextEditingController();
   String? _customerId;
   DateTime? _plannedDate;
+  bool _recurring = false;
+  String _recurrenceType = 'WEEKLY';
+  int _recurrenceInterval = 1;
   bool _loading = false;
 
   @override
@@ -41,6 +44,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       setState(() {
         _customerId = task.customerId;
         _plannedDate = task.plannedDate;
+        _recurring = task.recurring;
+        _recurrenceType = task.recurrenceType ?? 'WEEKLY';
+        _recurrenceInterval = task.recurrenceInterval;
       });
     }
   }
@@ -89,6 +95,10 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                 : _descCtrl.text.trim()),
             customerId: drift.Value(_customerId),
             plannedDate: drift.Value(_plannedDate),
+            recurring: drift.Value(_recurring),
+            recurrenceType:
+                drift.Value(_recurring ? _recurrenceType : null),
+            recurrenceInterval: drift.Value(_recurrenceInterval),
             updatedAt: drift.Value(now),
           ));
     } else {
@@ -100,6 +110,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim()),
         customerId: drift.Value(_customerId),
         plannedDate: drift.Value(_plannedDate),
+        recurring: drift.Value(_recurring),
+        recurrenceType: drift.Value(_recurring ? _recurrenceType : null),
+        recurrenceInterval: drift.Value(_recurrenceInterval),
         updatedAt: drift.Value(now),
       ));
     }
@@ -234,9 +247,93 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+
+            // ── Wiederkehrend ──────────────────────────────────────────
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _recurring,
+              onChanged: (v) => setState(() => _recurring = v),
+              title: const Text('Wiederkehrender Task'),
+              subtitle: const Text('Neuer Task nach Abschluss'),
+              secondary: Icon(
+                Icons.repeat,
+                color: _recurring ? cs.primary : cs.outline,
+              ),
+            ),
+            if (_recurring) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _recurrenceType,
+                      decoration:
+                          const InputDecoration(labelText: 'Intervall'),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'DAILY', child: Text('Täglich')),
+                        DropdownMenuItem(
+                            value: 'WEEKLY', child: Text('Wöchentlich')),
+                        DropdownMenuItem(
+                            value: 'MONTHLY', child: Text('Monatlich')),
+                        DropdownMenuItem(
+                            value: 'QUARTERLY',
+                            child: Text('Vierteljährlich')),
+                      ],
+                      onChanged: (v) =>
+                          setState(() => _recurrenceType = v!),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 100,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove),
+                          onPressed: _recurrenceInterval > 1
+                              ? () => setState(
+                                  () => _recurrenceInterval--)
+                              : null,
+                        ),
+                        Text('$_recurrenceInterval',
+                            style:
+                                Theme.of(context).textTheme.titleMedium),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: _recurrenceInterval < 52
+                              ? () => setState(
+                                  () => _recurrenceInterval++)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Alle $_recurrenceInterval ${_recurrenceLabel(_recurrenceType)}',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: cs.primary),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
+
+  String _recurrenceLabel(String type) => switch (type) {
+        'DAILY' => _recurrenceInterval == 1 ? 'Tag' : 'Tage',
+        'WEEKLY' => _recurrenceInterval == 1 ? 'Woche' : 'Wochen',
+        'MONTHLY' => _recurrenceInterval == 1 ? 'Monat' : 'Monate',
+        'QUARTERLY' => _recurrenceInterval == 1 ? 'Quartal' : 'Quartale',
+        _ => type,
+      };
 }
