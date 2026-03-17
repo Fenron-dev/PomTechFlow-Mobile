@@ -1,0 +1,789 @@
+{
+  "version": 1,
+  "exportedAt": "2026-03-17T08:00:00.000Z",
+  "customers": [
+    {
+      "id": "cust_demo_001",
+      "name": "Musterfirma GmbH",
+      "email": "it@musterfirma.de",
+      "phone": "+49 711 123456",
+      "address": "Musterstraße 42, 70173 Stuttgart",
+      "notes": "Hauptkunde. 35 Arbeitsplätze, Windows-Domäne. Ansprechpartner: Herr Bauer (Geschäftsführer), Frau Klein (Buchhaltung). Server-Raum im UG.",
+      "createdAt": "2025-09-01T07:00:00.000Z"
+    },
+    {
+      "id": "cust_demo_002",
+      "name": "Bäckerei Sonnenschein",
+      "email": "buero@baeckerei-sonnenschein.de",
+      "phone": "+49 711 654321",
+      "address": "Brotgasse 7, 70178 Stuttgart",
+      "notes": "3 Kassen-PCs, 1 Büro-PC, 1 NAS. Öffnungszeiten Mo–Sa 05:00–18:00 beachten. Kein festes IT-Budget.",
+      "createdAt": "2025-10-15T07:00:00.000Z"
+    },
+    {
+      "id": "cust_demo_003",
+      "name": "Praxis Dr. Müller",
+      "email": "praxis@dr-mueller-stuttgart.de",
+      "phone": "+49 711 999888",
+      "address": "Arztweg 12, 70182 Stuttgart",
+      "notes": "Medizinische Praxis. Datenschutz DSGVO-relevant! Praxis-Software: MediStar. Server-Zugang nur mit Voranmeldung. Backup täglich 22 Uhr.",
+      "createdAt": "2025-11-03T07:00:00.000Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_demo_001",
+      "title": "Netzwerkausfall Büro 3. OG",
+      "description": "Nach Update des Core-Switches am Vorabend kein Netzwerkzugriff mehr in der gesamten 3. Etage. Ca. 12 Arbeitsplätze betroffen. Telefonie funktioniert noch (separates VLAN).",
+      "status": "COMPLETED",
+      "customerId": "cust_demo_001",
+      "priority": "HIGH",
+      "totalMinutes": 185,
+      "plannedDate": "2026-03-10T08:00:00.000Z",
+      "recurring": false,
+      "recurrenceType": null,
+      "recurrenceInterval": 1,
+      "createdAt": "2026-03-10T07:32:00.000Z",
+      "updatedAt": "2026-03-10T11:45:00.000Z"
+    },
+    {
+      "id": "task_demo_002",
+      "title": "Server-Sicherheitsupdate März 2026",
+      "description": "Monatliches Patch-Fenster. Betrifft Windows Server 2022 (DC + Fileserver) sowie VMware ESXi 8.0. Wartungsfenster: 17.03.2026 ab 20:00 Uhr. Backup vorher prüfen!",
+      "status": "ACTIVE",
+      "customerId": "cust_demo_001",
+      "priority": "CRITICAL",
+      "totalMinutes": 45,
+      "plannedDate": "2026-03-17T20:00:00.000Z",
+      "recurring": false,
+      "recurrenceType": null,
+      "recurrenceInterval": 1,
+      "createdAt": "2026-03-14T09:00:00.000Z",
+      "updatedAt": "2026-03-17T07:45:00.000Z"
+    },
+    {
+      "id": "task_demo_003",
+      "title": "Drucker HP LaserJet Pro M404 tauschen",
+      "description": "Drucker druckt nur noch einseitig, Duplexeinheit defekt. Ersatzgerät HP LaserJet Pro M404dn wurde bestellt und ist eingetroffen.",
+      "status": "COMPLETED",
+      "customerId": "cust_demo_002",
+      "priority": "NORMAL",
+      "totalMinutes": 35,
+      "plannedDate": "2026-03-12T10:00:00.000Z",
+      "recurring": false,
+      "recurrenceType": null,
+      "recurrenceInterval": 1,
+      "createdAt": "2026-03-11T14:20:00.000Z",
+      "updatedAt": "2026-03-12T11:15:00.000Z"
+    },
+    {
+      "id": "task_demo_004",
+      "title": "Wöchentlicher Backup-Check",
+      "description": "Backup-Log prüfen (Veeam), Testwiederherstellung einer Datei, Speicherauslastung NAS dokumentieren.",
+      "status": "PLANNED",
+      "customerId": "cust_demo_001",
+      "priority": "NORMAL",
+      "totalMinutes": 0,
+      "plannedDate": "2026-03-18T09:00:00.000Z",
+      "recurring": true,
+      "recurrenceType": "WEEKLY",
+      "recurrenceInterval": 1,
+      "createdAt": "2026-01-07T08:00:00.000Z",
+      "updatedAt": "2026-03-11T09:30:00.000Z"
+    },
+    {
+      "id": "task_demo_005",
+      "title": "Windows 11 Update-Rollout Etage 1–2",
+      "description": "Feature-Update auf 24H2. 18 Arbeitsplätze. Rollout über WSUS gesteuert, zuerst 5 Pilotgeräte, dann Rest. Vorher: Disk-Space prüfen (min. 20 GB frei).",
+      "status": "PLANNED",
+      "customerId": "cust_demo_001",
+      "priority": "HIGH",
+      "totalMinutes": 0,
+      "plannedDate": "2026-03-20T07:00:00.000Z",
+      "recurring": false,
+      "recurrenceType": null,
+      "recurrenceInterval": 1,
+      "createdAt": "2026-03-13T10:00:00.000Z",
+      "updatedAt": "2026-03-13T10:00:00.000Z"
+    },
+    {
+      "id": "task_demo_006",
+      "title": "VPN-Zugang Homeoffice einrichten",
+      "description": "Mitarbeiterin Frau Dr. Hofmann (Radiologie) benötigt VPN-Zugang zur Praxis-Software von zuhause. WireGuard auf bestehendem pfSense-Router konfigurieren.",
+      "status": "COMPLETED",
+      "customerId": "cust_demo_003",
+      "priority": "NORMAL",
+      "totalMinutes": 90,
+      "plannedDate": "2026-03-05T14:00:00.000Z",
+      "recurring": false,
+      "recurrenceType": null,
+      "recurrenceInterval": 1,
+      "createdAt": "2026-03-04T11:00:00.000Z",
+      "updatedAt": "2026-03-05T16:30:00.000Z"
+    },
+    {
+      "id": "task_demo_007",
+      "title": "Telefonanlage Yealink konfigurieren",
+      "description": "Neue Yealink T54W IP-Telefone einrichten. 4 Geräte, SIP-Trunk bei Telekom. Wartemusik und Rufumleitungszeiten anpassen. Wartet noch auf Freischaltung durch Telekom.",
+      "status": "PAUSED",
+      "customerId": "cust_demo_002",
+      "priority": "NORMAL",
+      "totalMinutes": 55,
+      "plannedDate": "2026-03-19T10:00:00.000Z",
+      "recurring": false,
+      "recurrenceType": null,
+      "recurrenceInterval": 1,
+      "createdAt": "2026-03-08T13:00:00.000Z",
+      "updatedAt": "2026-03-15T14:00:00.000Z"
+    },
+    {
+      "id": "task_demo_008",
+      "title": "NOTFALL: Serverraum-Kühlung ausgefallen",
+      "description": "Alarm um 02:17 Uhr. Klimaanlage Fujitsu ASY35 zeigt Fehlermeldung E7 (Lüfterfehler). Serverraum-Temp laut Sensoren bereits bei 38°C. Sofortmaßnahme: Notfall-Lüftung, nicht-kritische VMs herunterfahren.",
+      "status": "COMPLETED",
+      "customerId": "cust_demo_001",
+      "priority": "CRITICAL",
+      "totalMinutes": 240,
+      "plannedDate": null,
+      "recurring": false,
+      "recurrenceType": null,
+      "recurrenceInterval": 1,
+      "createdAt": "2026-03-02T02:17:00.000Z",
+      "updatedAt": "2026-03-02T07:30:00.000Z"
+    }
+  ],
+  "todos": [
+    {
+      "id": "todo_demo_001",
+      "taskId": "task_demo_001",
+      "content": "Switch-Konfiguration vor Ort prüfen (Konsolen-Kabel)",
+      "completed": true,
+      "sortOrder": 0,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_002",
+      "taskId": "task_demo_001",
+      "content": "VLAN-Konfiguration Uplink-Port kontrollieren",
+      "completed": true,
+      "sortOrder": 1,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_003",
+      "taskId": "task_demo_001",
+      "content": "Spanning Tree neu konvergieren lassen, Ping-Test alle 12 PCs",
+      "completed": true,
+      "sortOrder": 2,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_004",
+      "taskId": "task_demo_001",
+      "content": "Konfigurationsbackup Switch sichern",
+      "completed": true,
+      "sortOrder": 3,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_011",
+      "taskId": "task_demo_002",
+      "content": "Backup vor Update verifizieren (Veeam-Job manuell starten)",
+      "completed": true,
+      "sortOrder": 0,
+      "workflowId": "wf_demo_002",
+      "workflowName": "Server-Wartung"
+    },
+    {
+      "id": "todo_demo_012",
+      "taskId": "task_demo_002",
+      "content": "Windows-Updates DC1 einspielen und neu starten",
+      "completed": false,
+      "sortOrder": 1,
+      "workflowId": "wf_demo_002",
+      "workflowName": "Server-Wartung"
+    },
+    {
+      "id": "todo_demo_013",
+      "taskId": "task_demo_002",
+      "content": "Windows-Updates FS1 (Fileserver) einspielen",
+      "completed": false,
+      "sortOrder": 2,
+      "workflowId": "wf_demo_002",
+      "workflowName": "Server-Wartung"
+    },
+    {
+      "id": "todo_demo_014",
+      "taskId": "task_demo_002",
+      "content": "VMware ESXi 8.0 Patch über vSphere Update Manager",
+      "completed": false,
+      "sortOrder": 3,
+      "workflowId": "wf_demo_002",
+      "workflowName": "Server-Wartung"
+    },
+    {
+      "id": "todo_demo_015",
+      "taskId": "task_demo_002",
+      "content": "Nach Restart: Alle Dienste und VMs prüfen",
+      "completed": false,
+      "sortOrder": 4,
+      "workflowId": "wf_demo_002",
+      "workflowName": "Server-Wartung"
+    },
+    {
+      "id": "todo_demo_021",
+      "taskId": "task_demo_003",
+      "content": "Alten Drucker von Netzwerk trennen und Treiber deinstallieren",
+      "completed": true,
+      "sortOrder": 0,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_022",
+      "taskId": "task_demo_003",
+      "content": "Neuen HP M404dn anschließen, IP statisch vergeben (192.168.10.51)",
+      "completed": true,
+      "sortOrder": 1,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_023",
+      "taskId": "task_demo_003",
+      "content": "Treiber auf allen 3 PCs installieren und Testdruck",
+      "completed": true,
+      "sortOrder": 2,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_031",
+      "taskId": "task_demo_004",
+      "content": "Veeam Backup-Job-Log auf Fehler prüfen",
+      "completed": false,
+      "sortOrder": 0,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_032",
+      "taskId": "task_demo_004",
+      "content": "Testwiederherstellung: eine zufällige Datei aus letztem Backup rücksichern",
+      "completed": false,
+      "sortOrder": 1,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_033",
+      "taskId": "task_demo_004",
+      "content": "NAS-Speicherauslastung notieren und ins Ticket schreiben",
+      "completed": false,
+      "sortOrder": 2,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_041",
+      "taskId": "task_demo_005",
+      "content": "WSUS: 5 Pilotgeräte (Etage 1, Zimmer 101–105) freigeben",
+      "completed": false,
+      "sortOrder": 0,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_042",
+      "taskId": "task_demo_005",
+      "content": "Nach 48h: Pilotgeräte prüfen, dann Rest-Rollout freigeben",
+      "completed": false,
+      "sortOrder": 1,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_043",
+      "taskId": "task_demo_005",
+      "content": "Alle 18 PCs auf 24H2 bestätigt – Dokumentation aktualisieren",
+      "completed": false,
+      "sortOrder": 2,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_051",
+      "taskId": "task_demo_006",
+      "content": "WireGuard-Peer auf pfSense anlegen",
+      "completed": true,
+      "sortOrder": 0,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_052",
+      "taskId": "task_demo_006",
+      "content": "Client-Konfigurationsdatei erstellen und auf Laptop übertragen",
+      "completed": true,
+      "sortOrder": 1,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_053",
+      "taskId": "task_demo_006",
+      "content": "Verbindungstest + MediStar-Zugriff aus Homeoffice bestätigt",
+      "completed": true,
+      "sortOrder": 2,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_061",
+      "taskId": "task_demo_007",
+      "content": "SIP-Zugangsdaten von Telekom abwarten",
+      "completed": true,
+      "sortOrder": 0,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_062",
+      "taskId": "task_demo_007",
+      "content": "4 Yealink T54W mit SIP-Trunk konfigurieren",
+      "completed": false,
+      "sortOrder": 1,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_063",
+      "taskId": "task_demo_007",
+      "content": "Rufumleitungen und Wartemusik einrichten",
+      "completed": false,
+      "sortOrder": 2,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_071",
+      "taskId": "task_demo_008",
+      "content": "Nicht-kritische VMs herunterfahren (VM03–VM07)",
+      "completed": true,
+      "sortOrder": 0,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_072",
+      "taskId": "task_demo_008",
+      "content": "Notfall-Lüftung (mobiles Gerät) aktivieren",
+      "completed": true,
+      "sortOrder": 1,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_073",
+      "taskId": "task_demo_008",
+      "content": "Klimaanlagen-Techniker alarmieren",
+      "completed": true,
+      "sortOrder": 2,
+      "workflowId": null,
+      "workflowName": null
+    },
+    {
+      "id": "todo_demo_074",
+      "taskId": "task_demo_008",
+      "content": "Nach Reparatur: Alle VMs neu starten und Dienste prüfen",
+      "completed": true,
+      "sortOrder": 3,
+      "workflowId": null,
+      "workflowName": null
+    }
+  ],
+  "hardware": [
+    {
+      "id": "hw_demo_001",
+      "taskId": "task_demo_001",
+      "type": "SWITCH",
+      "name": "HP Aruba 2530-24G (3. OG)",
+      "serial": "CN8BKL20P4",
+      "notes": "Firmware war veraltet (YA.16.04), Update auf YA.16.11 eingespielt"
+    },
+    {
+      "id": "hw_demo_002",
+      "taskId": "task_demo_001",
+      "type": "ROUTER",
+      "name": "pfSense Firewall",
+      "serial": null,
+      "notes": "Core-Router, kein Eingriff nötig"
+    },
+    {
+      "id": "hw_demo_011",
+      "taskId": "task_demo_002",
+      "type": "SERVER",
+      "name": "DC1 (Domain Controller)",
+      "serial": "VMW-DC1-2024",
+      "notes": "VM auf ESXi Host 1, Windows Server 2022 Datacenter"
+    },
+    {
+      "id": "hw_demo_012",
+      "taskId": "task_demo_002",
+      "type": "SERVER",
+      "name": "FS1 (Fileserver)",
+      "serial": "VMW-FS1-2024",
+      "notes": "VM auf ESXi Host 1, 4 TB Nutzdaten"
+    },
+    {
+      "id": "hw_demo_021",
+      "taskId": "task_demo_003",
+      "type": "PRINTER",
+      "name": "HP LaserJet Pro M404dn (NEU)",
+      "serial": "PHCC221038",
+      "notes": "IP: 192.168.10.51, Toner-Stand bei Einbau: 87%"
+    },
+    {
+      "id": "hw_demo_031",
+      "taskId": "task_demo_006",
+      "type": "LAPTOP",
+      "name": "Dell Latitude 5540 (Dr. Hofmann)",
+      "serial": "2KLX943",
+      "notes": "WireGuard Client v0.5.3 installiert, Config unter C:\\WireGuard\\praxis.conf"
+    },
+    {
+      "id": "hw_demo_041",
+      "taskId": "task_demo_007",
+      "type": "PHONE",
+      "name": "Yealink T54W #1 (Empfang)",
+      "serial": "805EC0B2A4F1",
+      "notes": "Durchwahl 10, konfiguriert"
+    },
+    {
+      "id": "hw_demo_042",
+      "taskId": "task_demo_007",
+      "type": "PHONE",
+      "name": "Yealink T54W #2 (Büro)",
+      "serial": "805EC0B2A4F2",
+      "notes": "Wartet auf SIP-Zugangsdaten"
+    },
+    {
+      "id": "hw_demo_051",
+      "taskId": "task_demo_008",
+      "type": "SERVER",
+      "name": "ESXi Host 1 (Haupthost)",
+      "serial": "SRV-ESX-001",
+      "notes": "Fujitsu Primergy RX2540, Serverraum UG. Temp-Sensor: Maximalwert 38°C erreicht"
+    }
+  ],
+  "notes": [
+    {
+      "id": "note_demo_001",
+      "taskId": "task_demo_001",
+      "content": "Ursache gefunden: Nach Switch-Firmware-Update wurde Trunk-Port zu Core-Switch auf Access-Mode zurückgesetzt. VLAN 10 (Büro) hatte dadurch keinen Uplink mehr. Konfiguration manuell korrigiert.",
+      "createdAt": "2026-03-10T09:15:00.000Z"
+    },
+    {
+      "id": "note_demo_002",
+      "taskId": "task_demo_001",
+      "content": "[Fernwartung]\nProblem: Netzwerkausfall 3. OG nach Firmware-Update\nUrsache: Trunk-Port auf Access-Mode zurückgesetzt\nLösung: Port-Konfiguration manuell korrigiert, VLAN 10 wieder aktiv\nErgebnis: Alle 12 Arbeitsplätze wieder erreichbar, Ping-Test erfolgreich",
+      "createdAt": "2026-03-10T11:30:00.000Z"
+    },
+    {
+      "id": "note_demo_011",
+      "taskId": "task_demo_002",
+      "content": "Backup-Prüfung abgeschlossen: Letztes Full-Backup vom 16.03.2026 03:00 Uhr, Status OK, 2,3 TB gesichert. Kein Fehler im Log.",
+      "createdAt": "2026-03-17T07:45:00.000Z"
+    },
+    {
+      "id": "note_demo_021",
+      "taskId": "task_demo_006",
+      "content": "[Fernwartung]\nProblem: Kein Remote-Zugriff auf Praxis-Software von Homeoffice\nUrsache: Kein VPN vorhanden\nLösung: WireGuard-Peer auf pfSense konfiguriert, Client auf Laptop installiert\nErgebnis: VPN-Verbindung stabil, MediStar-Zugriff bestätigt (Frau Dr. Hofmann getestet)",
+      "createdAt": "2026-03-05T16:20:00.000Z"
+    },
+    {
+      "id": "note_demo_031",
+      "taskId": "task_demo_008",
+      "content": "02:17 Uhr: Alarm ausgelöst. Klimaanlage Fujitsu ASY35 zeigt E7 (Außenlüfter blockiert). Serverraum bereits 38°C. Sofortmaßnahme: Mobile Lüftung aufgestellt, VM03–VM07 heruntergefahren.",
+      "createdAt": "2026-03-02T02:25:00.000Z"
+    },
+    {
+      "id": "note_demo_032",
+      "taskId": "task_demo_008",
+      "content": "05:45 Uhr: Klimaanlagen-Techniker vor Ort. Außenlüfter gereinigt (Vogelnest!), Anlage wieder in Betrieb. Serverraum 22°C. Alle VMs hochgefahren, Dienste geprüft. DC1 benötigte manuellen Neustart.",
+      "createdAt": "2026-03-02T05:50:00.000Z"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "sess_demo_001",
+      "taskId": "task_demo_001",
+      "startTime": "2026-03-10T07:45:00.000Z",
+      "endTime": "2026-03-10T09:25:00.000Z",
+      "duration": 100,
+      "type": "WORK",
+      "note": "Fehleranalyse und Behebung Switch"
+    },
+    {
+      "id": "sess_demo_002",
+      "taskId": "task_demo_001",
+      "startTime": "2026-03-10T09:25:00.000Z",
+      "endTime": "2026-03-10T09:40:00.000Z",
+      "duration": 15,
+      "type": "SHORT_BREAK",
+      "note": null
+    },
+    {
+      "id": "sess_demo_003",
+      "taskId": "task_demo_001",
+      "startTime": "2026-03-10T09:40:00.000Z",
+      "endTime": "2026-03-10T11:05:00.000Z",
+      "duration": 70,
+      "type": "WORK",
+      "note": "Dokumentation, Konfigurationsbackup, Abschlussprüfung"
+    },
+    {
+      "id": "sess_demo_011",
+      "taskId": "task_demo_002",
+      "startTime": "2026-03-17T07:00:00.000Z",
+      "endTime": "2026-03-17T07:45:00.000Z",
+      "duration": 45,
+      "type": "WORK",
+      "note": "Vorbereitung: Backup prüfen, Checkliste vorbereiten"
+    },
+    {
+      "id": "sess_demo_021",
+      "taskId": "task_demo_003",
+      "startTime": "2026-03-12T10:05:00.000Z",
+      "endTime": "2026-03-12T10:40:00.000Z",
+      "duration": 35,
+      "type": "WORK",
+      "note": "Austausch und Einrichtung neuer Drucker"
+    },
+    {
+      "id": "sess_demo_031",
+      "taskId": "task_demo_006",
+      "startTime": "2026-03-05T14:10:00.000Z",
+      "endTime": "2026-03-05T15:40:00.000Z",
+      "duration": 90,
+      "type": "WORK",
+      "note": "WireGuard konfigurieren und testen"
+    },
+    {
+      "id": "sess_demo_041",
+      "taskId": "task_demo_007",
+      "startTime": "2026-03-08T13:15:00.000Z",
+      "endTime": "2026-03-08T13:55:00.000Z",
+      "duration": 40,
+      "type": "WORK",
+      "note": "Telefonanlage vorbereiten, Firmware-Update Yealink"
+    },
+    {
+      "id": "sess_demo_042",
+      "taskId": "task_demo_007",
+      "startTime": "2026-03-15T14:00:00.000Z",
+      "endTime": "2026-03-15T14:15:00.000Z",
+      "duration": 15,
+      "type": "WORK",
+      "note": "Telekom angerufen: Freischaltung in 2–3 Werktagen"
+    },
+    {
+      "id": "sess_demo_051",
+      "taskId": "task_demo_008",
+      "startTime": "2026-03-02T02:17:00.000Z",
+      "endTime": "2026-03-02T04:00:00.000Z",
+      "duration": 103,
+      "type": "WORK",
+      "note": "Notfall-Einsatz: Sofortmaßnahmen, Monitoring"
+    },
+    {
+      "id": "sess_demo_052",
+      "taskId": "task_demo_008",
+      "startTime": "2026-03-02T04:00:00.000Z",
+      "endTime": "2026-03-02T07:17:00.000Z",
+      "duration": 137,
+      "type": "WORK",
+      "note": "Techniker-Begleitung, VMs hochfahren, Abschluss"
+    }
+  ],
+  "workflows": [
+    {
+      "id": "wf_demo_001",
+      "name": "Vor-Ort-Einsatz Standard",
+      "description": "Checkliste für jeden Kunden-Besuch"
+    },
+    {
+      "id": "wf_demo_002",
+      "name": "Server-Wartung",
+      "description": "Monatliche Server-Wartung und Updates"
+    },
+    {
+      "id": "wf_demo_003",
+      "name": "Neues Gerät einrichten",
+      "description": "PC / Laptop Ersteinrichtung für Mitarbeiter"
+    },
+    {
+      "id": "wf_demo_004",
+      "name": "Netzwerk-Troubleshooting",
+      "description": "Systematische Fehlersuche bei Netzwerkproblemen"
+    }
+  ],
+  "workflowItems": [
+    {
+      "id": "wfi_demo_001",
+      "workflowId": "wf_demo_001",
+      "itemText": "Ankunft beim Kunden bestätigen (SMS/Mail)",
+      "sortOrder": 0
+    },
+    {
+      "id": "wfi_demo_002",
+      "workflowId": "wf_demo_001",
+      "itemText": "Problem-Beschreibung vom Ansprechpartner einholen",
+      "sortOrder": 1
+    },
+    {
+      "id": "wfi_demo_003",
+      "workflowId": "wf_demo_001",
+      "itemText": "Fehler reproduzieren und dokumentieren",
+      "sortOrder": 2
+    },
+    {
+      "id": "wfi_demo_004",
+      "workflowId": "wf_demo_001",
+      "itemText": "Lösung umsetzen und testen",
+      "sortOrder": 3
+    },
+    {
+      "id": "wfi_demo_005",
+      "workflowId": "wf_demo_001",
+      "itemText": "Kunde hat Funktionsfähigkeit bestätigt (unterschrieben)",
+      "sortOrder": 4
+    },
+    {
+      "id": "wfi_demo_006",
+      "workflowId": "wf_demo_001",
+      "itemText": "Arbeitszeit im Task erfasst",
+      "sortOrder": 5
+    },
+    {
+      "id": "wfi_demo_011",
+      "workflowId": "wf_demo_002",
+      "itemText": "Backup vor Update verifizieren (Veeam-Job manuell starten)",
+      "sortOrder": 0
+    },
+    {
+      "id": "wfi_demo_012",
+      "workflowId": "wf_demo_002",
+      "itemText": "Windows-Updates DC1 einspielen und neu starten",
+      "sortOrder": 1
+    },
+    {
+      "id": "wfi_demo_013",
+      "workflowId": "wf_demo_002",
+      "itemText": "Windows-Updates FS1 (Fileserver) einspielen",
+      "sortOrder": 2
+    },
+    {
+      "id": "wfi_demo_014",
+      "workflowId": "wf_demo_002",
+      "itemText": "VMware ESXi 8.0 Patch über vSphere Update Manager",
+      "sortOrder": 3
+    },
+    {
+      "id": "wfi_demo_015",
+      "workflowId": "wf_demo_002",
+      "itemText": "Nach Restart: Alle Dienste und VMs prüfen",
+      "sortOrder": 4
+    },
+    {
+      "id": "wfi_demo_016",
+      "workflowId": "wf_demo_002",
+      "itemText": "Ereignisprotokoll auf Fehler prüfen",
+      "sortOrder": 5
+    },
+    {
+      "id": "wfi_demo_021",
+      "workflowId": "wf_demo_003",
+      "itemText": "Windows 11 Pro installieren / zurücksetzen",
+      "sortOrder": 0
+    },
+    {
+      "id": "wfi_demo_022",
+      "workflowId": "wf_demo_003",
+      "itemText": "Domäne beitreten (Benutzerkonto anlegen)",
+      "sortOrder": 1
+    },
+    {
+      "id": "wfi_demo_023",
+      "workflowId": "wf_demo_003",
+      "itemText": "Office 365 installieren und aktivieren",
+      "sortOrder": 2
+    },
+    {
+      "id": "wfi_demo_024",
+      "workflowId": "wf_demo_003",
+      "itemText": "Netzwerkdrucker einrichten",
+      "sortOrder": 3
+    },
+    {
+      "id": "wfi_demo_025",
+      "workflowId": "wf_demo_003",
+      "itemText": "VPN-Client installieren (falls benötigt)",
+      "sortOrder": 4
+    },
+    {
+      "id": "wfi_demo_026",
+      "workflowId": "wf_demo_003",
+      "itemText": "Windows Update vollständig durchlaufen lassen",
+      "sortOrder": 5
+    },
+    {
+      "id": "wfi_demo_027",
+      "workflowId": "wf_demo_003",
+      "itemText": "Seriennummer und Asset-Tag in Inventar eintragen",
+      "sortOrder": 6
+    },
+    {
+      "id": "wfi_demo_031",
+      "workflowId": "wf_demo_004",
+      "itemText": "Layer 1 prüfen: Kabel, LEDs, Port am Switch",
+      "sortOrder": 0
+    },
+    {
+      "id": "wfi_demo_032",
+      "workflowId": "wf_demo_004",
+      "itemText": "IP-Konfiguration prüfen (ipconfig /all)",
+      "sortOrder": 1
+    },
+    {
+      "id": "wfi_demo_033",
+      "workflowId": "wf_demo_004",
+      "itemText": "Ping Gateway, DNS, Internet",
+      "sortOrder": 2
+    },
+    {
+      "id": "wfi_demo_034",
+      "workflowId": "wf_demo_004",
+      "itemText": "Switch-Konfiguration (VLAN, Trunk) prüfen",
+      "sortOrder": 3
+    },
+    {
+      "id": "wfi_demo_035",
+      "workflowId": "wf_demo_004",
+      "itemText": "Firewall-Regeln kontrollieren",
+      "sortOrder": 4
+    }
+  ],
+  "settings": [
+    { "key": "companyName", "value": "IT-Support Musterstadt" },
+    { "key": "technicianName", "value": "Max Mustermann" },
+    { "key": "aeMinutes", "value": "10" },
+    { "key": "themeMode", "value": "system" },
+    { "key": "billingEmail", "value": "abrechnung@it-support-musterstadt.de" },
+    { "key": "scratchPad", "value": "📌 Offene Punkte:\n- Musterfirma: Switch-Dokumentation aktualisieren\n- Bäckerei: Angebot Netzwerk-Switch schicken\n- Dr. Müller: Backup-Konzept besprechen (Termin?)" }
+  ]
+}
