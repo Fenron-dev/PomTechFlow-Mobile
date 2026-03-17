@@ -11,6 +11,7 @@ import 'hardware_bundle_screen.dart' show HardwareBundleScreen;
 import 'device_library_screen.dart';
 import 'task_templates_screen.dart';
 import 'data_exchange_screen.dart';
+import '../handbuch_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -452,6 +453,23 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // ── Handbuch ─────────────────────────────────────────────────
+        _SectionHeader('Hilfe'),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.menu_book_outlined),
+            title: const Text('Handbuch'),
+            subtitle: const Text('Erklärungen zu allen Funktionen'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const HandbuchScreen()),
+            ),
           ),
         ),
         const SizedBox(height: 24),

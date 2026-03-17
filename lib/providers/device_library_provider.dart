@@ -7,8 +7,8 @@ final deviceLibraryProvider = FutureProvider<List<DevicePreset>>((ref) async {
   final db = ref.watch(databaseProvider);
   return (db.select(db.devicePresets)
         ..orderBy([
-          (d) => OrderingTerm(expression: d.type),
-          (d) => OrderingTerm(expression: d.name),
+          (d) => OrderingTerm.asc(d.type),
+          (d) => OrderingTerm.asc(d.name),
         ]))
       .get();
 });
