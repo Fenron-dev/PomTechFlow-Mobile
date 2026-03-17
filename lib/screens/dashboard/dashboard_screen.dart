@@ -9,6 +9,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/general_notes_provider.dart';
+import '../../providers/task_templates_provider.dart';
 import '../../db/database.dart';
 import '../../widgets/timer_session_dialogs.dart';
 
@@ -27,31 +28,57 @@ class DashboardScreen extends ConsumerWidget {
         title: Text(settings?.companyName ?? 'PomTechFlow'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            tooltip: 'Alle Berichte',
-            onPressed: () => context.push('/reports'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.bar_chart_outlined),
-            tooltip: 'Statistiken',
-            onPressed: () => context.push('/statistics'),
+            icon: const Icon(Icons.search_outlined),
+            tooltip: 'Suche',
+            onPressed: () => context.push('/search'),
           ),
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Neuer Task',
-            onPressed: () async {
-              await context.push('/tasks/new');
-              ref.invalidate(tasksProvider);
+            onPressed: () => _showNewTaskOptions(context, ref),
+          ),
+          PopupMenuButton<_DashMenuAction>(
+            icon: const Icon(Icons.menu),
+            tooltip: 'Menü',
+            onSelected: (action) {
+              switch (action) {
+                case _DashMenuAction.settings:
+                  context.push('/settings');
+                case _DashMenuAction.statistics:
+                  context.push('/statistics');
+                case _DashMenuAction.reports:
+                  context.push('/reports');
+              }
             },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: _DashMenuAction.settings,
+                child: ListTile(
+                  leading: Icon(Icons.settings_outlined),
+                  title: Text('Einstellungen'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuDivider(),
+              PopupMenuItem(
+                value: _DashMenuAction.statistics,
+                child: ListTile(
+                  leading: Icon(Icons.bar_chart_outlined),
+                  title: Text('Statistiken'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: _DashMenuAction.reports,
+                child: ListTile(
+                  leading: Icon(Icons.picture_as_pdf_outlined),
+                  title: Text('Alle Berichte'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'quickstart',
-        onPressed: () => _quickStart(context, ref),
-        icon: const Icon(Icons.bolt),
-        label: const Text('Schnellstart'),
-        tooltip: 'Timer sofort starten',
       ),
       body: tasksAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -562,6 +589,160 @@ class _QuickNoteCardState extends ConsumerState<_QuickNoteCard> {
       ),
     );
   }
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum _DashMenuAction { settings, statistics, reports }
+
+// ─── Neuer Task – Optionen ────────────────────────────────────────────────────
+
+Future<void> _showNewTaskOptions(BuildContext context, WidgetRef ref) async {
+  final cs = Theme.of(context).colorScheme;
+  await showModalBottomSheet(
+    context: context,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text('Neuer Task',
+                style: Theme.of(ctx).textTheme.titleMedium),
+          ),
+          ListTile(
+            leading: Icon(Icons.add_task_outlined, color: cs.primary),
+            title: const Text('Standard Task'),
+            subtitle: const Text('Leeren Task anlegen'),
+            onTap: () async {
+              Navigator.pop(ctx);
+              await context.push('/tasks/new');
+              ref.invalidate(tasksProvider);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.copy_outlined, color: cs.primary),
+            title: const Text('Aus Vorlage'),
+            subtitle: const Text('Task aus gespeicherter Vorlage'),
+            onTap: () {
+              Navigator.pop(ctx);
+              _createFromTemplate(context, ref);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.bolt, color: cs.primary),
+            title: const Text('Schnellstart'),
+            subtitle: const Text('Timer sofort starten, Details später'),
+            onTap: () {
+              Navigator.pop(ctx);
+              _quickStart(context, ref);
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+}
+
+// ─── Aus Vorlage erstellen ────────────────────────────────────────────────────
+
+Future<void> _createFromTemplate(BuildContext context, WidgetRef ref) async {
+  final templates = ref.read(taskTemplatesProvider).valueOrNull ?? [];
+  if (templates.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Keine Vorlagen. Erst in Einstellungen anlegen.')),
+    );
+    return;
+  }
+  final selected = await showModalBottomSheet<TemplateWithDetails>(
+    context: context,
+    builder: (_) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text('Vorlage wählen',
+              style: Theme.of(context).textTheme.titleLarge),
+        ),
+        const Divider(height: 1),
+        ...templates.map((twd) => ListTile(
+              leading: const Icon(Icons.copy_outlined),
+              title: Text(twd.template.title),
+              subtitle: [
+                if (twd.customer != null) twd.customer!.name,
+                if (twd.workflow != null) twd.workflow!.name,
+              ].join(' · ').isEmpty
+                  ? null
+                  : Text([
+                      if (twd.customer != null) twd.customer!.name,
+                      if (twd.workflow != null) twd.workflow!.name,
+                    ].join(' · ')),
+              onTap: () => Navigator.pop(context, twd),
+            )),
+        const SizedBox(height: 8),
+      ],
+    ),
+  );
+  if (selected == null || !context.mounted) return;
+
+  final db = ref.read(databaseProvider);
+  final now = DateTime.now();
+  final newTaskId = 'task_${now.millisecondsSinceEpoch}';
+  await db.into(db.tasks).insert(TasksCompanion.insert(
+        id: drift.Value(newTaskId),
+        title: selected.template.title,
+        description: drift.Value(selected.template.description),
+        customerId: drift.Value(selected.template.customerId),
+        updatedAt: drift.Value(now),
+      ));
+
+  int sortIdx = 0;
+  for (final wf in selected.workflows) {
+    final items = await (db.select(db.workflowItems)
+          ..where((i) => i.workflowId.equals(wf.id))
+          ..orderBy([(i) => drift.OrderingTerm.asc(i.sortOrder)]))
+        .get();
+    for (final item in items) {
+      await db.into(db.todos).insert(TodosCompanion.insert(
+            taskId: newTaskId,
+            content: item.itemText,
+            sortOrder: drift.Value(sortIdx++),
+            workflowId: drift.Value(wf.id),
+            workflowName: drift.Value(wf.name),
+          ));
+    }
+  }
+  for (final todo in selected.customTodos) {
+    await db.into(db.todos).insert(TodosCompanion.insert(
+          taskId: newTaskId,
+          content: todo.content,
+          sortOrder: drift.Value(sortIdx++),
+        ));
+  }
+  if (selected.template.hardwareBundleId != null) {
+    final bundleItems = await (db.select(db.hardwareBundleItems)
+          ..where((i) =>
+              i.bundleId.equals(selected.template.hardwareBundleId!))
+          ..orderBy([(i) => drift.OrderingTerm.asc(i.sortOrder)]))
+        .get();
+    for (var i = 0; i < bundleItems.length; i++) {
+      await db.into(db.hardware).insert(HardwareCompanion.insert(
+            taskId: newTaskId,
+            type: bundleItems[i].type,
+            name: drift.Value(bundleItems[i].name),
+            serial: drift.Value(bundleItems[i].serial),
+            notes: drift.Value(bundleItems[i].notes),
+            sortOrder: drift.Value(i),
+          ));
+    }
+  }
+
+  ref.invalidate(tasksProvider);
+  if (!context.mounted) return;
+  await context.push('/tasks/$newTaskId');
+  ref.invalidate(tasksProvider);
 }
 
 // ─── Quick-Start ──────────────────────────────────────────────────────────────

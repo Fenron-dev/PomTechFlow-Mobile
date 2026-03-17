@@ -74,16 +74,19 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         final logoFile = File(settings!.logoPath!);
         if (await logoFile.exists()) logoBytes = await logoFile.readAsBytes();
       }
-      final file = await PdfService.generateReport(PdfReportData(
-        taskDetail: widget.detail,
-        todos: todos,
-        hardware: hardware,
-        notes: notes,
-        companyName: settings?.companyName ?? 'IT-Firma',
-        technicianName: settings?.technicianName ?? '',
-        aeMinutes: (settings?.aeMinutes ?? 10).toDouble(),
-        logoBytes: logoBytes,
-      ));
+      final file = await PdfService.generateReport(
+        PdfReportData(
+          taskDetail: widget.detail,
+          todos: todos,
+          hardware: hardware,
+          notes: notes,
+          companyName: settings?.companyName ?? 'IT-Firma',
+          technicianName: settings?.technicianName ?? '',
+          aeMinutes: (settings?.aeMinutes ?? 10).toDouble(),
+          logoBytes: logoBytes,
+        ),
+        storageBasePath: settings?.storageBasePath ?? '',
+      );
       await PdfService.shareReport(file);
       _loadReports();
     } catch (e) {

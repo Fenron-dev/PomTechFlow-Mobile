@@ -47,6 +47,20 @@ final _router = GoRouter(
       path: '/reports/monthly',
       builder: (_, __) => const MonthlyReportScreen(),
     ),
+    GoRoute(
+      path: '/settings',
+      builder: (_, __) => const SettingsScreen(),
+      routes: [
+        GoRoute(
+          path: 'customers',
+          builder: (_, __) => const CustomersScreen(),
+        ),
+        GoRoute(
+          path: 'workflows',
+          builder: (_, __) => const WorkflowsScreen(),
+        ),
+      ],
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AdaptiveShell(shell: shell),
       branches: [
@@ -86,23 +100,6 @@ final _router = GoRouter(
           GoRoute(
             path: '/notes',
             builder: (_, __) => const NotesScreen(),
-          ),
-        ]),
-        // 3 - Einstellungen (inkl. Kunden, Workflows, Backup)
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: '/settings',
-            builder: (_, __) => const SettingsScreen(),
-            routes: [
-              GoRoute(
-                path: 'customers',
-                builder: (_, __) => const CustomersScreen(),
-              ),
-              GoRoute(
-                path: 'workflows',
-                builder: (_, __) => const WorkflowsScreen(),
-              ),
-            ],
           ),
         ]),
       ],

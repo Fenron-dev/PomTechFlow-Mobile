@@ -48,6 +48,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late int _shortBreakMinutes;
   late int _longBreakMinutes;
   late String _themeMode;
+  late String _storageBasePath;
   bool _backupLoading = false;
 
   @override
@@ -62,6 +63,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     _shortBreakMinutes = widget.settings.shortBreakMinutes;
     _longBreakMinutes = widget.settings.longBreakMinutes;
     _themeMode = widget.settings.themeMode;
+    _storageBasePath = widget.settings.storageBasePath;
   }
 
   @override
@@ -70,6 +72,13 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     _techCtrl.dispose();
     _billingEmailCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickStorageDir() async {
+    final path = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Speicherort wählen',
+    );
+    if (path != null) setState(() => _storageBasePath = path);
   }
 
   Future<void> _pickLogo() async {
@@ -95,6 +104,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             logoPath: _logoPath,
             clearLogo: _logoPath == null,
             billingEmail: _billingEmailCtrl.text.trim(),
+            storageBasePath: _storageBasePath,
           ),
         );
     if (mounted) {
@@ -242,6 +252,54 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         ),
         const SizedBox(height: 24),
 
+        // ── Speicherort ──────────────────────────────────────────────
+        _SectionHeader('Dateispeicherort'),
+        Text(
+          'Standardverzeichnis für gespeicherte PDFs und Fotos. Leer = App-internes Verzeichnis.',
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.outline),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _storageBasePath.isEmpty
+                      ? 'App-Standard'
+                      : _storageBasePath,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: _storageBasePath.isEmpty
+                            ? Theme.of(context).colorScheme.outline
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: _pickStorageDir,
+              child: const Text('Ändern'),
+            ),
+            if (_storageBasePath.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.clear),
+                tooltip: 'Zurücksetzen',
+                onPressed: () => setState(() => _storageBasePath = ''),
+              ),
+          ],
+        ),
+        const SizedBox(height: 24),
+
         // ── AE ──────────────────────────────────────────────────────
         _SectionHeader('Arbeitseinheiten (AE)'),
         _StepperField(
@@ -312,6 +370,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   logoPath: _logoPath,
                   clearLogo: _logoPath == null,
                   billingEmail: _billingEmailCtrl.text.trim(),
+                  storageBasePath: _storageBasePath,
                 ));
           },
         ),

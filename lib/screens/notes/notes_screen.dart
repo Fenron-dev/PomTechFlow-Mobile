@@ -15,6 +15,25 @@ class NotesScreen extends ConsumerStatefulWidget {
 
 class _NotesScreenState extends ConsumerState<NotesScreen> {
   String? _filterTag;
+  String _searchQuery = '';
+  bool _showSearch = false;
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _showSearch = !_showSearch;
+      if (!_showSearch) {
+        _searchQuery = '';
+        _searchCtrl.clear();
+      }
+    });
+  }
 
   void _showForm(GeneralNote? note, List<String> allTags) {
     showModalBottomSheet(
@@ -63,21 +82,45 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notizen'),
+        title: _showSearch
+            ? TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Notizen durchsuchen...',
+                  border: InputBorder.none,
+                ),
+                onChanged: (v) => setState(() => _searchQuery = v),
+              )
+            : const Text('Notizen'),
+        actions: [
+          IconButton(
+            icon: Icon(_showSearch ? Icons.search_off : Icons.search),
+            tooltip: _showSearch ? 'Suche schließen' : 'Suchen',
+            onPressed: _toggleSearch,
+          ),
+        ],
       ),
       body: notesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Fehler: $e')),
         data: (notes) {
-          final filtered = _filterTag == null
-              ? notes
-              : notes.where((n) {
-                  if (n.tags == null || n.tags!.isEmpty) return false;
-                  return n.tags!
-                      .split(',')
-                      .map((t) => t.trim())
-                      .contains(_filterTag);
-                }).toList();
+          final q = _searchQuery.toLowerCase();
+          final filtered = notes.where((n) {
+            // Tag filter
+            if (_filterTag != null) {
+              if (n.tags == null || n.tags!.isEmpty) return false;
+              if (!n.tags!.split(',').map((t) => t.trim()).contains(_filterTag)) {
+                return false;
+              }
+            }
+            // Search filter
+            if (q.isNotEmpty) {
+              return n.content.toLowerCase().contains(q) ||
+                  (n.tags?.toLowerCase().contains(q) ?? false);
+            }
+            return true;
+          }).toList();
 
           return Column(
             children: [
@@ -124,15 +167,17 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                                     .outlineVariant),
                             const SizedBox(height: 16),
                             Text(
-                              _filterTag != null
-                                  ? 'Keine Notizen mit Tag "#$_filterTag"'
-                                  : 'Noch keine Notizen',
+                              _searchQuery.isNotEmpty
+                                  ? 'Keine Treffer für "$_searchQuery"'
+                                  : _filterTag != null
+                                      ? 'Keine Notizen mit Tag "#$_filterTag"'
+                                      : 'Noch keine Notizen',
                               style: TextStyle(
                                   color: Theme.of(context)
                                       .colorScheme
                                       .outline),
                             ),
-                            if (_filterTag == null) ...[
+                            if (_filterTag == null && _searchQuery.isEmpty) ...[
                               const SizedBox(height: 16),
                               FilledButton.icon(
                                 onPressed: () => _showForm(null, allTags),

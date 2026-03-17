@@ -69,6 +69,7 @@ class _MonthlyReportScreenState extends ConsumerState<MonthlyReportScreen> {
         technicianName: settings?.technicianName ?? '',
         aeMinutes: (settings?.aeMinutes ?? 10).toDouble(),
         logoBytes: logoBytes,
+        storageBasePath: settings?.storageBasePath ?? '',
       );
 
       if (_markBilled) {

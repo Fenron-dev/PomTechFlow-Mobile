@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import '../../../providers/database_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../db/database.dart';
 
 final _photosProvider = FutureProvider.family<List<Photo>, String>((ref, taskId) async {
@@ -108,8 +109,12 @@ class PhotosTab extends ConsumerWidget {
     final path = result.files.first.path;
     if (path == null) return;
 
-    final appDir = await getApplicationDocumentsDirectory();
-    final photoDir = Directory('${appDir.path}/photos');
+    final storagePath =
+        ref.read(settingsProvider).valueOrNull?.storageBasePath ?? '';
+    final baseDir = storagePath.isNotEmpty
+        ? Directory(storagePath)
+        : await getApplicationDocumentsDirectory();
+    final photoDir = Directory('${baseDir.path}/photos');
     await photoDir.create(recursive: true);
     final ext = path.contains('.') ? '.${path.split('.').last}' : '.jpg';
     final fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}$ext';
@@ -134,9 +139,13 @@ class PhotosTab extends ConsumerWidget {
     );
     if (xFile == null) return;
 
-    // Foto in App-Datenordner kopieren
-    final appDir = await getApplicationDocumentsDirectory();
-    final photoDir = Directory('${appDir.path}/photos');
+    // Foto in konfigurierten Ordner kopieren
+    final storagePath =
+        ref.read(settingsProvider).valueOrNull?.storageBasePath ?? '';
+    final baseDir = storagePath.isNotEmpty
+        ? Directory(storagePath)
+        : await getApplicationDocumentsDirectory();
+    final photoDir = Directory('${baseDir.path}/photos');
     await photoDir.create(recursive: true);
     final fileName =
         'photo_${DateTime.now().millisecondsSinceEpoch}${xFile.name.contains('.') ? '.${xFile.name.split('.').last}' : '.jpg'}';

@@ -41,7 +41,8 @@ class PdfReportData {
 }
 
 class PdfService {
-  static Future<File> generateReport(PdfReportData data) async {
+  static Future<File> generateReport(PdfReportData data,
+      {String storageBasePath = ''}) async {
     final pdf = pw.Document();
     final font = await PdfGoogleFonts.nunitoRegular();
     final fontBold = await PdfGoogleFonts.nunitoBold();
@@ -208,7 +209,10 @@ class PdfService {
       ),
     );
 
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = storageBasePath.isNotEmpty
+        ? Directory(storageBasePath)
+        : await getApplicationDocumentsDirectory();
+    await dir.create(recursive: true);
     final fileDateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final customerSlug = _slug(data.taskDetail.customer?.name ?? 'kein-kunde');
     final titleSlug = _slug(task.title);
@@ -439,6 +443,7 @@ class PdfService {
   static Future<File> generateMonthlyReport({
     required List<TaskWithDetails> tasks,
     required Customer? customer,
+    String storageBasePath = '',
     required DateTime month,
     required String companyName,
     required String technicianName,
@@ -573,7 +578,10 @@ class PdfService {
       ),
     );
 
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = storageBasePath.isNotEmpty
+        ? Directory(storageBasePath)
+        : await getApplicationDocumentsDirectory();
+    await dir.create(recursive: true);
     final monthStr = DateFormat('yyyy-MM').format(month);
     final customerSlug = _slug(customer?.name ?? 'alle-kunden');
     final baseName = '${monthStr}_monatsabschluss_$customerSlug';

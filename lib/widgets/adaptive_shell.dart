@@ -11,19 +11,11 @@ class AdaptiveShell extends StatelessWidget {
     (icon: Icons.dashboard_outlined, selected: Icons.dashboard, label: 'Dashboard'),
     (icon: Icons.checklist_outlined, selected: Icons.checklist, label: 'Tasks'),
     (icon: Icons.note_outlined, selected: Icons.note, label: 'Notizen'),
-    (icon: Icons.settings_outlined, selected: Icons.settings, label: 'Einstellungen'),
-    (icon: Icons.search_outlined, selected: Icons.search, label: 'Suche'),
   ];
 
   void _onDestination(BuildContext context, int i) {
-    if (i == 4) {
-      context.push('/search');
-    } else if (i == 3) {
-      // Einstellungen: immer zum Root-Tab zurückspringen
-      shell.goBranch(i, initialLocation: true);
-    } else {
-      shell.goBranch(i);
-    }
+    // Gleichen Tab erneut antippen → immer zur Root-Ansicht zurück
+    shell.goBranch(i, initialLocation: shell.currentIndex == i);
   }
 
   @override
@@ -169,7 +161,7 @@ class _AppMenuBar extends StatelessWidget {
               const Divider(height: 1),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.settings_outlined, size: 16),
-                onPressed: () => shell.goBranch(3, initialLocation: true),
+                onPressed: () => context.push('/settings'),
                 child: const Text('Einstellungen'),
               ),
             ],

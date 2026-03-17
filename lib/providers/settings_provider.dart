@@ -18,6 +18,9 @@ class AppSettings {
   final String billingEmail;
   /// Scratch-pad text shown on dashboard.
   final String scratchPad;
+  /// Custom base directory for saving files (PDFs, Fotos, Exporte).
+  /// Leerer String = Standard-App-Verzeichnis.
+  final String storageBasePath;
 
   const AppSettings({
     this.companyName = 'Meine IT-Firma',
@@ -31,6 +34,7 @@ class AppSettings {
     this.logoPath,
     this.billingEmail = '',
     this.scratchPad = '',
+    this.storageBasePath = '',
   });
 
   AppSettings copyWith({
@@ -46,6 +50,7 @@ class AppSettings {
     bool clearLogo = false,
     String? billingEmail,
     String? scratchPad,
+    String? storageBasePath,
   }) =>
       AppSettings(
         companyName: companyName ?? this.companyName,
@@ -59,6 +64,7 @@ class AppSettings {
         logoPath: clearLogo ? null : (logoPath ?? this.logoPath),
         billingEmail: billingEmail ?? this.billingEmail,
         scratchPad: scratchPad ?? this.scratchPad,
+        storageBasePath: storageBasePath ?? this.storageBasePath,
       );
 }
 
@@ -81,6 +87,7 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       logoPath: map['logoPath'],
       billingEmail: map['billingEmail'] ?? '',
       scratchPad: map['scratchPad'] ?? '',
+      storageBasePath: map['storageBasePath'] ?? '',
     );
   }
 
@@ -98,6 +105,7 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       if (settings.logoPath != null) 'logoPath': settings.logoPath!,
       'billingEmail': settings.billingEmail,
       'scratchPad': settings.scratchPad,
+      'storageBasePath': settings.storageBasePath,
     };
     // If logoPath was cleared (null), delete the key from DB
     if (settings.logoPath == null) {
