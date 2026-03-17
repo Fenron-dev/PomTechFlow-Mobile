@@ -199,10 +199,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
             isThisTask: isThisTask,
             isRunning: isRunning,
             isPaused: isPaused,
-            onStart: () async {
-              final go = await showTimerStartDialog(context, ref, task.id);
-              if (go && context.mounted) await timerNotifier.start(task.id);
-            },
+            onStart: () => timerNotifier.start(task.id),
             onPause: () => timerNotifier.pause(task.id),
             onResume: () => timerNotifier.resume(task.id),
             onStop: () async {

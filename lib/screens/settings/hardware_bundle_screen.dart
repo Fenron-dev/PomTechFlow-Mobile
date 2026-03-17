@@ -7,20 +7,22 @@ import '../../providers/database_provider.dart';
 import '../../db/database.dart';
 
 const _hwTypes = [
-  'PC', 'LAPTOP', 'MONITOR', 'PRINTER', 'ROUTER',
+  'PC', 'LAPTOP', 'MAC', 'MACBOOK', 'MONITOR', 'PRINTER', 'ROUTER',
   'SWITCH', 'SERVER', 'PHONE', 'TABLET', 'OTHER',
 ];
 const _hwLabels = {
-  'PC': 'PC', 'LAPTOP': 'Laptop', 'MONITOR': 'Monitor',
-  'PRINTER': 'Drucker', 'ROUTER': 'Router', 'SWITCH': 'Switch',
-  'SERVER': 'Server', 'PHONE': 'Telefon', 'TABLET': 'Tablet',
-  'OTHER': 'Sonstiges',
+  'PC': 'PC', 'LAPTOP': 'Laptop', 'MAC': 'Mac', 'MACBOOK': 'MacBook',
+  'MONITOR': 'Monitor', 'PRINTER': 'Drucker', 'ROUTER': 'Router',
+  'SWITCH': 'Switch', 'SERVER': 'Server', 'PHONE': 'Telefon',
+  'TABLET': 'Tablet', 'OTHER': 'Sonstiges',
 };
 const _hwIcons = {
-  'PC': Icons.computer, 'LAPTOP': Icons.laptop, 'MONITOR': Icons.monitor,
-  'PRINTER': Icons.print, 'ROUTER': Icons.router, 'SWITCH': Icons.device_hub,
-  'SERVER': Icons.dns, 'PHONE': Icons.phone_android, 'TABLET': Icons.tablet,
-  'OTHER': Icons.devices_other,
+  'PC': Icons.computer, 'LAPTOP': Icons.laptop,
+  'MAC': Icons.desktop_mac, 'MACBOOK': Icons.laptop_mac,
+  'MONITOR': Icons.monitor, 'PRINTER': Icons.print,
+  'ROUTER': Icons.router, 'SWITCH': Icons.device_hub,
+  'SERVER': Icons.dns, 'PHONE': Icons.phone_android,
+  'TABLET': Icons.tablet, 'OTHER': Icons.devices_other,
 };
 
 class HardwareBundleScreen extends ConsumerWidget {

@@ -340,25 +340,45 @@ class _PlannedTaskRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = task.task.plannedDate!;
     final timeStr = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    final priorityColor = switch (task.task.priority) {
+      'CRITICAL' => Colors.red,
+      'HIGH' => Colors.orange,
+      'LOW' => Colors.blueGrey.shade300,
+      _ => Colors.transparent,
+    };
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
-      child: ListTile(
-        onTap: onTap,
-        leading: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(timeStr,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold)),
+      clipBehavior: Clip.hardEdge,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (task.task.priority != 'NORMAL')
+              Container(width: 4, color: priorityColor),
+            Expanded(
+              child: ListTile(
+                onTap: onTap,
+                leading: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(timeStr,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold)),
+                ),
+                title: Text(task.task.title,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle:
+                    task.customer != null ? Text(task.customer!.name) : null,
+                trailing: _StatusDot(status: task.task.status),
+              ),
+            ),
+          ],
         ),
-        title: Text(task.task.title,
-            maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: task.customer != null ? Text(task.customer!.name) : null,
-        trailing: _StatusDot(status: task.task.status),
       ),
     );
   }
@@ -458,48 +478,66 @@ class _TaskRow extends StatelessWidget {
     final ae = task.aeCount(aeMin);
     final cs = Theme.of(context).colorScheme;
     final isActive = isTimerRunning || isTimerPaused;
+    final priorityColor = switch (task.task.priority) {
+      'CRITICAL' => Colors.red,
+      'HIGH' => Colors.orange,
+      'LOW' => Colors.blueGrey.shade300,
+      _ => Colors.transparent,
+    };
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        onTap: onTap,
-        leading: isTimerRunning
-            ? Icon(Icons.timer, color: cs.primary)
-            : Icon(Icons.radio_button_unchecked, color: cs.outline),
-        title: Text(task.task.title,
-            maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: task.customer != null ? Text(task.customer!.name) : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      clipBehavior: Clip.hardEdge,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('$ae AE', style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(width: 8),
-            // Play/Pause
-            GestureDetector(
-              onTap: isTimerRunning
-                  ? onTimerPause
-                  : isTimerPaused
-                      ? onTimerResume
-                      : onTimerStart,
-              child: Icon(
-                isTimerRunning
-                    ? Icons.pause_circle
-                    : isTimerPaused
-                        ? Icons.play_circle
-                        : Icons.play_circle_outline,
-                color: isActive ? cs.primary : cs.outline,
-                size: 28,
+            if (task.task.priority != 'NORMAL')
+              Container(width: 4, color: priorityColor),
+            Expanded(
+              child: ListTile(
+                onTap: onTap,
+                leading: isTimerRunning
+                    ? Icon(Icons.timer, color: cs.primary)
+                    : Icon(Icons.radio_button_unchecked, color: cs.outline),
+                title: Text(task.task.title,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle:
+                    task.customer != null ? Text(task.customer!.name) : null,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('$ae AE',
+                        style: Theme.of(context).textTheme.labelMedium),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: isTimerRunning
+                          ? onTimerPause
+                          : isTimerPaused
+                              ? onTimerResume
+                              : onTimerStart,
+                      child: Icon(
+                        isTimerRunning
+                            ? Icons.pause_circle
+                            : isTimerPaused
+                                ? Icons.play_circle
+                                : Icons.play_circle_outline,
+                        color: isActive ? cs.primary : cs.outline,
+                        size: 28,
+                      ),
+                    ),
+                    if (isActive) ...[
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: onTimerStop,
+                        child: Icon(Icons.stop_circle_outlined,
+                            color: cs.error, size: 26),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
-            // Stop (only when active)
-            if (isActive) ...[
-              const SizedBox(width: 4),
-              GestureDetector(
-                onTap: onTimerStop,
-                child: Icon(Icons.stop_circle_outlined,
-                    color: cs.error, size: 26),
-              ),
-            ],
           ],
         ),
       ),

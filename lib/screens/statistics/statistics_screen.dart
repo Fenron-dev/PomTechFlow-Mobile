@@ -89,7 +89,7 @@ class _StatisticsBody extends ConsumerWidget {
         // Tasks nach Status
         final completed = tasks
             .where((t) =>
-                t.task.status == 'COMPLETED' || t.task.status == 'CRM_DONE')
+                t.task.status == 'COMPLETED')
             .length;
         final active = tasks.where((t) => t.task.status == 'ACTIVE').length;
         final planned = tasks.where((t) => t.task.status == 'PLANNED').length;

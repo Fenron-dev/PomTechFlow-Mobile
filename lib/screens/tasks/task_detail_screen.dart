@@ -83,10 +83,7 @@ class TaskDetailScreen extends ConsumerWidget {
                 PopupMenuButton<String>(
                   tooltip: 'Status setzen',
                   onSelected: (v) async {
-                    if (v == 'crm') {
-                      await _setStatus(ref, taskId, 'CRM_DONE');
-                      onTaskChanged?.call();
-                    } else if (v == 'done') {
+                    if (v == 'done') {
                       await _markDone(ref, taskId);
                       onTaskChanged?.call();
                     } else if (v == 'planned') {
@@ -102,15 +99,6 @@ class TaskDetailScreen extends ConsumerWidget {
                         Icon(Icons.check_circle_outline, color: Colors.green),
                         SizedBox(width: 10),
                         Text('Abschließen'),
-                      ]),
-                    ),
-                    PopupMenuItem(
-                      value: 'crm',
-                      enabled: task.status != 'CRM_DONE',
-                      child: const Row(children: [
-                        Icon(Icons.cloud_done_outlined, color: Colors.teal),
-                        SizedBox(width: 10),
-                        Text('Im CRM erfassen'),
                       ]),
                     ),
                     PopupMenuItem(

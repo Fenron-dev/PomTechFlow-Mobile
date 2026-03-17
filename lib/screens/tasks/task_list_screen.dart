@@ -486,7 +486,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         'PLANNED' => 'geplante',
         'ACTIVE' => 'aktive',
         'COMPLETED' => 'erledigte',
-        'CRM_DONE' => 'im CRM erfasste',
         _ => f,
       };
 
@@ -554,7 +553,6 @@ class _FilterBar extends StatelessWidget {
       ('PLANNED', 'Geplant'),
       ('ACTIVE', 'Aktiv'),
       ('COMPLETED', 'Erledigt'),
-      ('CRM_DONE', 'Im CRM'),
     ];
     return SizedBox(
       height: 48,

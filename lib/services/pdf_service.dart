@@ -11,10 +11,10 @@ import '../db/database.dart';
 import '../providers/tasks_provider.dart';
 
 const _hwLabels = {
-  'PC': 'PC', 'LAPTOP': 'Laptop', 'MONITOR': 'Monitor',
-  'PRINTER': 'Drucker', 'ROUTER': 'Router', 'SWITCH': 'Switch',
-  'SERVER': 'Server', 'PHONE': 'Telefon', 'TABLET': 'Tablet',
-  'OTHER': 'Sonstiges',
+  'PC': 'PC', 'LAPTOP': 'Laptop', 'MAC': 'Mac', 'MACBOOK': 'MacBook',
+  'MONITOR': 'Monitor', 'PRINTER': 'Drucker', 'ROUTER': 'Router',
+  'SWITCH': 'Switch', 'SERVER': 'Server', 'PHONE': 'Telefon',
+  'TABLET': 'Tablet', 'OTHER': 'Sonstiges',
 };
 
 class PdfReportData {

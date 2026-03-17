@@ -42,7 +42,6 @@ class TaskCard extends StatelessWidget {
     final statusIcon = switch (t.status) {
       'ACTIVE' => Icon(Icons.timer, color: cs.primary, size: 22),
       'COMPLETED' => Icon(Icons.check_circle, color: Colors.green, size: 22),
-      'CRM_DONE' => Icon(Icons.cloud_done_outlined, color: Colors.teal, size: 22),
       _ => Icon(Icons.radio_button_unchecked, color: cs.outline, size: 22),
     };
 
@@ -51,21 +50,18 @@ class TaskCard extends StatelessWidget {
       'ACTIVE' => Colors.blue.shade100,
       'COMPLETED' => Colors.green.shade100,
       'PAUSED' => Colors.orange.shade100,
-      'CRM_DONE' => Colors.teal.shade100,
       _ => cs.surfaceContainerHighest,
     };
     final badgeTextColor = switch (t.status) {
       'ACTIVE' => Colors.blue.shade800,
       'COMPLETED' => Colors.green.shade800,
       'PAUSED' => Colors.orange.shade800,
-      'CRM_DONE' => Colors.teal.shade800,
       _ => cs.onSurface,
     };
     final badgeLabel = switch (t.status) {
       'ACTIVE' => 'AKTIV',
       'COMPLETED' => 'ERLEDIGT',
       'PAUSED' => 'PAUSIERT',
-      'CRM_DONE' => 'CRM',
       _ => 'GEPLANT',
     };
 
@@ -77,7 +73,7 @@ class TaskCard extends StatelessWidget {
     };
 
     final isActiveTimer = isTimerRunning || isTimerPaused;
-    final canStartTimer = t.status != 'COMPLETED' && t.status != 'CRM_DONE';
+    final canStartTimer = t.status != 'COMPLETED';
 
     return Card(
       margin: EdgeInsets.zero,
