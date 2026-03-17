@@ -23,12 +23,12 @@ class TaskHandoverService {
 
     final todos = await (db.select(db.todos)
           ..where((t) => t.taskId.equals(taskId))
-          ..orderBy([(t) => drift.OrderingTerm(expression: t.sortOrder)]))
+          ..orderBy([(t) => drift.OrderingTerm.asc(t.sortOrder)]))
         .get();
 
     final hardware = await (db.select(db.hardware)
           ..where((h) => h.taskId.equals(taskId))
-          ..orderBy([(h) => drift.OrderingTerm(expression: h.sortOrder)]))
+          ..orderBy([(h) => drift.OrderingTerm.asc(h.sortOrder)]))
         .get();
 
     final notes = await (db.select(db.notes)
@@ -145,7 +145,13 @@ class TaskHandoverService {
     if (path == null) return TaskHandoverImportResult.cancelled();
 
     try {
-      final content = await File(path).readAsString();
+      final file = File(path);
+      final fileSize = await file.length();
+      if (fileSize > 50 * 1024 * 1024) {
+        return TaskHandoverImportResult.error(
+            'Datei zu groß (max. 50 MB). Bitte eine gültige .ptf-Datei wählen.');
+      }
+      final content = await file.readAsString();
       final data = jsonDecode(content) as Map<String, dynamic>;
 
       if (data['type'] != 'task_handover') {

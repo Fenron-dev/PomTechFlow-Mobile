@@ -40,7 +40,7 @@ class DataExchangeService {
       for (final wf in wfs) {
         final items = await (db.select(db.workflowItems)
               ..where((i) => i.workflowId.equals(wf.id))
-              ..orderBy([(i) => drift.OrderingTerm(expression: i.sortOrder)]))
+              ..orderBy([(i) => drift.OrderingTerm.asc(i.sortOrder)]))
             .get();
         wfList.add({
           'id': wf.id,
@@ -58,7 +58,7 @@ class DataExchangeService {
       for (final b in bundles) {
         final items = await (db.select(db.hardwareBundleItems)
               ..where((i) => i.bundleId.equals(b.id))
-              ..orderBy([(i) => drift.OrderingTerm(expression: i.sortOrder)]))
+              ..orderBy([(i) => drift.OrderingTerm.asc(i.sortOrder)]))
             .get();
         bundleList.add({
           'id': b.id,

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/tasks_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../db/database.dart';
-import 'package:drift/drift.dart' show OrderingTerm, OrderingMode;
+import 'package:drift/drift.dart' show OrderingTerm;
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});

@@ -24,7 +24,7 @@ class TaskWithDetails {
       task.totalMinutes == 0 ? 0 : (task.totalMinutes / aeMinutes).ceil();
 }
 
-// Alle Tasks laden
+// Alle Tasks laden – bulk-load statt N+1-Queries
 final tasksProvider = FutureProvider<List<TaskWithDetails>>((ref) async {
   final db = ref.watch(databaseProvider);
 
@@ -32,30 +32,26 @@ final tasksProvider = FutureProvider<List<TaskWithDetails>>((ref) async {
         ..orderBy([(t) => drift.OrderingTerm.desc(t.updatedAt)]))
       .get();
 
-  final result = <TaskWithDetails>[];
-  for (final task in tasks) {
-    Customer? customer;
-    if (task.customerId != null) {
-      customer = await (db.select(db.customers)
-            ..where((c) => c.id.equals(task.customerId!)))
-          .getSingleOrNull();
-    }
-    final todos = await (db.select(db.todos)
-          ..where((t) => t.taskId.equals(task.id)))
-        .get();
-    final sessions = await (db.select(db.sessions)
-          ..where((s) => s.taskId.equals(task.id)))
-        .get();
+  if (tasks.isEmpty) return [];
 
-    result.add(TaskWithDetails(
+  // Alle verknüpften Daten in je einer Query laden
+  final customers = await db.select(db.customers).get();
+  final todos = await db.select(db.todos).get();
+  final sessions = await db.select(db.sessions).get();
+
+  final customerMap = {for (final c in customers) c.id: c};
+
+  return tasks.map((task) {
+    final taskTodos = todos.where((t) => t.taskId == task.id).toList();
+    final taskSessions = sessions.where((s) => s.taskId == task.id).toList();
+    return TaskWithDetails(
       task: task,
-      customer: customer,
-      todoCount: todos.length,
-      todoDoneCount: todos.where((t) => t.completed).length,
-      sessionCount: sessions.length,
-    ));
-  }
-  return result;
+      customer: task.customerId != null ? customerMap[task.customerId] : null,
+      todoCount: taskTodos.length,
+      todoDoneCount: taskTodos.where((t) => t.completed).length,
+      sessionCount: taskSessions.length,
+    );
+  }).toList();
 });
 
 // Einzelner Task

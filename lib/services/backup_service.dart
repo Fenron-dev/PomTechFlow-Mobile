@@ -104,123 +104,127 @@ class BackupService {
     final version = backup['version'] as int? ?? 0;
     if (version != 1) return 'Unbekanntes Backup-Format (Version $version)';
 
-    await db.transaction(() async {
-      // Settings
-      for (final s in (backup['settings'] as List)) {
-        await db.into(db.appSettings).insertOnConflictUpdate(
-            AppSettingsCompanion.insert(key: s['key'], value: s['value']));
-      }
+    try {
+      await db.transaction(() async {
+        // Settings
+        for (final s in (backup['settings'] as List)) {
+          await db.into(db.appSettings).insertOnConflictUpdate(
+              AppSettingsCompanion.insert(key: s['key'], value: s['value']));
+        }
 
-      // Customers
-      await db.delete(db.customers).go();
-      for (final c in (backup['customers'] as List)) {
-        await db.into(db.customers).insertOnConflictUpdate(CustomersCompanion(
-          id: Value(c['id']),
-          name: Value(c['name']),
-          email: Value(c['email']),
-          phone: Value(c['phone']),
-          address: Value(c['address']),
-          notes: Value(c['notes']),
-          createdAt: Value(DateTime.parse(c['createdAt'])),
-        ));
-      }
+        // Customers
+        await db.delete(db.customers).go();
+        for (final c in (backup['customers'] as List)) {
+          await db.into(db.customers).insertOnConflictUpdate(CustomersCompanion(
+            id: Value(c['id']),
+            name: Value(c['name']),
+            email: Value(c['email']),
+            phone: Value(c['phone']),
+            address: Value(c['address']),
+            notes: Value(c['notes']),
+            createdAt: Value(DateTime.tryParse(c['createdAt'] ?? '') ?? DateTime.now()),
+          ));
+        }
 
-      // Workflows
-      await db.delete(db.workflows).go();
-      for (final w in (backup['workflows'] as List)) {
-        await db.into(db.workflows).insertOnConflictUpdate(WorkflowsCompanion(
-          id: Value(w['id']),
-          name: Value(w['name']),
-          description: Value(w['description']),
-        ));
-      }
-      await db.delete(db.workflowItems).go();
-      for (final i in (backup['workflowItems'] as List)) {
-        await db.into(db.workflowItems).insertOnConflictUpdate(
-            WorkflowItemsCompanion(
-          id: Value(i['id']),
-          workflowId: Value(i['workflowId']),
-          itemText: Value(i['itemText']),
-          sortOrder: Value(i['sortOrder'] ?? 0),
-        ));
-      }
+        // Workflows
+        await db.delete(db.workflows).go();
+        for (final w in (backup['workflows'] as List)) {
+          await db.into(db.workflows).insertOnConflictUpdate(WorkflowsCompanion(
+            id: Value(w['id']),
+            name: Value(w['name']),
+            description: Value(w['description']),
+          ));
+        }
+        await db.delete(db.workflowItems).go();
+        for (final i in (backup['workflowItems'] as List)) {
+          await db.into(db.workflowItems).insertOnConflictUpdate(
+              WorkflowItemsCompanion(
+            id: Value(i['id']),
+            workflowId: Value(i['workflowId']),
+            itemText: Value(i['itemText']),
+            sortOrder: Value(i['sortOrder'] ?? 0),
+          ));
+        }
 
-      // Tasks
-      await db.delete(db.tasks).go();
-      for (final t in (backup['tasks'] as List)) {
-        await db.into(db.tasks).insertOnConflictUpdate(TasksCompanion(
-          id: Value(t['id']),
-          title: Value(t['title']),
-          description: Value(t['description']),
-          status: Value(t['status']),
-          customerId: Value(t['customerId']),
-          priority: Value(t['priority'] ?? 'NORMAL'),
-          totalMinutes: Value(t['totalMinutes'] ?? 0),
-          plannedDate: Value(t['plannedDate'] != null
-              ? DateTime.parse(t['plannedDate'])
-              : null),
-          recurring: Value(t['recurring'] ?? false),
-          recurrenceType: Value(t['recurrenceType']),
-          recurrenceInterval: Value(t['recurrenceInterval'] ?? 1),
-          createdAt: Value(DateTime.parse(t['createdAt'])),
-          updatedAt: Value(DateTime.parse(t['updatedAt'])),
-        ));
-      }
+        // Tasks
+        await db.delete(db.tasks).go();
+        for (final t in (backup['tasks'] as List)) {
+          await db.into(db.tasks).insertOnConflictUpdate(TasksCompanion(
+            id: Value(t['id']),
+            title: Value(t['title']),
+            description: Value(t['description']),
+            status: Value(t['status']),
+            customerId: Value(t['customerId']),
+            priority: Value(t['priority'] ?? 'NORMAL'),
+            totalMinutes: Value(t['totalMinutes'] ?? 0),
+            plannedDate: Value(t['plannedDate'] != null
+                ? DateTime.tryParse(t['plannedDate'])
+                : null),
+            recurring: Value(t['recurring'] ?? false),
+            recurrenceType: Value(t['recurrenceType']),
+            recurrenceInterval: Value(t['recurrenceInterval'] ?? 1),
+            createdAt: Value(DateTime.tryParse(t['createdAt'] ?? '') ?? DateTime.now()),
+            updatedAt: Value(DateTime.tryParse(t['updatedAt'] ?? '') ?? DateTime.now()),
+          ));
+        }
 
-      // Todos
-      await db.delete(db.todos).go();
-      for (final t in (backup['todos'] as List)) {
-        await db.into(db.todos).insertOnConflictUpdate(TodosCompanion(
-          id: Value(t['id']),
-          taskId: Value(t['taskId']),
-          content: Value(t['content']),
-          completed: Value(t['completed'] ?? false),
-          sortOrder: Value(t['sortOrder'] ?? 0),
-          workflowId: Value(t['workflowId']),
-          workflowName: Value(t['workflowName']),
-        ));
-      }
+        // Todos
+        await db.delete(db.todos).go();
+        for (final t in (backup['todos'] as List)) {
+          await db.into(db.todos).insertOnConflictUpdate(TodosCompanion(
+            id: Value(t['id']),
+            taskId: Value(t['taskId']),
+            content: Value(t['content']),
+            completed: Value(t['completed'] ?? false),
+            sortOrder: Value(t['sortOrder'] ?? 0),
+            workflowId: Value(t['workflowId']),
+            workflowName: Value(t['workflowName']),
+          ));
+        }
 
-      // Hardware
-      await db.delete(db.hardware).go();
-      for (final h in (backup['hardware'] as List)) {
-        await db.into(db.hardware).insertOnConflictUpdate(HardwareCompanion(
-          id: Value(h['id']),
-          taskId: Value(h['taskId']),
-          type: Value(h['type']),
-          name: Value(h['name']),
-          serial: Value(h['serial']),
-          notes: Value(h['notes']),
-        ));
-      }
+        // Hardware
+        await db.delete(db.hardware).go();
+        for (final h in (backup['hardware'] as List)) {
+          await db.into(db.hardware).insertOnConflictUpdate(HardwareCompanion(
+            id: Value(h['id']),
+            taskId: Value(h['taskId']),
+            type: Value(h['type']),
+            name: Value(h['name']),
+            serial: Value(h['serial']),
+            notes: Value(h['notes']),
+          ));
+        }
 
-      // Notes
-      await db.delete(db.notes).go();
-      for (final n in (backup['notes'] as List)) {
-        await db.into(db.notes).insertOnConflictUpdate(NotesCompanion(
-          id: Value(n['id']),
-          taskId: Value(n['taskId']),
-          content: Value(n['content']),
-          createdAt: Value(DateTime.parse(n['createdAt'])),
-        ));
-      }
+        // Notes
+        await db.delete(db.notes).go();
+        for (final n in (backup['notes'] as List)) {
+          await db.into(db.notes).insertOnConflictUpdate(NotesCompanion(
+            id: Value(n['id']),
+            taskId: Value(n['taskId']),
+            content: Value(n['content']),
+            createdAt: Value(DateTime.tryParse(n['createdAt'] ?? '') ?? DateTime.now()),
+          ));
+        }
 
-      // Sessions
-      await db.delete(db.sessions).go();
-      for (final s in (backup['sessions'] as List)) {
-        await db.into(db.sessions).insertOnConflictUpdate(SessionsCompanion(
-          id: Value(s['id']),
-          taskId: Value(s['taskId']),
-          duration: Value(s['duration'] ?? 0),
-          type: Value(s['type'] ?? 'WORK'),
-          note: Value(s['note']),
-          startTime: Value(DateTime.parse(s['startTime'])),
-          endTime: Value(s['endTime'] != null
-              ? DateTime.parse(s['endTime'])
-              : null),
-        ));
-      }
-    });
+        // Sessions
+        await db.delete(db.sessions).go();
+        for (final s in (backup['sessions'] as List)) {
+          await db.into(db.sessions).insertOnConflictUpdate(SessionsCompanion(
+            id: Value(s['id']),
+            taskId: Value(s['taskId']),
+            duration: Value(s['duration'] ?? 0),
+            type: Value(s['type'] ?? 'WORK'),
+            note: Value(s['note']),
+            startTime: Value(DateTime.tryParse(s['startTime'] ?? '') ?? DateTime.now()),
+            endTime: Value(s['endTime'] != null
+                ? DateTime.tryParse(s['endTime'])
+                : null),
+          ));
+        }
+      });
+    } catch (e) {
+      return 'Fehler beim Importieren: $e';
+    }
 
     return 'OK';
   }
