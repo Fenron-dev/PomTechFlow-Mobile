@@ -17,7 +17,25 @@ class HandbuchScreen extends StatelessWidget {
               _Entry(
                 title: 'Laufender Task',
                 body:
-                    'Das Dashboard zeigt den aktuell aktiven Task mit Echtzeit-Timer, Status-Badge und dem zuletzt gespeicherten Sitzungstyp. Über die Statusleiste kannst du den Task direkt auf Abgeschlossen setzen.',
+                    'Das Dashboard zeigt aktive und geplante Tasks mit Echtzeit-Timer, Status-Badge und Prioritätsbalken. Play/Pause/Stopp direkt in der Karte bedienbar.',
+              ),
+              _Entry(
+                title: 'Prioritätsbalken',
+                body:
+                    'Tasks mit erhöhter Priorität zeigen einen farbigen 4px-Balken links:\n'
+                    '• Rot = Kritisch\n'
+                    '• Orange = Hoch\n'
+                    '• Blaugrau = Niedrig\n'
+                    'Sichtbar in der Task-Liste und auf dem Dashboard.',
+              ),
+              _Entry(
+                title: 'Schnell-Stoppuhr',
+                body:
+                    'Oben auf dem Dashboard befindet sich eine eigenständige Stoppuhr – unabhängig von Tasks.\n'
+                    '• Start: Zähler läuft sofort\n'
+                    '• Pause/Resume: erscheint sobald die Stoppuhr aktiv ist\n'
+                    '• Stopp: fragt ob die gemessene Zeit als neuer Task gespeichert werden soll (mit optionalem Kunden)\n'
+                    'Shortcut: Ctrl+Shift+Space (Start/Pause), Ctrl+Shift+Enter (Stopp)',
               ),
               _Entry(
                 title: 'Neuen Task erstellen (+ Taste)',
@@ -53,9 +71,10 @@ class HandbuchScreen extends StatelessWidget {
               _Entry(
                 title: 'Zeiterfassung & AE',
                 body:
-                    'Der Timer läuft pro Sitzung. Typen: Arbeit, Pause, Fahrt, Telefon.\n'
+                    'Der Timer startet sofort ohne Dialog – direkt auf Play drücken.\n'
                     'AE (Arbeitseinheit) wird automatisch aus den Gesamtminuten berechnet: 1 AE = einstellbares Intervall (Standard 10 Min, aufrunden).\n'
-                    'AE kopieren: In der Übersicht gibt es einen Button "AE kopieren" für die Zwischenablage.',
+                    'AE kopieren: In der Übersicht gibt es einen Button "AE kopieren" für die Zwischenablage.\n'
+                    'Beim Stoppen erscheint ein Dialog: erledigte Todos abhaken + optionale Sitzungsnotiz.',
               ),
               _Entry(
                 title: 'Zeitbudget & Warnanzeige',
@@ -85,6 +104,7 @@ class HandbuchScreen extends StatelessWidget {
                     '• Aus Geräte-Bibliothek wählen\n'
                     '• Ganzes Hardware-Bundle anwenden\n'
                     '• Manuell erfassen\n'
+                    'Unterstützte Typen: PC, Laptop, Mac, MacBook, Monitor, Drucker, Router, Switch, Server, Telefon, Tablet, Sonstiges.\n'
                     'Typ, Bezeichnung und Seriennummer werden im PDF-Bericht aufgeführt.',
               ),
               _Entry(
@@ -224,13 +244,66 @@ class HandbuchScreen extends StatelessWidget {
               _Entry(
                 title: 'Backup & Wiederherstellung',
                 body:
-                    'Erstellt eine vollständige JSON-Sicherung aller Daten (Tasks, Kunden, Workflows, Einstellungen). Backup vor App-Updates oder Gerätewechsel empfohlen.',
+                    'Erstellt eine vollständige JSON-Sicherung aller Daten (Tasks, Kunden, Workflows, Einstellungen). Backup vor App-Updates oder Gerätewechsel empfohlen.\n'
+                    'Manuell: "Backup erstellen" öffnet den Teilen-Dialog.\n'
+                    '"Backup laden" importiert eine JSON-Datei (überschreibt alle Daten).',
+              ),
+              _Entry(
+                title: 'Automatisches Backup',
+                body:
+                    'Aktivierbar in Einstellungen → Automatisches Backup.\n'
+                    '• Läuft täglich automatisch beim App-Start\n'
+                    '• Zielordner frei wählbar (Desktop/Android); auf iOS immer App-Dokumente-Ordner\n'
+                    '• Backups älter als 7 Tage werden automatisch gelöscht\n'
+                    '• Datum des letzten Backups wird in den Einstellungen angezeigt',
+              ),
+              _Entry(
+                title: 'Logo (macOS / iOS)',
+                body:
+                    'Das Firmen-Logo für PDF-Berichte kann auf allen Plattformen ausgewählt werden. Die Datei wird in den App-Dokumenten-Ordner kopiert und bleibt auch nach App-Updates erhalten.',
+              ),
+            ],
+          ),
+          _Section(
+            icon: Icons.keyboard_outlined,
+            title: 'Tastenkürzel (Desktop)',
+            children: [
+              _Entry(
+                title: 'Globale Shortcuts',
+                body:
+                    'Ctrl = Control auf Windows/Linux · ⌘ = Command auf macOS\n\n'
+                    'Ctrl+N / ⌘N         → Neuer Task\n'
+                    'Ctrl+T / ⌘T         → Task-Timer starten/pausieren\n'
+                    'Ctrl+F / ⌘F         → Suche öffnen\n'
+                    'Ctrl+, / ⌘,         → Einstellungen\n'
+                    'Ctrl+1              → Dashboard\n'
+                    'Ctrl+2              → Tasks\n'
+                    'Ctrl+3              → Notizen',
+              ),
+              _Entry(
+                title: 'Schnell-Stoppuhr Shortcuts',
+                body:
+                    'Ctrl+Shift+Space    → Start · Pause · Resume (Toggle)\n'
+                    'Ctrl+Shift+Enter    → Stopp + Speicher-Dialog\n\n'
+                    'Diese Shortcuts funktionieren von jedem Screen aus.',
+              ),
+              _Entry(
+                title: 'Timer-Toggle (Ctrl+T)',
+                body:
+                    '• Läuft ein Timer → pausieren\n'
+                    '• Timer pausiert → fortsetzen\n'
+                    '• Kein Timer aktiv → Timer des ersten AKTIVEN Tasks starten',
+              ),
+              _Entry(
+                title: 'Desktop-Menüleiste',
+                body:
+                    'Die Menüleiste (Datei / Ansicht) zeigt alle Shortcuts zur Referenz an. Sie ist nur auf Windows, Linux und macOS sichtbar.',
               ),
             ],
           ),
           _Section(
             icon: Icons.info_outline,
-            title: 'Tipps & Tastenkürzel',
+            title: 'Tipps',
             children: [
               _Entry(
                 title: 'Navigation zurück zur Root-Ansicht',
@@ -250,7 +323,14 @@ class HandbuchScreen extends StatelessWidget {
               _Entry(
                 title: 'Desktop (Windows/Linux/macOS)',
                 body:
-                    'Auf Desktop-Plattformen wird eine Seitenleiste (NavigationRail) angezeigt. Bei breiten Fenstern (≥ 1200 px) erscheinen die Labels. Die Menüleiste oben bietet Datei- und Ansicht-Schnellzugriff.',
+                    'Auf Desktop-Plattformen wird eine Seitenleiste (NavigationRail) angezeigt. Bei breiten Fenstern (≥ 1200 px) erscheinen die Labels.\n'
+                    'macOS: Datei-Picker und Ordner-Auswahl funktionieren dank Sandbox-Entitlements vollständig.',
+              ),
+              _Entry(
+                title: 'iOS – Dateizugriff',
+                body:
+                    'Auf iOS können keine beliebigen Ordnerpfade gesetzt werden (Sandbox). Dateien werden im App-Dokumente-Ordner gespeichert, der über die iOS Dateien-App zugänglich ist.\n'
+                    'Backups: täglich automatisch im Dokumente-Ordner/backups.',
               ),
             ],
           ),

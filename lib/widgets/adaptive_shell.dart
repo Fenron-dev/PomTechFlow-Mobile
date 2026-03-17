@@ -1,7 +1,9 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:go_router/go_router.dart';
+import 'keyboard_shortcuts.dart';
 
 class AdaptiveShell extends StatelessWidget {
   final StatefulNavigationShell shell;
@@ -111,6 +113,7 @@ class _AppMenuBar extends StatelessWidget {
             menuChildren: [
               MenuItemButton(
                 leadingIcon: const Icon(Icons.add, size: 16),
+                shortcut: sc(LogicalKeyboardKey.keyN),
                 onPressed: () => context.push('/tasks/new'),
                 child: const Text('Neuer Task'),
               ),
@@ -118,6 +121,31 @@ class _AppMenuBar extends StatelessWidget {
                 leadingIcon: const Icon(Icons.download_outlined, size: 16),
                 onPressed: () => context.push('/tasks'),
                 child: const Text('Task importieren (.ptf)'),
+              ),
+              const Divider(height: 1),
+              MenuItemButton(
+                leadingIcon: const Icon(Icons.timer_outlined, size: 16),
+                shortcut: sc(LogicalKeyboardKey.keyT),
+                onPressed: () {}, // handled globally via Shortcuts widget
+                child: const Text('Task-Timer starten/pausieren'),
+              ),
+              MenuItemButton(
+                leadingIcon: const Icon(Icons.av_timer_outlined, size: 16),
+                shortcut: const SingleActivator(
+                    LogicalKeyboardKey.space,
+                    control: true,
+                    shift: true),
+                onPressed: () {},
+                child: const Text('Stoppuhr Start/Pause'),
+              ),
+              MenuItemButton(
+                leadingIcon: const Icon(Icons.stop_outlined, size: 16),
+                shortcut: const SingleActivator(
+                    LogicalKeyboardKey.enter,
+                    control: true,
+                    shift: true),
+                onPressed: () {},
+                child: const Text('Stoppuhr Stopp'),
               ),
               const Divider(height: 1),
               MenuItemButton(
@@ -139,28 +167,33 @@ class _AppMenuBar extends StatelessWidget {
             menuChildren: [
               MenuItemButton(
                 leadingIcon: const Icon(Icons.dashboard_outlined, size: 16),
+                shortcut: scCtrl(LogicalKeyboardKey.digit1),
                 onPressed: () => shell.goBranch(0),
                 child: const Text('Dashboard'),
               ),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.checklist_outlined, size: 16),
+                shortcut: scCtrl(LogicalKeyboardKey.digit2),
                 onPressed: () => shell.goBranch(1),
                 child: const Text('Tasks'),
               ),
               MenuItemButton(
-                leadingIcon: const Icon(Icons.search, size: 16),
-                onPressed: () => context.push('/search'),
-                child: const Text('Suche'),
-              ),
-              const Divider(height: 1),
-              MenuItemButton(
                 leadingIcon: const Icon(Icons.note_outlined, size: 16),
+                shortcut: scCtrl(LogicalKeyboardKey.digit3),
                 onPressed: () => shell.goBranch(2),
                 child: const Text('Notizen'),
               ),
               const Divider(height: 1),
               MenuItemButton(
+                leadingIcon: const Icon(Icons.search, size: 16),
+                shortcut: sc(LogicalKeyboardKey.keyF),
+                onPressed: () => context.push('/search'),
+                child: const Text('Suche'),
+              ),
+              const Divider(height: 1),
+              MenuItemButton(
                 leadingIcon: const Icon(Icons.settings_outlined, size: 16),
+                shortcut: sc(LogicalKeyboardKey.comma),
                 onPressed: () => context.push('/settings'),
                 child: const Text('Einstellungen'),
               ),

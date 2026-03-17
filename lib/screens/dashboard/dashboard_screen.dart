@@ -6,10 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../providers/tasks_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/customers_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/general_notes_provider.dart';
 import '../../providers/task_templates_provider.dart';
+import '../../providers/quick_stopwatch_provider.dart';
 import '../../db/database.dart';
 import '../../widgets/timer_session_dialogs.dart';
 
@@ -110,6 +112,9 @@ class DashboardScreen extends ConsumerWidget {
                 child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // Schnellstoppuhr
+                const _QuickStopwatchCard(),
+                const SizedBox(height: 12),
                 // Schnellnotiz
                 const _QuickNoteCard(),
                 const SizedBox(height: 12),
@@ -152,7 +157,6 @@ class DashboardScreen extends ConsumerWidget {
                       sub: 'konfigurierbar',
                       icon: Icons.settings_outlined,
                       color: cs.surfaceContainerHighest,
-                      onTap: () => context.go('/settings'),
                     ),
                   ],
                 );
@@ -545,6 +549,290 @@ class _TaskRow extends StatelessWidget {
   }
 }
 
+
+// ─── Quick-Stopwatch Card ─────────────────────────────────────────────────────
+
+class _QuickStopwatchCard extends ConsumerStatefulWidget {
+  const _QuickStopwatchCard();
+
+  @override
+  ConsumerState<_QuickStopwatchCard> createState() =>
+      _QuickStopwatchCardState();
+}
+
+class _QuickStopwatchCardState extends ConsumerState<_QuickStopwatchCard> {
+  // State lives in quickStopwatchProvider — this widget only reacts to it.
+
+  String _fmt(int seconds) {
+    final h = seconds ~/ 3600;
+    final m = (seconds % 3600) ~/ 60;
+    final s = seconds % 60;
+    if (h > 0) {
+      return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _showSaveDialog(int seconds, DateTime startTime) async {
+    final customers = await ref
+        .read(customersProvider.future)
+        .catchError((_) => <Customer>[]);
+    if (!mounted) return;
+
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _SaveStopwatchSheet(
+        durationSeconds: seconds,
+        startTime: startTime,
+        customers: customers,
+      ),
+    );
+
+    ref.read(quickStopwatchProvider.notifier).clearPendingSave();
+
+    if (saved == true && mounted) {
+      ref.invalidate(tasksProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Task gespeichert')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Listen for pendingSave → show dialog
+    ref.listen<StopwatchState>(quickStopwatchProvider, (prev, next) {
+      if (next.pendingSave && !(prev?.pendingSave ?? false)) {
+        _showSaveDialog(next.seconds, next.startTime ?? DateTime.now());
+      }
+    });
+
+    final sw = ref.watch(quickStopwatchProvider);
+    final notifier = ref.read(quickStopwatchProvider.notifier);
+    final cs = Theme.of(context).colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Icon(Icons.timer_outlined,
+                color: sw.isRunning ? cs.primary : cs.outline, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Schnell-Stoppuhr',
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelMedium
+                          ?.copyWith(color: cs.outline)),
+                  Text(
+                    sw.isActive ? _fmt(sw.seconds) : '--:--',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                        color: sw.isRunning ? cs.primary : cs.onSurface),
+                  ),
+                ],
+              ),
+            ),
+            // Play / Pause button
+            if (!sw.isIdle)
+              IconButton(
+                tooltip: sw.isRunning ? 'Pausieren' : 'Fortsetzen',
+                icon: Icon(
+                    sw.isRunning ? Icons.pause_circle : Icons.play_circle),
+                color: cs.primary,
+                iconSize: 30,
+                onPressed: sw.isRunning ? notifier.pause : notifier.resume,
+              ),
+            // Start / Stop button
+            if (sw.isIdle)
+              FilledButton.tonalIcon(
+                onPressed: notifier.start,
+                icon: const Icon(Icons.play_arrow, size: 18),
+                label: const Text('Start'),
+              )
+            else
+              FilledButton.tonalIcon(
+                onPressed: notifier.stopAndRequestSave,
+                icon: const Icon(Icons.stop, size: 18),
+                label: const Text('Stopp'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: cs.errorContainer,
+                  foregroundColor: cs.onErrorContainer,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Save-Stopwatch Dialog ────────────────────────────────────────────────────
+
+class _SaveStopwatchSheet extends ConsumerStatefulWidget {
+  final int durationSeconds;
+  final DateTime startTime;
+  final List<Customer> customers;
+
+  const _SaveStopwatchSheet({
+    required this.durationSeconds,
+    required this.startTime,
+    required this.customers,
+  });
+
+  @override
+  ConsumerState<_SaveStopwatchSheet> createState() =>
+      _SaveStopwatchSheetState();
+}
+
+class _SaveStopwatchSheetState extends ConsumerState<_SaveStopwatchSheet> {
+  late final TextEditingController _titleCtrl;
+  String? _customerId;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _titleCtrl = TextEditingController(
+      text:
+          'Schnellerfassung ${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}. ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+    );
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    super.dispose();
+  }
+
+  String get _durationStr {
+    final h = widget.durationSeconds ~/ 3600;
+    final m = (widget.durationSeconds % 3600) ~/ 60;
+    final s = widget.durationSeconds % 60;
+    if (h > 0) return '${h}h ${m}m ${s}s';
+    if (m > 0) return '${m}m ${s}s';
+    return '${s}s';
+  }
+
+  Future<void> _save() async {
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) return;
+
+    final db = ref.read(databaseProvider);
+    final taskId = 'task_${DateTime.now().millisecondsSinceEpoch}';
+    final durationMins = max(1, (widget.durationSeconds / 60).ceil());
+
+    await db.into(db.tasks).insert(TasksCompanion.insert(
+          id: drift.Value(taskId),
+          title: title,
+          status: const drift.Value('COMPLETED'),
+          customerId: drift.Value(_customerId),
+          totalMinutes: drift.Value(durationMins),
+        ));
+
+    final sessionId = 'sess_${DateTime.now().millisecondsSinceEpoch}_$taskId';
+    await db.into(db.sessions).insert(SessionsCompanion.insert(
+          id: drift.Value(sessionId),
+          taskId: taskId,
+          startTime: widget.startTime,
+          endTime: drift.Value(DateTime.now()),
+          duration: drift.Value(durationMins),
+          type: const drift.Value('WORK'),
+        ));
+
+    if (mounted) Navigator.pop(context, true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        left: 16,
+        right: 16,
+        top: 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.save_outlined),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Zeit als Task speichern?',
+                    style: Theme.of(context).textTheme.titleLarge),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _durationStr,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _titleCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Bezeichnung *',
+              hintText: 'z.B. Telefonat Kunde X',
+            ),
+            textCapitalization: TextCapitalization.sentences,
+            autofocus: true,
+          ),
+          const SizedBox(height: 12),
+          if (widget.customers.isNotEmpty)
+            DropdownButtonFormField<String>(
+              initialValue: _customerId,
+              decoration: const InputDecoration(labelText: 'Kunde (optional)'),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('Kein Kunde')),
+                ...widget.customers.map((c) =>
+                    DropdownMenuItem(value: c.id, child: Text(c.name))),
+              ],
+              onChanged: (v) => setState(() => _customerId = v),
+            ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Verwerfen'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _save,
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text('Speichern'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 // ─── Quick-Note Card ──────────────────────────────────────────────────────────
 

@@ -8,7 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../db/database.dart';
 
 class BackupService {
-  static Future<void> exportBackup(AppDatabase db) async {
+  static Future<Map<String, dynamic>> _buildBackupMap(AppDatabase db) async {
     final customers = await db.select(db.customers).get();
     final tasks = await db.select(db.tasks).get();
     final todos = await db.select(db.todos).get();
@@ -19,7 +19,7 @@ class BackupService {
     final workflowItems = await db.select(db.workflowItems).get();
     final appSettings = await db.select(db.appSettings).get();
 
-    final backup = {
+    return {
       'version': 1,
       'exportedAt': DateTime.now().toIso8601String(),
       'customers': customers.map((c) => {
@@ -68,8 +68,11 @@ class BackupService {
         'key': s.key, 'value': s.value,
       }).toList(),
     };
+  }
 
-    final json = const JsonEncoder.withIndent('  ').convert(backup);
+  static Future<void> exportBackup(AppDatabase db) async {
+    final json = const JsonEncoder.withIndent('  ')
+        .convert(await _buildBackupMap(db));
     final dateStr = DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
     final fileName = 'pomtechflow_backup_$dateStr.json';
 
@@ -81,6 +84,41 @@ class BackupService {
       [XFile(file.path, mimeType: 'application/json')],
       subject: 'PomTechFlow Backup $dateStr',
     );
+  }
+
+  /// Saves backup directly to [dirPath] without a share sheet.
+  /// Returns the saved file path, or throws on error.
+  /// Deletes backups in [dirPath] older than [keepDays] days.
+  static Future<String> exportBackupToDir(
+    AppDatabase db,
+    String dirPath, {
+    int keepDays = 7,
+  }) async {
+    final json = const JsonEncoder.withIndent('  ').convert(
+      await _buildBackupMap(db),
+    );
+    final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final fileName = 'pomtechflow_backup_$dateStr.json';
+    final file = File('$dirPath/$fileName');
+    await file.writeAsString(json);
+
+    // Clean up old backups
+    try {
+      final dir = Directory(dirPath);
+      final cutoff = DateTime.now().subtract(Duration(days: keepDays));
+      await for (final entity in dir.list()) {
+        if (entity is File &&
+            entity.path.contains('pomtechflow_backup_') &&
+            entity.path.endsWith('.json')) {
+          final stat = await entity.stat();
+          if (stat.modified.isBefore(cutoff)) await entity.delete();
+        }
+      }
+    } catch (_) {
+      // Cleanup failure is non-fatal
+    }
+
+    return file.path;
   }
 
   static Future<String> importBackup(AppDatabase db) async {

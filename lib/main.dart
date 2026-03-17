@@ -20,6 +20,9 @@ import 'services/notification_service.dart';
 import 'services/badge_service.dart';
 import 'providers/tasks_provider.dart';
 import 'widgets/adaptive_shell.dart';
+import 'widgets/keyboard_shortcuts.dart';
+import 'services/auto_backup_service.dart';
+import 'providers/database_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -117,6 +120,16 @@ class PomTechFlowApp extends ConsumerWidget {
       BadgeService.update(count);
     });
 
+    // Auto-Backup: einmalig beim ersten Build nach App-Start prüfen
+    ref.listen(settingsProvider, (prev, next) {
+      if (prev == null && next.hasValue) {
+        final settings = next.value!;
+        final db = ref.read(databaseProvider);
+        final notifier = ref.read(settingsProvider.notifier);
+        AutoBackupService.checkAndRun(db, settings, notifier);
+      }
+    });
+
     final settingsAsync = ref.watch(settingsProvider);
     final themeModeSetting = settingsAsync.valueOrNull?.themeMode ?? 'system';
     final themeMode = switch (themeModeSetting) {
@@ -132,6 +145,8 @@ class PomTechFlowApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: _router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) =>
+          KeyboardShortcutsWrapper(child: child ?? const SizedBox()),
     );
   }
 }

@@ -21,6 +21,12 @@ class AppSettings {
   /// Custom base directory for saving files (PDFs, Fotos, Exporte).
   /// Leerer String = Standard-App-Verzeichnis.
   final String storageBasePath;
+  /// Whether daily auto-backup is enabled.
+  final bool autoBackupEnabled;
+  /// Directory for automatic backups. Empty = app documents directory.
+  final String autoBackupPath;
+  /// ISO date string of last successful auto-backup (YYYY-MM-DD).
+  final String lastAutoBackupDate;
 
   const AppSettings({
     this.companyName = 'Meine IT-Firma',
@@ -35,6 +41,9 @@ class AppSettings {
     this.billingEmail = '',
     this.scratchPad = '',
     this.storageBasePath = '',
+    this.autoBackupEnabled = false,
+    this.autoBackupPath = '',
+    this.lastAutoBackupDate = '',
   });
 
   AppSettings copyWith({
@@ -51,6 +60,9 @@ class AppSettings {
     String? billingEmail,
     String? scratchPad,
     String? storageBasePath,
+    bool? autoBackupEnabled,
+    String? autoBackupPath,
+    String? lastAutoBackupDate,
   }) =>
       AppSettings(
         companyName: companyName ?? this.companyName,
@@ -65,6 +77,9 @@ class AppSettings {
         billingEmail: billingEmail ?? this.billingEmail,
         scratchPad: scratchPad ?? this.scratchPad,
         storageBasePath: storageBasePath ?? this.storageBasePath,
+        autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
+        autoBackupPath: autoBackupPath ?? this.autoBackupPath,
+        lastAutoBackupDate: lastAutoBackupDate ?? this.lastAutoBackupDate,
       );
 }
 
@@ -88,6 +103,9 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       billingEmail: map['billingEmail'] ?? '',
       scratchPad: map['scratchPad'] ?? '',
       storageBasePath: map['storageBasePath'] ?? '',
+      autoBackupEnabled: map['autoBackupEnabled'] == 'true',
+      autoBackupPath: map['autoBackupPath'] ?? '',
+      lastAutoBackupDate: map['lastAutoBackupDate'] ?? '',
     );
   }
 
@@ -106,6 +124,9 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       'billingEmail': settings.billingEmail,
       'scratchPad': settings.scratchPad,
       'storageBasePath': settings.storageBasePath,
+      'autoBackupEnabled': settings.autoBackupEnabled.toString(),
+      'autoBackupPath': settings.autoBackupPath,
+      'lastAutoBackupDate': settings.lastAutoBackupDate,
     };
     // If logoPath was cleared (null), delete the key from DB
     if (settings.logoPath == null) {

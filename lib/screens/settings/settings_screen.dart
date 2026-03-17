@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../providers/settings_provider.dart' hide AppSettings;
 import '../../providers/settings_provider.dart' as sp;
 import '../../providers/database_provider.dart';
@@ -12,6 +14,8 @@ import 'device_library_screen.dart';
 import 'task_templates_screen.dart';
 import 'data_exchange_screen.dart';
 import '../handbuch_screen.dart';
+
+bool get _isIOS => !kIsWeb && Platform.isIOS;
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -50,6 +54,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late int _longBreakMinutes;
   late String _themeMode;
   late String _storageBasePath;
+  late bool _autoBackupEnabled;
+  late String _autoBackupPath;
   bool _backupLoading = false;
 
   @override
@@ -65,6 +71,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     _longBreakMinutes = widget.settings.longBreakMinutes;
     _themeMode = widget.settings.themeMode;
     _storageBasePath = widget.settings.storageBasePath;
+    _autoBackupEnabled = widget.settings.autoBackupEnabled;
+    _autoBackupPath = widget.settings.autoBackupPath;
   }
 
   @override
@@ -76,20 +84,46 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   }
 
   Future<void> _pickStorageDir() async {
+    // iOS: directory picking not supported — use Documents directory
+    if (_isIOS) return;
     final path = await FilePicker.platform.getDirectoryPath(
       dialogTitle: 'Speicherort wählen',
     );
     if (path != null) setState(() => _storageBasePath = path);
   }
 
+  Future<void> _pickAutoBackupDir() async {
+    if (_isIOS) return;
+    final path = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Auto-Backup Ordner wählen',
+    );
+    if (path != null) setState(() => _autoBackupPath = path);
+  }
+
   Future<void> _pickLogo() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['png', 'jpg', 'jpeg'],
+      // withData: true gets bytes directly — required on iOS where path is temp
+      withData: true,
     );
-    if (result != null && result.files.single.path != null) {
-      setState(() => _logoPath = result.files.single.path);
+    if (result == null || result.files.isEmpty) return;
+
+    final picked = result.files.single;
+    final docsDir = await getApplicationDocumentsDirectory();
+    final ext = picked.name.split('.').last.toLowerCase();
+    final destPath = '${docsDir.path}/company_logo.$ext';
+
+    if (picked.bytes != null) {
+      // iOS / web: write bytes to persistent location
+      await File(destPath).writeAsBytes(picked.bytes!);
+    } else if (picked.path != null) {
+      // Desktop / Android: copy from temp/picked path
+      await File(picked.path!).copy(destPath);
+    } else {
+      return;
     }
+    setState(() => _logoPath = destPath);
   }
 
   Future<void> _save() async {
@@ -106,6 +140,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             clearLogo: _logoPath == null,
             billingEmail: _billingEmailCtrl.text.trim(),
             storageBasePath: _storageBasePath,
+            autoBackupEnabled: _autoBackupEnabled,
+            autoBackupPath: _autoBackupPath,
           ),
         );
     if (mounted) {
@@ -372,6 +408,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   clearLogo: _logoPath == null,
                   billingEmail: _billingEmailCtrl.text.trim(),
                   storageBasePath: _storageBasePath,
+                  autoBackupEnabled: _autoBackupEnabled,
+                  autoBackupPath: _autoBackupPath,
                 ));
           },
         ),
@@ -506,8 +544,116 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
               ),
             ],
           ),
+        const SizedBox(height: 20),
+
+        // ── Auto-Backup ───────────────────────────────────────────────
+        _SectionHeader('Automatisches Backup'),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Täglich automatisch sichern'),
+          subtitle: Text(
+            widget.settings.lastAutoBackupDate.isEmpty
+                ? 'Noch kein Auto-Backup erstellt'
+                : 'Letztes Backup: ${widget.settings.lastAutoBackupDate}',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Theme.of(context).colorScheme.outline),
+          ),
+          value: _autoBackupEnabled,
+          onChanged: (v) => setState(() => _autoBackupEnabled = v),
+        ),
+        if (_autoBackupEnabled) ...[
+          const SizedBox(height: 8),
+          if (_isIOS)
+            _InfoRow(
+              icon: Icons.info_outline,
+              text: 'Backups werden im App-Dokumente-Ordner gespeichert '
+                  '(über Dateien-App zugänglich).',
+            )
+          else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Theme.of(context).colorScheme.outline),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _autoBackupPath.isEmpty
+                          ? 'App-Dokumente/backups (Standard)'
+                          : _autoBackupPath,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: _autoBackupPath.isEmpty
+                                ? Theme.of(context).colorScheme.outline
+                                : Theme.of(context).colorScheme.onSurface,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: _pickAutoBackupDir,
+                  child: const Text('Ändern'),
+                ),
+                if (_autoBackupPath.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.clear),
+                    tooltip: 'Zurücksetzen',
+                    onPressed: () =>
+                        setState(() => _autoBackupPath = ''),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Backups älter als 7 Tage werden automatisch gelöscht.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Theme.of(context).colorScheme.outline),
+            ),
+          ],
+        ],
         const SizedBox(height: 32),
       ],
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _InfoRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: cs.outline),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: cs.outline)),
+          ),
+        ],
+      ),
     );
   }
 }
