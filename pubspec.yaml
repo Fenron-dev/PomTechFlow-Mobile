@@ -41,6 +41,9 @@ dependencies:
   archive: ^3.6.1
   app_badge_plus: ^1.0.0
 
+  # Homescreen-Widget
+  home_widget: ^0.6.0               # Kommunikation Flutter ↔ nativer Widget
+
   # Sicherheit
   flutter_secure_storage: ^9.2.2   # Keychain/Keystore für PIN-Hash
   local_auth: ^2.3.0               # Biometrie (Fingerabdruck, Face ID)

@@ -277,6 +277,47 @@ class HandbuchScreen extends StatelessWidget {
             ],
           ),
           _Section(
+            icon: Icons.widgets_outlined,
+            title: 'Homescreen-Widget & Badge',
+            children: [
+              _Entry(
+                title: 'App-Icon Badge (iOS / Android)',
+                body:
+                    'Das App-Icon zeigt automatisch die Anzahl offener Tasks als Badge-Zähler an.\n'
+                    '• iOS: Zahl auf dem App-Icon (Springboard)\n'
+                    '• Android: Zahl auf dem App-Icon (Launcher-abhängig)\n'
+                    '• Läuft automatisch – keine Einrichtung nötig',
+              ),
+              _Entry(
+                title: 'Homescreen-Widget (Android)',
+                body:
+                    'Widget zeigt: Aktiver Timer (läuft automatisch mit), Task-Name, Anzahl offener Tasks, Status (Läuft / Pausiert / Kein Timer).\n\n'
+                    'Einrichten: Homescreen lang drücken → Widgets → PomTechFlow → Timer-Widget platzieren (Größe: 4×2 empfohlen).\n\n'
+                    '"Öffnen"-Button im Widget → App öffnet sich auf dem Dashboard.',
+              ),
+              _Entry(
+                title: 'Homescreen-Widget (iOS) – Einrichtung',
+                body:
+                    'Die Swift-Dateien liegen unter ios/PomTechFlowWidget/. Einmalig in Xcode nötig:\n'
+                    '1. Xcode → ios/Runner.xcworkspace öffnen\n'
+                    '2. File → New → Target → "Widget Extension" → Name: PomTechFlowWidget\n'
+                    '3. Code aus ios/PomTechFlowWidget/PomTechFlowWidget.swift einfügen\n'
+                    '4. App Groups Capability für Runner + Widget aktivieren: group.dev.fenron.pomtechflowMobile\n'
+                    '5. flutter build ios\n\n'
+                    'Details: ios/PomTechFlowWidget/SETUP.md\n\n'
+                    'Tippen auf das Widget → App öffnet Dashboard. '
+                    'Das Widget aktualisiert sich bei jedem Timer-Start/-Stopp automatisch.',
+              ),
+              _Entry(
+                title: 'Widget-Einschränkungen',
+                body:
+                    '• "Timer ohne App öffnen starten" ist auf iOS platform-technisch nicht möglich (Apple-Einschränkung)\n'
+                    '• Auf iOS aktualisiert sich das Widget sofort wenn die App im Vordergrund ist; im Hintergrund alle 30 Minuten\n'
+                    '• macOS Dock-Badge: wird über app_badge_plus unterstützt, sofern Benachrichtigungs-Berechtigung erteilt',
+              ),
+            ],
+          ),
+          _Section(
             icon: Icons.keyboard_outlined,
             title: 'Tastenkürzel (Desktop)',
             children: [

@@ -23,13 +23,16 @@ import 'widgets/adaptive_shell.dart';
 import 'widgets/keyboard_shortcuts.dart';
 import 'services/auto_backup_service.dart';
 import 'services/app_lock_service.dart';
+import 'services/widget_service.dart';
 import 'providers/database_provider.dart';
+import 'providers/timer_provider.dart';
 import 'screens/app_lock_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('de_DE', null);
   await NotificationService.initialize();
+  await WidgetService.init();
   runApp(const ProviderScope(child: PomTechFlowApp()));
 }
 
@@ -120,6 +123,44 @@ class PomTechFlowApp extends ConsumerWidget {
     // App-Icon Badge: offene Tasks
     ref.listen(openTasksCountProvider, (_, count) {
       BadgeService.update(count);
+    });
+
+    // Homescreen-Widget: aktualisiern bei Timer-Änderungen
+    ref.listen(timerProvider, (_, timers) {
+      final tasks = ref.read(tasksProvider).valueOrNull ?? [];
+      final openCount = ref.read(openTasksCountProvider);
+
+      // Find first running timer, fall back to first paused
+      final running = timers.entries
+          .where((e) => e.value.status == TimerStatus.running)
+          .firstOrNull;
+      final active = running ??
+          timers.entries
+              .where((e) => e.value.status == TimerStatus.paused)
+              .firstOrNull;
+
+      if (active == null) {
+        WidgetService.update(
+          timerStatus: 'idle',
+          elapsedSecs: 0,
+          taskName: '',
+          openTasks: openCount,
+        );
+      } else {
+        final task = tasks.firstWhere(
+          (t) => t.task.id == active.key,
+          orElse: () => tasks.first,
+        );
+        final isRunning = active.value.status == TimerStatus.running;
+        WidgetService.update(
+          timerStatus: isRunning ? 'running' : 'paused',
+          elapsedSecs: active.value.elapsedSeconds,
+          taskName: task.task.title,
+          openTasks: openCount,
+          startTime: isRunning ? DateTime.now().subtract(
+              Duration(seconds: active.value.elapsedSeconds)) : null,
+        );
+      }
     });
 
     // Auto-Backup: einmalig beim ersten Build nach App-Start prüfen
