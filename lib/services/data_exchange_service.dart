@@ -13,6 +13,7 @@ class DataExchangeService {
     bool customers = true,
     bool workflows = true,
     bool hardwareBundles = true,
+    bool generalNotes = false,
   }) async {
     final Map<String, dynamic> data = {
       'version': 1,
@@ -78,6 +79,19 @@ class DataExchangeService {
       data['hardwareBundles'] = bundleList;
     }
 
+    if (generalNotes) {
+      final notes = await db.select(db.generalNotes).get();
+      data['generalNotes'] = notes
+          .map((n) => {
+                'id': n.id,
+                'content': n.content,
+                'tags': n.tags,
+                'createdAt': n.createdAt.toIso8601String(),
+                'updatedAt': n.updatedAt.toIso8601String(),
+              })
+          .toList();
+    }
+
     final json = const JsonEncoder.withIndent('  ').convert(data);
     final dir = await getApplicationDocumentsDirectory();
     final ts = DateTime.now().millisecondsSinceEpoch;
@@ -115,6 +129,7 @@ class DataExchangeService {
       int importedCustomers = 0;
       int importedWorkflows = 0;
       int importedBundles = 0;
+      int importedNotes = 0;
 
       await db.transaction(() async {
         // Kunden
@@ -192,12 +207,37 @@ class DataExchangeService {
             importedBundles++;
           }
         }
+
+        // Allgemeine Notizen
+        final noteList = data['generalNotes'] as List? ?? [];
+        for (final n in noteList) {
+          final existing = await (db.select(db.generalNotes)
+                ..where((row) => row.id.equals(n['id'] as String)))
+              .getSingleOrNull();
+          if (existing == null) {
+            await db.into(db.generalNotes).insert(GeneralNotesCompanion.insert(
+                  id: drift.Value(n['id'] as String),
+                  content: n['content'] as String,
+                  tags: drift.Value(n['tags'] as String?),
+                  createdAt: drift.Value(
+                    DateTime.tryParse(n['createdAt'] as String? ?? '') ??
+                        DateTime.now(),
+                  ),
+                  updatedAt: drift.Value(
+                    DateTime.tryParse(n['updatedAt'] as String? ?? '') ??
+                        DateTime.now(),
+                  ),
+                ));
+            importedNotes++;
+          }
+        }
       });
 
       return DataImportResult.success(
         customers: importedCustomers,
         workflows: importedWorkflows,
         bundles: importedBundles,
+        notes: importedNotes,
       );
     } catch (e) {
       return DataImportResult.error('Fehler beim Importieren: $e');
@@ -211,6 +251,7 @@ class DataImportResult {
   final int customers;
   final int workflows;
   final int bundles;
+  final int notes;
 
   DataImportResult._({
     this.cancelled = false,
@@ -218,6 +259,7 @@ class DataImportResult {
     this.customers = 0,
     this.workflows = 0,
     this.bundles = 0,
+    this.notes = 0,
   });
 
   factory DataImportResult.cancelled() => DataImportResult._(cancelled: true);
@@ -226,12 +268,23 @@ class DataImportResult {
     required int customers,
     required int workflows,
     required int bundles,
+    int notes = 0,
   }) =>
       DataImportResult._(
-          customers: customers, workflows: workflows, bundles: bundles);
+          customers: customers,
+          workflows: workflows,
+          bundles: bundles,
+          notes: notes);
 
   bool get isSuccess => !cancelled && error == null;
 
-  String get summary =>
-      '$customers Kunden, $workflows Workflows, $bundles Bundles importiert';
+  String get summary {
+    final parts = <String>[
+      if (customers > 0) '$customers Kunden',
+      if (workflows > 0) '$workflows Workflows',
+      if (bundles > 0) '$bundles Bundles',
+      if (notes > 0) '$notes Notizen',
+    ];
+    return parts.isEmpty ? 'Keine neuen Einträge' : '${parts.join(', ')} importiert';
+  }
 }

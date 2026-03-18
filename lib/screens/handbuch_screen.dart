@@ -237,6 +237,24 @@ class HandbuchScreen extends StatelessWidget {
                     'Checklisten-Vorlagen. Ein Workflow enthält beliebig viele Einträge, die beim Anwenden als Todos in einen Task eingefügt werden.',
               ),
               _Entry(
+                title: 'OS-Referenz-Notizen importieren',
+                body:
+                    'Fertige Nachschlagewerke für Windows, Linux und macOS als Notizen importieren:\n'
+                    '1. Einstellungen → Datenaustausch → Datei importieren\n'
+                    '2. Datei assets/notes_os_reference.json auswählen\n\n'
+                    'Enthaltene Notizen (9):\n'
+                    '• Windows: Tastenkürzel\n'
+                    '• Windows: Terminal-Befehle (CMD & PowerShell)\n'
+                    '• Windows: Typische Fehler & Lösungen\n'
+                    '• Linux: Tastenkürzel (Desktop & Terminal)\n'
+                    '• Linux: Terminal-Befehle (bash/zsh)\n'
+                    '• Linux: Typische Fehler & Lösungen\n'
+                    '• macOS: Tastenkürzel\n'
+                    '• macOS: Terminal-Befehle (zsh)\n'
+                    '• macOS: Typische Fehler & Lösungen\n\n'
+                    'Die Notizen sind mit Tags versehen (z.B. "windows,shortcuts") und über die Tag-Suche filterbar.',
+              ),
+              _Entry(
                 title: 'Workflow-Vorlagen importieren',
                 body:
                     'Fertige IT-Support-Workflows können als JSON-Datei importiert werden:\n'

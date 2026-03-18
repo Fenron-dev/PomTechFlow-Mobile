@@ -4,6 +4,7 @@ import '../../providers/database_provider.dart';
 import '../../providers/customers_provider.dart';
 import '../../providers/workflows_provider.dart';
 import '../../providers/hardware_bundle_provider.dart';
+import '../../providers/general_notes_provider.dart';
 import '../../services/data_exchange_service.dart';
 
 class DataExchangeScreen extends ConsumerStatefulWidget {
@@ -17,10 +18,11 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
   bool _exportCustomers = true;
   bool _exportWorkflows = true;
   bool _exportBundles = true;
+  bool _exportNotes = false;
   bool _loading = false;
 
   Future<void> _export() async {
-    if (!_exportCustomers && !_exportWorkflows && !_exportBundles) {
+    if (!_exportCustomers && !_exportWorkflows && !_exportBundles && !_exportNotes) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bitte mindestens eine Kategorie auswählen.')),
       );
@@ -34,6 +36,7 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
         customers: _exportCustomers,
         workflows: _exportWorkflows,
         hardwareBundles: _exportBundles,
+        generalNotes: _exportNotes,
       );
     } catch (e) {
       if (mounted) {
@@ -64,6 +67,7 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
       ref.invalidate(customersProvider);
       ref.invalidate(workflowsProvider);
       ref.invalidate(hardwareBundlesProvider);
+      ref.invalidate(generalNotesProvider);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Importiert: ${result.summary}')),
@@ -140,6 +144,13 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
                   secondary: const Icon(Icons.inventory_2_outlined),
                   value: _exportBundles,
                   onChanged: (v) => setState(() => _exportBundles = v!),
+                ),
+                CheckboxListTile(
+                  title: const Text('Allgemeine Notizen'),
+                  subtitle: const Text('Notizen inkl. Tags'),
+                  secondary: const Icon(Icons.notes_outlined),
+                  value: _exportNotes,
+                  onChanged: (v) => setState(() => _exportNotes = v!),
                 ),
               ],
             ),
