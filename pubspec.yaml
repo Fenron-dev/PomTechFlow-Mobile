@@ -41,6 +41,12 @@ dependencies:
   archive: ^3.6.1
   app_badge_plus: ^1.0.0
 
+  # Sicherheit
+  flutter_secure_storage: ^9.2.2   # Keychain/Keystore für PIN-Hash
+  local_auth: ^2.3.0               # Biometrie (Fingerabdruck, Face ID)
+  encrypt: ^5.0.3                  # AES-256 für verschlüsselte Exporte
+  crypto: ^3.0.6                   # PBKDF2 / HMAC-SHA256 (direkte Abhängigkeit)
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -22,7 +22,9 @@ import 'providers/tasks_provider.dart';
 import 'widgets/adaptive_shell.dart';
 import 'widgets/keyboard_shortcuts.dart';
 import 'services/auto_backup_service.dart';
+import 'services/app_lock_service.dart';
 import 'providers/database_provider.dart';
+import 'screens/app_lock_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -145,8 +147,64 @@ class PomTechFlowApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: _router,
       debugShowCheckedModeBanner: false,
-      builder: (context, child) =>
-          KeyboardShortcutsWrapper(child: child ?? const SizedBox()),
+      builder: (context, child) => AppLockWrapper(
+        child: KeyboardShortcutsWrapper(child: child ?? const SizedBox()),
+      ),
     );
+  }
+}
+
+// ── App-Lock wrapper ─────────────────────────────────────────────────────────
+
+class AppLockWrapper extends StatefulWidget {
+  final Widget child;
+  const AppLockWrapper({super.key, required this.child});
+
+  @override
+  State<AppLockWrapper> createState() => _AppLockWrapperState();
+}
+
+class _AppLockWrapperState extends State<AppLockWrapper>
+    with WidgetsBindingObserver {
+  bool _locked = false;
+  bool _checking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _check();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _check() async {
+    final setup = await AppLockService.isSetup();
+    if (mounted) setState(() { _locked = setup; _checking = false; });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // Re-lock when app moves to background
+      AppLockService.isSetup().then((setup) {
+        if (setup && mounted) setState(() => _locked = true);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checking) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_locked) {
+      return AppLockScreen(onUnlocked: () => setState(() => _locked = false));
+    }
+    return widget.child;
   }
 }

@@ -245,8 +245,9 @@ class HandbuchScreen extends StatelessWidget {
                 title: 'Backup & Wiederherstellung',
                 body:
                     'Erstellt eine vollständige JSON-Sicherung aller Daten (Tasks, Kunden, Workflows, Einstellungen). Backup vor App-Updates oder Gerätewechsel empfohlen.\n'
-                    'Manuell: "Backup erstellen" öffnet den Teilen-Dialog.\n'
-                    '"Backup laden" importiert eine JSON-Datei (überschreibt alle Daten).',
+                    '"Backup erstellen" öffnet einen Dialog: ohne Passwort exportieren oder mit Passwort verschlüsseln.\n'
+                    '"Backup laden" importiert eine JSON-Datei. Bei verschlüsselten Backups wird automatisch nach dem Passwort gefragt.\n'
+                    'Verschlüsselung: AES-256-CBC mit PBKDF2-HMAC-SHA256 (10.000 Iterationen). Dateiname enthält "_enc" als Kennung.',
               ),
               _Entry(
                 title: 'Automatisches Backup',
@@ -255,7 +256,18 @@ class HandbuchScreen extends StatelessWidget {
                     '• Läuft täglich automatisch beim App-Start\n'
                     '• Zielordner frei wählbar (Desktop/Android); auf iOS immer App-Dokumente-Ordner\n'
                     '• Backups älter als 7 Tage werden automatisch gelöscht\n'
-                    '• Datum des letzten Backups wird in den Einstellungen angezeigt',
+                    '• Datum des letzten Backups wird in den Einstellungen angezeigt\n'
+                    '• Automatische Backups sind nicht verschlüsselt (lokal gespeichert)',
+              ),
+              _Entry(
+                title: 'App-Sperre (PIN)',
+                body:
+                    'Optional in Einstellungen → Sicherheit aktivierbar.\n'
+                    '• 4–6-stelliger PIN wird beim App-Start und nach Hintergrundwechsel abgefragt\n'
+                    '• Biometrie (Fingerabdruck / Face ID) als Schnellzugriff\n'
+                    '• PIN vergessen? Recovery-Code (8 Zeichen) der beim Einrichten angezeigt wird\n'
+                    '• Recovery-Code entsperrt die App und deaktiviert die Sperre – danach neuen PIN setzen\n'
+                    '• PIN-Daten werden ausschließlich im sicheren Gerätespeicher gespeichert (Keychain/Keystore), nicht in der Datenbank',
               ),
               _Entry(
                 title: 'Logo (macOS / iOS)',

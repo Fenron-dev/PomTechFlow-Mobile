@@ -6,6 +6,14 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../db/database.dart';
+import 'crypto_service.dart';
+
+/// Sentinel returned by [importBackup] when the file is encrypted but no
+/// password was provided.  The caller should prompt for a password and retry.
+const String kNeedsPassword = 'NEEDS_PASSWORD';
+
+/// Sentinel returned when the supplied password is wrong.
+const String kWrongPassword = 'WRONG_PASSWORD';
 
 class BackupService {
   static Future<Map<String, dynamic>> _buildBackupMap(AppDatabase db) async {
@@ -70,19 +78,28 @@ class BackupService {
     };
   }
 
-  static Future<void> exportBackup(AppDatabase db) async {
-    final json = const JsonEncoder.withIndent('  ')
+  /// Exports a full backup and opens the system share sheet.
+  /// If [password] is non-empty the backup is AES-256 encrypted.
+  static Future<void> exportBackup(AppDatabase db, {String? password}) async {
+    String content = const JsonEncoder.withIndent('  ')
         .convert(await _buildBackupMap(db));
+
+    final encrypted = password != null && password.isNotEmpty;
+    if (encrypted) {
+      content = CryptoService.encryptBackup(content, password);
+    }
+
     final dateStr = DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
-    final fileName = 'pomtechflow_backup_$dateStr.json';
+    final suffix = encrypted ? '_enc' : '';
+    final fileName = 'pomtechflow_backup_$dateStr$suffix.json';
 
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/$fileName');
-    await file.writeAsString(json);
+    await file.writeAsString(content);
 
     await Share.shareXFiles(
       [XFile(file.path, mimeType: 'application/json')],
-      subject: 'PomTechFlow Backup $dateStr',
+      subject: 'PomTechFlow Backup $dateStr${encrypted ? " (verschlüsselt)" : ""}',
     );
   }
 
@@ -121,20 +138,51 @@ class BackupService {
     return file.path;
   }
 
-  static Future<String> importBackup(AppDatabase db) async {
+  /// Imports a backup from a user-picked file.
+  ///
+  /// Returns:
+  /// - `'OK'`              on success
+  /// - `'Abgebrochen'`     when the user cancelled the picker
+  /// - [kNeedsPassword]    when the file is encrypted and no [password] was supplied
+  /// - [kWrongPassword]    when the supplied [password] is incorrect
+  /// - any other string    is a human-readable error message
+  static Future<String> importBackup(AppDatabase db, {String? password}) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
+      withData: true, // iOS: temp paths vanish; read bytes directly
     );
     if (result == null || result.files.isEmpty) return 'Abgebrochen';
 
-    final filePath = result.files.single.path;
-    if (filePath == null) return 'Datei konnte nicht gelesen werden';
+    final picked = result.files.single;
+    String rawJson;
+    try {
+      if (picked.bytes != null) {
+        rawJson = String.fromCharCodes(picked.bytes!);
+      } else if (picked.path != null) {
+        rawJson = await File(picked.path!).readAsString();
+      } else {
+        return 'Datei konnte nicht gelesen werden';
+      }
+    } catch (_) {
+      return 'Datei konnte nicht gelesen werden';
+    }
+
+    // Encrypted backup?
+    if (CryptoService.isEncrypted(rawJson)) {
+      if (password == null || password.isEmpty) return kNeedsPassword;
+      try {
+        rawJson = CryptoService.decryptBackup(rawJson, password);
+      } on WrongPasswordException {
+        return kWrongPassword;
+      } catch (_) {
+        return kWrongPassword;
+      }
+    }
 
     final Map<String, dynamic> backup;
     try {
-      final json = await File(filePath).readAsString();
-      backup = jsonDecode(json) as Map<String, dynamic>;
+      backup = jsonDecode(rawJson) as Map<String, dynamic>;
     } catch (_) {
       return 'Ungültige Backup-Datei (kein gültiges JSON)';
     }

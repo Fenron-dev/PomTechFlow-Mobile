@@ -9,6 +9,7 @@ import '../../providers/settings_provider.dart' hide AppSettings;
 import '../../providers/settings_provider.dart' as sp;
 import '../../providers/database_provider.dart';
 import '../../services/backup_service.dart';
+import '../../services/app_lock_service.dart';
 import 'hardware_bundle_screen.dart' show HardwareBundleScreen;
 import 'device_library_screen.dart';
 import 'task_templates_screen.dart';
@@ -57,6 +58,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late bool _autoBackupEnabled;
   late String _autoBackupPath;
   bool _backupLoading = false;
+  bool _lockSetup = false;
 
   @override
   void initState() {
@@ -73,6 +75,9 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     _storageBasePath = widget.settings.storageBasePath;
     _autoBackupEnabled = widget.settings.autoBackupEnabled;
     _autoBackupPath = widget.settings.autoBackupPath;
+    AppLockService.isSetup().then((v) {
+      if (mounted) setState(() => _lockSetup = v);
+    });
   }
 
   @override
@@ -152,10 +157,18 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   }
 
   Future<void> _exportBackup() async {
+    // Ask for optional password
+    final password = await showDialog<String?>(
+      context: context,
+      builder: (_) => const _ExportPasswordDialog(),
+    );
+    if (password == null) return; // user cancelled dialog
+
     setState(() => _backupLoading = true);
     try {
       final db = ref.read(databaseProvider);
-      await BackupService.exportBackup(db);
+      await BackupService.exportBackup(db,
+          password: password.isEmpty ? null : password);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -188,12 +201,29 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     setState(() => _backupLoading = true);
     try {
       final db = ref.read(databaseProvider);
-      final result = await BackupService.importBackup(db);
+      String result = await BackupService.importBackup(db);
+
+      // If encrypted: ask for password and retry once
+      if (result == kNeedsPassword && mounted) {
+        final pw = await showDialog<String>(
+          context: context,
+          builder: (_) => const _ImportPasswordDialog(),
+        );
+        if (pw == null || !mounted) {
+          setState(() => _backupLoading = false);
+          return;
+        }
+        result = await BackupService.importBackup(db, password: pw);
+      }
+
       if (!mounted) return;
       if (result == 'OK') {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Backup erfolgreich importiert')));
         ref.invalidate(settingsProvider);
+      } else if (result == kWrongPassword) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Falsches Passwort.')));
       } else {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Fehler: $result')));
@@ -206,6 +236,64 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     } finally {
       if (mounted) setState(() => _backupLoading = false);
     }
+  }
+
+  // ── App-Lock ─────────────────────────────────────────────────────────────
+
+  Future<void> _toggleAppLock(bool enable) async {
+    if (enable) {
+      final recovery = await showDialog<String>(
+        context: context,
+        builder: (_) => const _PinSetupDialog(),
+      );
+      if (recovery == null || !mounted) return;
+      setState(() => _lockSetup = true);
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _RecoveryCodeDialog(code: recovery),
+      );
+    } else {
+      // Verify current PIN before disabling
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (_) => const _PinVerifyDialog(
+          title: 'PIN zur Bestätigung eingeben',
+          confirmLabel: 'Sperre deaktivieren',
+        ),
+      );
+      if (ok != true || !mounted) return;
+      await AppLockService.disable();
+      if (!mounted) return;
+      setState(() => _lockSetup = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('App-Sperre deaktiviert')));
+    }
+  }
+
+  Future<void> _changePIN() async {
+    // Verify old PIN first
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => const _PinVerifyDialog(
+        title: 'Aktuellen PIN eingeben',
+        confirmLabel: 'Weiter',
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final recovery = await showDialog<String>(
+      context: context,
+      builder: (_) => const _PinSetupDialog(isChange: true),
+    );
+    if (recovery == null || !mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _RecoveryCodeDialog(code: recovery),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('PIN geändert')));
   }
 
   @override
@@ -621,6 +709,41 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             ),
           ],
         ],
+        const SizedBox(height: 20),
+
+        // ── Sicherheit ────────────────────────────────────────────────
+        _SectionHeader('Sicherheit'),
+        Card(
+          child: Column(
+            children: [
+              SwitchListTile.adaptive(
+                secondary: const Icon(Icons.lock_outline),
+                title: const Text('App-Sperre (PIN)'),
+                subtitle: Text(_lockSetup
+                    ? 'App wird beim Starten gesperrt'
+                    : 'Kein PIN gesetzt'),
+                value: _lockSetup,
+                onChanged: _toggleAppLock,
+              ),
+              if (_lockSetup) ...[
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.pin_outlined),
+                  title: const Text('PIN ändern'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _changePIN,
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        _InfoRow(
+          icon: Icons.info_outline,
+          text: 'Der PIN schützt die App vor unbefugtem Zugriff. '
+              'Beim Einrichten erhältst du einen Recovery-Code – '
+              'bewahre ihn sicher auf.',
+        ),
         const SizedBox(height: 32),
       ],
     );
@@ -711,6 +834,343 @@ class _StepperField extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.add),
           onPressed: value < max ? () => onChanged(value + 1) : null,
+        ),
+      ],
+    );
+  }
+}
+
+// ── Export password dialog ─────────────────────────────────────────────────
+
+/// Shown before every manual export. Returns:
+/// - `null`  when the user cancels
+/// - `''`    when the user chooses no password
+/// - `<pw>`  when the user enters a password
+class _ExportPasswordDialog extends StatefulWidget {
+  const _ExportPasswordDialog();
+  @override
+  State<_ExportPasswordDialog> createState() => _ExportPasswordDialogState();
+}
+
+class _ExportPasswordDialogState extends State<_ExportPasswordDialog> {
+  final _ctrl = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Backup exportieren'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Optional: Backup mit Passwort verschlüsseln. '
+            'Das Passwort wird beim Import benötigt.',
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _ctrl,
+            obscureText: _obscure,
+            decoration: InputDecoration(
+              labelText: 'Passwort (optional)',
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context), // cancel → null
+          child: const Text('Abbrechen'),
+        ),
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context, ''), // no password
+          child: const Text('Ohne Passwort'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _ctrl.text.trim()),
+          child: const Text('Exportieren'),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Import password dialog ─────────────────────────────────────────────────
+
+class _ImportPasswordDialog extends StatefulWidget {
+  const _ImportPasswordDialog();
+  @override
+  State<_ImportPasswordDialog> createState() => _ImportPasswordDialogState();
+}
+
+class _ImportPasswordDialogState extends State<_ImportPasswordDialog> {
+  final _ctrl = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Backup verschlüsselt'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('Dieses Backup ist verschlüsselt. Bitte Passwort eingeben:'),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            obscureText: _obscure,
+            decoration: InputDecoration(
+              labelText: 'Passwort',
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            onSubmitted: (_) => Navigator.pop(context, _ctrl.text.trim()),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context), // cancel
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _ctrl.text.trim()),
+          child: const Text('Entschlüsseln'),
+        ),
+      ],
+    );
+  }
+}
+
+// ── App-Lock dialogs ───────────────────────────────────────────────────────
+
+/// PIN setup: enter new PIN twice. Returns the recovery code on success.
+class _PinSetupDialog extends StatefulWidget {
+  final bool isChange;
+  const _PinSetupDialog({this.isChange = false});
+  @override
+  State<_PinSetupDialog> createState() => _PinSetupDialogState();
+}
+
+class _PinSetupDialogState extends State<_PinSetupDialog> {
+  final _ctrl1 = TextEditingController();
+  final _ctrl2 = TextEditingController();
+  String? _error;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _ctrl1.dispose();
+    _ctrl2.dispose();
+    super.dispose();
+  }
+
+  Future<void> _confirm() async {
+    final pin = _ctrl1.text.trim();
+    if (pin.length < 4) {
+      setState(() => _error = 'Mindestens 4 Stellen.');
+      return;
+    }
+    if (pin != _ctrl2.text.trim()) {
+      setState(() => _error = 'PINs stimmen nicht überein.');
+      return;
+    }
+    setState(() => _loading = true);
+    final recovery = await AppLockService.setup(pin);
+    if (mounted) Navigator.pop(context, recovery);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.isChange ? 'Neuen PIN setzen' : 'App-Sperre einrichten'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _ctrl1,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'PIN (4–6 Stellen)',
+              border: OutlineInputBorder(),
+              counterText: '',
+            ),
+            onChanged: (_) => setState(() => _error = null),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _ctrl2,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            obscureText: true,
+            decoration: InputDecoration(
+              labelText: 'PIN bestätigen',
+              border: const OutlineInputBorder(),
+              counterText: '',
+              errorText: _error,
+            ),
+            onSubmitted: (_) => _confirm(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: _loading ? null : _confirm,
+          child: _loading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('PIN setzen'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Displays the one-time recovery code. User must tap "Notiert" to dismiss.
+class _RecoveryCodeDialog extends StatelessWidget {
+  final String code;
+  const _RecoveryCodeDialog({required this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: const Text('Recovery-Code'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Notiere diesen Code sicher! Er wird nur einmal angezeigt und '
+            'ist der einzige Weg, die App zu entsperren, falls du deinen PIN vergisst.',
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: SelectableText(
+              code,
+              style: TextStyle(
+                fontSize: 24,
+                fontFamily: 'monospace',
+                letterSpacing: 4,
+                fontWeight: FontWeight.bold,
+                color: cs.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Notiert – Weiter'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Asks the user to enter the current PIN for verification.
+/// Returns true on correct PIN, false/null otherwise.
+class _PinVerifyDialog extends StatefulWidget {
+  final String title;
+  final String confirmLabel;
+  const _PinVerifyDialog({required this.title, required this.confirmLabel});
+  @override
+  State<_PinVerifyDialog> createState() => _PinVerifyDialogState();
+}
+
+class _PinVerifyDialogState extends State<_PinVerifyDialog> {
+  final _ctrl = TextEditingController();
+  String? _error;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _verify() async {
+    setState(() => _loading = true);
+    final ok = await AppLockService.verifyPIN(_ctrl.text.trim());
+    if (!mounted) return;
+    if (ok) {
+      Navigator.pop(context, true);
+    } else {
+      setState(() {
+        _error = 'Falscher PIN.';
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _ctrl,
+        keyboardType: TextInputType.number,
+        maxLength: 6,
+        obscureText: true,
+        autofocus: true,
+        decoration: InputDecoration(
+          labelText: 'PIN',
+          border: const OutlineInputBorder(),
+          counterText: '',
+          errorText: _error,
+        ),
+        onChanged: (_) => setState(() => _error = null),
+        onSubmitted: (_) => _verify(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: _loading ? null : _verify,
+          child: _loading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(widget.confirmLabel),
         ),
       ],
     );
