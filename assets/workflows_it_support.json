@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "exportedAt": "2026-03-18T00:00:00.000Z",
+  "type": "data_exchange",
+  "workflows": [
+    {
+      "id": "wf_tpl_001",
+      "name": "Windows Neuinstallation",
+      "description": "Saubere Windows-Installation inkl. Treiber, Updates und Grundsoftware",
+      "items": [
+        { "id": "wfi_tpl_001_01", "itemText": "Kundendaten vollständig gesichert (Dokumente, Desktop, Downloads, Profil)", "sortOrder": 0 },
+        { "id": "wfi_tpl_001_02", "itemText": "Produktschlüssel / Lizenzinformationen notiert", "sortOrder": 1 },
+        { "id": "wfi_tpl_001_03", "itemText": "Bootfähiger USB-Stick erstellt (Windows ISO)", "sortOrder": 2 },
+        { "id": "wfi_tpl_001_04", "itemText": "BIOS/UEFI: Secure Boot & Boot-Reihenfolge geprüft", "sortOrder": 3 },
+        { "id": "wfi_tpl_001_05", "itemText": "Windows installiert und aktiviert", "sortOrder": 4 },
+        { "id": "wfi_tpl_001_06", "itemText": "Alle Windows Updates installiert (inkl. Neustart)", "sortOrder": 5 },
+        { "id": "wfi_tpl_001_07", "itemText": "Chipsatz-, Grafik- und Netzwerktreiber installiert", "sortOrder": 6 },
+        { "id": "wfi_tpl_001_08", "itemText": "Grundsoftware installiert (Browser, Office, PDF-Reader, AV)", "sortOrder": 7 },
+        { "id": "wfi_tpl_001_09", "itemText": "Netzlaufwerke und Drucker eingerichtet", "sortOrder": 8 },
+        { "id": "wfi_tpl_001_10", "itemText": "Kundendaten zurückgespielt und Zugriffsrechte geprüft", "sortOrder": 9 },
+        { "id": "wfi_tpl_001_11", "itemText": "Kunde hat System abgenommen und unterschrieben", "sortOrder": 10 }
+      ]
+    },
+    {
+      "id": "wf_tpl_002",
+      "name": "Netzwerk-Diagnose & Fehlerbehebung",
+      "description": "Systematische Diagnose bei Netzwerkproblemen (kein Internet, langsame Verbindung, Drops)",
+      "items": [
+        { "id": "wfi_tpl_002_01", "itemText": "Problem genau beschreiben: welche Geräte, seit wann, dauerhaft oder sporadisch", "sortOrder": 0 },
+        { "id": "wfi_tpl_002_02", "itemText": "Physikalische Ebene prüfen (Kabel, LED-Status am Switch/Router)", "sortOrder": 1 },
+        { "id": "wfi_tpl_002_03", "itemText": "IP-Konfiguration prüfen (ipconfig /all) – DHCP oder statisch", "sortOrder": 2 },
+        { "id": "wfi_tpl_002_04", "itemText": "Gateway und DNS anpingen (ping 8.8.8.8, ping google.com)", "sortOrder": 3 },
+        { "id": "wfi_tpl_002_05", "itemText": "Router-/Switch-Logs auf Fehler prüfen", "sortOrder": 4 },
+        { "id": "wfi_tpl_002_06", "itemText": "WLAN: Kanalauslastung und Signalstärke prüfen (WiFi-Analyzer)", "sortOrder": 5 },
+        { "id": "wfi_tpl_002_07", "itemText": "Firewall-Regeln und VPN-Konflikte ausschließen", "sortOrder": 6 },
+        { "id": "wfi_tpl_002_08", "itemText": "Netzwerktreiber und Firmware auf aktuellem Stand", "sortOrder": 7 },
+        { "id": "wfi_tpl_002_09", "itemText": "Lösung umgesetzt, Verbindung über 5 Min stabil getestet", "sortOrder": 8 },
+        { "id": "wfi_tpl_002_10", "itemText": "Befund und Maßnahme dokumentiert", "sortOrder": 9 }
+      ]
+    },
+    {
+      "id": "wf_tpl_003",
+      "name": "Drucker einrichten",
+      "description": "Lokalen oder Netzwerkdrucker einrichten und testen",
+      "items": [
+        { "id": "wfi_tpl_003_01", "itemText": "Druckermodell und Anschlussart ermitteln (USB / LAN / WLAN)", "sortOrder": 0 },
+        { "id": "wfi_tpl_003_02", "itemText": "Aktuellen Treiber vom Hersteller heruntergeladen", "sortOrder": 1 },
+        { "id": "wfi_tpl_003_03", "itemText": "Drucker installiert (Treiber-Setup oder Windows-eigener Treiber)", "sortOrder": 2 },
+        { "id": "wfi_tpl_003_04", "itemText": "Netzwerkdrucker: feste IP im Router / DHCP-Reservierung eingetragen", "sortOrder": 3 },
+        { "id": "wfi_tpl_003_05", "itemText": "Testdruck erfolgreich durchgeführt", "sortOrder": 4 },
+        { "id": "wfi_tpl_003_06", "itemText": "Drucker als Standard gesetzt (falls gewünscht)", "sortOrder": 5 },
+        { "id": "wfi_tpl_003_07", "itemText": "Weitere Geräte im Netz auf Drucker zugreifen können", "sortOrder": 6 },
+        { "id": "wfi_tpl_003_08", "itemText": "Tonerstand / Füllstand geprüft und dokumentiert", "sortOrder": 7 }
+      ]
+    },
+    {
+      "id": "wf_tpl_004",
+      "name": "E-Mail Einrichtung (Outlook / Thunderbird)",
+      "description": "E-Mail-Konto in Client einrichten inkl. Signatur und Archivierung",
+      "items": [
+        { "id": "wfi_tpl_004_01", "itemText": "Zugangsdaten bereit: E-Mail-Adresse, Passwort, IMAP/SMTP-Server", "sortOrder": 0 },
+        { "id": "wfi_tpl_004_02", "itemText": "E-Mail-Konto im Client angelegt und verbunden", "sortOrder": 1 },
+        { "id": "wfi_tpl_004_03", "itemText": "Posteingang synchronisiert (alle Ordner sichtbar)", "sortOrder": 2 },
+        { "id": "wfi_tpl_004_04", "itemText": "Test-E-Mail gesendet und empfangen", "sortOrder": 3 },
+        { "id": "wfi_tpl_004_05", "itemText": "E-Mail-Signatur eingerichtet (Name, Telefon, Firma)", "sortOrder": 4 },
+        { "id": "wfi_tpl_004_06", "itemText": "Abwesenheitsnotiz geprüft / konfiguriert", "sortOrder": 5 },
+        { "id": "wfi_tpl_004_07", "itemText": "Kalender und Kontakte synchronisiert (falls Exchange/M365)", "sortOrder": 6 },
+        { "id": "wfi_tpl_004_08", "itemText": "Archivierungsregeln / PST-Einstellungen besprochen", "sortOrder": 7 }
+      ]
+    },
+    {
+      "id": "wf_tpl_005",
+      "name": "Malware- / Virenbereinigung",
+      "description": "Schritt-für-Schritt Bereinigung befallener Systeme",
+      "items": [
+        { "id": "wfi_tpl_005_01", "itemText": "System vom Netz trennen (LAN-Kabel, WLAN deaktivieren)", "sortOrder": 0 },
+        { "id": "wfi_tpl_005_02", "itemText": "Wichtige Daten gesichert (auf externem Medium, isoliert)", "sortOrder": 1 },
+        { "id": "wfi_tpl_005_03", "itemText": "Malware-Scanner (z.B. Malwarebytes, ESET) heruntergeladen und ausgeführt", "sortOrder": 2 },
+        { "id": "wfi_tpl_005_04", "itemText": "Windows Defender Offline-Scan durchgeführt", "sortOrder": 3 },
+        { "id": "wfi_tpl_005_05", "itemText": "Autostart-Einträge und geplante Tasks auf Verdächtiges geprüft", "sortOrder": 4 },
+        { "id": "wfi_tpl_005_06", "itemText": "Browser-Erweiterungen und Startseite geprüft / bereinigt", "sortOrder": 5 },
+        { "id": "wfi_tpl_005_07", "itemText": "Alle Windows-Updates und AV-Updates installiert", "sortOrder": 6 },
+        { "id": "wfi_tpl_005_08", "itemText": "Passwörter auf betroffenen Konten geändert (E-Mail, VPN, etc.)", "sortOrder": 7 },
+        { "id": "wfi_tpl_005_09", "itemText": "System 30 Min im Normalbetrieb beobachtet – keine Anomalien", "sortOrder": 8 },
+        { "id": "wfi_tpl_005_10", "itemText": "Befund und Empfehlungen dokumentiert, Kunde informiert", "sortOrder": 9 }
+      ]
+    },
+    {
+      "id": "wf_tpl_006",
+      "name": "Neuer Mitarbeiter-PC einrichten",
+      "description": "Arbeitsplatz für neuen Mitarbeiter vollständig einrichten",
+      "items": [
+        { "id": "wfi_tpl_006_01", "itemText": "Hardware inventarisiert (Seriennummern, Asset-Tags notiert)", "sortOrder": 0 },
+        { "id": "wfi_tpl_006_02", "itemText": "Windows / macOS installiert oder Image aufgespielt", "sortOrder": 1 },
+        { "id": "wfi_tpl_006_03", "itemText": "Domain-Beitritt oder lokales Konto eingerichtet", "sortOrder": 2 },
+        { "id": "wfi_tpl_006_04", "itemText": "Standard-Software installiert (Office, Browser, Tools)", "sortOrder": 3 },
+        { "id": "wfi_tpl_006_05", "itemText": "E-Mail-Konto eingerichtet", "sortOrder": 4 },
+        { "id": "wfi_tpl_006_06", "itemText": "VPN-Zugang eingerichtet und getestet", "sortOrder": 5 },
+        { "id": "wfi_tpl_006_07", "itemText": "Netzlaufwerke / Freigaben gemappt", "sortOrder": 6 },
+        { "id": "wfi_tpl_006_08", "itemText": "Drucker eingerichtet", "sortOrder": 7 },
+        { "id": "wfi_tpl_006_09", "itemText": "Benutzerkonten in notwendigen Systemen angelegt (AD, ERP, etc.)", "sortOrder": 8 },
+        { "id": "wfi_tpl_006_10", "itemText": "Antivirus aktiv, Windows Updates aktuell", "sortOrder": 9 },
+        { "id": "wfi_tpl_006_11", "itemText": "Einweisung des Mitarbeiters durchgeführt", "sortOrder": 10 },
+        { "id": "wfi_tpl_006_12", "itemText": "Übergabeprotokoll erstellt und unterschrieben", "sortOrder": 11 }
+      ]
+    },
+    {
+      "id": "wf_tpl_007",
+      "name": "VPN Einrichtung",
+      "description": "VPN-Client einrichten und Verbindung testen (OpenVPN / WireGuard / FortiClient / Cisco)",
+      "items": [
+        { "id": "wfi_tpl_007_01", "itemText": "VPN-Typ und Server-Adresse vom Kunden erfragt / notiert", "sortOrder": 0 },
+        { "id": "wfi_tpl_007_02", "itemText": "Zertifikat oder Konfigurationsdatei bereitgestellt / heruntergeladen", "sortOrder": 1 },
+        { "id": "wfi_tpl_007_03", "itemText": "VPN-Client installiert (aktuellste Version)", "sortOrder": 2 },
+        { "id": "wfi_tpl_007_04", "itemText": "Konfiguration importiert und Zugangsdaten eingegeben", "sortOrder": 3 },
+        { "id": "wfi_tpl_007_05", "itemText": "VPN-Verbindung hergestellt (IP-Adresse im Tunnel geprüft)", "sortOrder": 4 },
+        { "id": "wfi_tpl_007_06", "itemText": "Netzlaufwerke über VPN erreichbar", "sortOrder": 5 },
+        { "id": "wfi_tpl_007_07", "itemText": "Split-Tunneling Einstellung geprüft", "sortOrder": 6 },
+        { "id": "wfi_tpl_007_08", "itemText": "Autostart beim Systemstart eingestellt (falls gewünscht)", "sortOrder": 7 },
+        { "id": "wfi_tpl_007_09", "itemText": "Zugangsdaten sicher abgelegt (Passwortmanager / Dokumentation)", "sortOrder": 8 }
+      ]
+    },
+    {
+      "id": "wf_tpl_008",
+      "name": "Hardware-Defekt Diagnose",
+      "description": "Systematische Fehleranalyse bei Hardwareausfällen",
+      "items": [
+        { "id": "wfi_tpl_008_01", "itemText": "Fehlerbeschreibung dokumentiert (Symptome, Geräusche, Fehlercodes)", "sortOrder": 0 },
+        { "id": "wfi_tpl_008_02", "itemText": "Garantiestatus und Kaufdatum geprüft", "sortOrder": 1 },
+        { "id": "wfi_tpl_008_03", "itemText": "Datensicherung durchgeführt (wenn System noch bootfähig)", "sortOrder": 2 },
+        { "id": "wfi_tpl_008_04", "itemText": "Sichtprüfung: Staub, Kabelverbindungen, Kondensatoren, Brandspuren", "sortOrder": 3 },
+        { "id": "wfi_tpl_008_05", "itemText": "RAM-Test durchgeführt (memtest86)", "sortOrder": 4 },
+        { "id": "wfi_tpl_008_06", "itemText": "Festplatten-SMART-Status ausgelesen (CrystalDiskInfo / smartctl)", "sortOrder": 5 },
+        { "id": "wfi_tpl_008_07", "itemText": "Temperaturen unter Last gemessen (CPU, GPU, SSD)", "sortOrder": 6 },
+        { "id": "wfi_tpl_008_08", "itemText": "Defektes Bauteil identifiziert und dokumentiert", "sortOrder": 7 },
+        { "id": "wfi_tpl_008_09", "itemText": "Kostenvoranschlag erstellt und mit Kunden besprochen", "sortOrder": 8 },
+        { "id": "wfi_tpl_008_10", "itemText": "Reparatur oder Austausch beauftragt / durchgeführt", "sortOrder": 9 }
+      ]
+    },
+    {
+      "id": "wf_tpl_009",
+      "name": "Microsoft 365 Einrichtung",
+      "description": "M365-Tenant-Setup oder neues Benutzer-Onboarding in bestehendem Tenant",
+      "items": [
+        { "id": "wfi_tpl_009_01", "itemText": "M365-Lizenz zugewiesen (Admin Center)", "sortOrder": 0 },
+        { "id": "wfi_tpl_009_02", "itemText": "Benutzer im Azure AD angelegt / synchronisiert", "sortOrder": 1 },
+        { "id": "wfi_tpl_009_03", "itemText": "MFA (Multi-Faktor-Authentifizierung) eingerichtet", "sortOrder": 2 },
+        { "id": "wfi_tpl_009_04", "itemText": "Office-Apps installiert (office.com → Installieren)", "sortOrder": 3 },
+        { "id": "wfi_tpl_009_05", "itemText": "Outlook eingerichtet und E-Mail synchronisiert", "sortOrder": 4 },
+        { "id": "wfi_tpl_009_06", "itemText": "OneDrive eingerichtet und Ordner synchronisiert", "sortOrder": 5 },
+        { "id": "wfi_tpl_009_07", "itemText": "Teams installiert und Anmeldung getestet", "sortOrder": 6 },
+        { "id": "wfi_tpl_009_08", "itemText": "SharePoint-Zugriff auf Firmenfreigaben getestet", "sortOrder": 7 },
+        { "id": "wfi_tpl_009_09", "itemText": "Benutzer in relevante Teams/Gruppen hinzugefügt", "sortOrder": 8 },
+        { "id": "wfi_tpl_009_10", "itemText": "Mobilgeräte in Intune / MDM registriert (falls zutreffend)", "sortOrder": 9 }
+      ]
+    },
+    {
+      "id": "wf_tpl_010",
+      "name": "Passwort & Konto zurücksetzen",
+      "description": "Zugangsdaten zurücksetzen für Windows-Anmeldung, AD-Konto oder Online-Dienste",
+      "items": [
+        { "id": "wfi_tpl_010_01", "itemText": "Identität des Nutzers verifiziert (Ausweis oder Rückruf beim Vorgesetzten)", "sortOrder": 0 },
+        { "id": "wfi_tpl_010_02", "itemText": "Betroffene Systeme / Konten notiert", "sortOrder": 1 },
+        { "id": "wfi_tpl_010_03", "itemText": "AD-Passwort zurückgesetzt (Active Directory / Azure AD)", "sortOrder": 2 },
+        { "id": "wfi_tpl_010_04", "itemText": "Lokales Windows-Passwort zurückgesetzt (falls kein AD)", "sortOrder": 3 },
+        { "id": "wfi_tpl_010_05", "itemText": "\"Passwort bei nächster Anmeldung ändern\" aktiviert", "sortOrder": 4 },
+        { "id": "wfi_tpl_010_06", "itemText": "Konto ggf. entsperrt (zu viele Fehlversuche)", "sortOrder": 5 },
+        { "id": "wfi_tpl_010_07", "itemText": "Weitere Dienste zurückgesetzt (E-Mail, VPN, ERP)", "sortOrder": 6 },
+        { "id": "wfi_tpl_010_08", "itemText": "Nutzer hat sich erfolgreich eingeloggt", "sortOrder": 7 },
+        { "id": "wfi_tpl_010_09", "itemText": "Vorgang protokolliert (Datum, Uhrzeit, Durchführender)", "sortOrder": 8 }
+      ]
+    },
+    {
+      "id": "wf_tpl_011",
+      "name": "Router / Firewall Konfiguration",
+      "description": "Router neu einrichten oder Firewall-Regeln anpassen",
+      "items": [
+        { "id": "wfi_tpl_011_01", "itemText": "Aktuelle Konfiguration gesichert (Export / Screenshot)", "sortOrder": 0 },
+        { "id": "wfi_tpl_011_02", "itemText": "Zugangsdaten für Router-Interface bereit (IP, User, PW)", "sortOrder": 1 },
+        { "id": "wfi_tpl_011_03", "itemText": "WAN-Einstellungen konfiguriert (DHCP / PPPoE / statische IP)", "sortOrder": 2 },
+        { "id": "wfi_tpl_011_04", "itemText": "LAN-Subnetz und DHCP-Pool eingestellt", "sortOrder": 3 },
+        { "id": "wfi_tpl_011_05", "itemText": "WLAN-SSIDs und Passwörter gesetzt (WPA2/WPA3)", "sortOrder": 4 },
+        { "id": "wfi_tpl_011_06", "itemText": "Portfreigaben / NAT-Regeln eingetragen (falls nötig)", "sortOrder": 5 },
+        { "id": "wfi_tpl_011_07", "itemText": "Firewall-Regeln geprüft und angepasst", "sortOrder": 6 },
+        { "id": "wfi_tpl_011_08", "itemText": "DNS-Server eingetragen (z.B. 1.1.1.1 / 8.8.8.8 oder intern)", "sortOrder": 7 },
+        { "id": "wfi_tpl_011_09", "itemText": "Firmware auf aktuellem Stand", "sortOrder": 8 },
+        { "id": "wfi_tpl_011_10", "itemText": "Verbindung von mehreren Geräten getestet (LAN + WLAN)", "sortOrder": 9 },
+        { "id": "wfi_tpl_011_11", "itemText": "Konfiguration erneut exportiert und beim Kunden hinterlegt", "sortOrder": 10 }
+      ]
+    },
+    {
+      "id": "wf_tpl_012",
+      "name": "Server-Wartung (monatlich)",
+      "description": "Regelmäßige Wartung von Windows-Server / Linux-Server",
+      "items": [
+        { "id": "wfi_tpl_012_01", "itemText": "Backup-Protokoll der letzten 30 Tage geprüft (alle erfolgreich?)", "sortOrder": 0 },
+        { "id": "wfi_tpl_012_02", "itemText": "Festplattenbelegung und SMART-Status geprüft", "sortOrder": 1 },
+        { "id": "wfi_tpl_012_03", "itemText": "Eventlog / Syslog auf kritische Fehler durchsucht", "sortOrder": 2 },
+        { "id": "wfi_tpl_012_04", "itemText": "Betriebssystem-Updates installiert (Windows Update / apt upgrade)", "sortOrder": 3 },
+        { "id": "wfi_tpl_012_05", "itemText": "Antivirus-Definitionen aktuell, letzter Scan erfolgreich", "sortOrder": 4 },
+        { "id": "wfi_tpl_012_06", "itemText": "Dienste und Prozesse auf abnormalen Ressourcenverbrauch geprüft", "sortOrder": 5 },
+        { "id": "wfi_tpl_012_07", "itemText": "SSL-Zertifikate auf Ablaufdatum geprüft", "sortOrder": 6 },
+        { "id": "wfi_tpl_012_08", "itemText": "Benutzerkonten und Berechtigungen überprüft", "sortOrder": 7 },
+        { "id": "wfi_tpl_012_09", "itemText": "UPS / USV Batterietest und Laufzeit geprüft", "sortOrder": 8 },
+        { "id": "wfi_tpl_012_10", "itemText": "Wartungsprotokoll erstellt und beim Kunden abgelegt", "sortOrder": 9 }
+      ]
+    },
+    {
+      "id": "wf_tpl_013",
+      "name": "Datenmigration / PC-Tausch",
+      "description": "Daten von altem auf neues Gerät übertragen",
+      "items": [
+        { "id": "wfi_tpl_013_01", "itemText": "Zu migrierende Daten inventarisiert (Dokumente, Profile, Favoriten, Mailarchiv)", "sortOrder": 0 },
+        { "id": "wfi_tpl_013_02", "itemText": "Installierte Software auf altem PC dokumentiert", "sortOrder": 1 },
+        { "id": "wfi_tpl_013_03", "itemText": "Lizenzen und Seriennummern notiert (NirSoft ProduKey / Beeline Tools)", "sortOrder": 2 },
+        { "id": "wfi_tpl_013_04", "itemText": "Vollständiges Backup des alten Systems erstellt", "sortOrder": 3 },
+        { "id": "wfi_tpl_013_05", "itemText": "Neues System vorbereitet (Windows installiert, Updates, Grundsoftware)", "sortOrder": 4 },
+        { "id": "wfi_tpl_013_06", "itemText": "Daten auf neues System übertragen (Robocopy / manuell)", "sortOrder": 5 },
+        { "id": "wfi_tpl_013_07", "itemText": "Software auf neuem System installiert und lizenziert", "sortOrder": 6 },
+        { "id": "wfi_tpl_013_08", "itemText": "E-Mail, Drucker, Netzlaufwerke eingerichtet", "sortOrder": 7 },
+        { "id": "wfi_tpl_013_09", "itemText": "Nutzer hat alle wichtigen Daten und Funktionen geprüft", "sortOrder": 8 },
+        { "id": "wfi_tpl_013_10", "itemText": "Altes Gerät sicher gelöscht (DSGVO) oder zur Entsorgung vorbereitet", "sortOrder": 9 }
+      ]
+    },
+    {
+      "id": "wf_tpl_014",
+      "name": "Fernwartungssitzung",
+      "description": "Strukturierter Ablauf für Remote-Support-Einsatz",
+      "items": [
+        { "id": "wfi_tpl_014_01", "itemText": "Termin und Problem vorab vom Kunden erfragt / dokumentiert", "sortOrder": 0 },
+        { "id": "wfi_tpl_014_02", "itemText": "Fernwartungstool gestartet (AnyDesk / TeamViewer / RDP)", "sortOrder": 1 },
+        { "id": "wfi_tpl_014_03", "itemText": "Verbindung hergestellt, Bildschirmübertragung bestätigt", "sortOrder": 2 },
+        { "id": "wfi_tpl_014_04", "itemText": "Problem reproduziert und Ursache analysiert", "sortOrder": 3 },
+        { "id": "wfi_tpl_014_05", "itemText": "Lösung umgesetzt", "sortOrder": 4 },
+        { "id": "wfi_tpl_014_06", "itemText": "Funktion vom Kunden live bestätigt", "sortOrder": 5 },
+        { "id": "wfi_tpl_014_07", "itemText": "Verbindung sauber getrennt (kein unbeaufsichtigter Zugang offen)", "sortOrder": 6 },
+        { "id": "wfi_tpl_014_08", "itemText": "Arbeitszeit und Lösung im Task dokumentiert", "sortOrder": 7 }
+      ]
+    },
+    {
+      "id": "wf_tpl_015",
+      "name": "Vor-Ort-Einsatz Abschluss",
+      "description": "Abschluss-Checkliste nach jedem Kundeneinsatz",
+      "items": [
+        { "id": "wfi_tpl_015_01", "itemText": "Alle durchgeführten Maßnahmen dokumentiert", "sortOrder": 0 },
+        { "id": "wfi_tpl_015_02", "itemText": "Funktion vom Ansprechpartner bestätigt und getestet", "sortOrder": 3 },
+        { "id": "wfi_tpl_015_03", "itemText": "Offene Punkte / Folgemaßnahmen besprochen und notiert", "sortOrder": 4 },
+        { "id": "wfi_tpl_015_04", "itemText": "Arbeitsbericht / Lieferschein unterschrieben", "sortOrder": 5 },
+        { "id": "wfi_tpl_015_05", "itemText": "Verwendetes Material / Ersatzteile notiert (für Abrechnung)", "sortOrder": 6 },
+        { "id": "wfi_tpl_015_06", "itemText": "Passwörter geändert / nicht auf Zetteln hinterlassen", "sortOrder": 7 },
+        { "id": "wfi_tpl_015_07", "itemText": "Eigenes Werkzeug vollständig eingepackt", "sortOrder": 8 },
+        { "id": "wfi_tpl_015_08", "itemText": "Arbeitszeit im Task erfasst und Task auf COMPLETED gesetzt", "sortOrder": 9 }
+      ]
+    }
+  ]
+}

@@ -626,6 +626,17 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> archivedAt = GeneratedColumn<DateTime>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -667,6 +678,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     recurrenceMonthDay,
     estimatedMinutes,
     billedAt,
+    archivedAt,
     createdAt,
     updatedAt,
   ];
@@ -795,6 +807,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         billedAt.isAcceptableOrUnknown(data['billed_at']!, _billedAtMeta),
       );
     }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -876,6 +894,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}billed_at'],
       ),
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}archived_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -909,6 +931,7 @@ class Task extends DataClass implements Insertable<Task> {
   final int? recurrenceMonthDay;
   final int? estimatedMinutes;
   final DateTime? billedAt;
+  final DateTime? archivedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Task({
@@ -927,6 +950,7 @@ class Task extends DataClass implements Insertable<Task> {
     this.recurrenceMonthDay,
     this.estimatedMinutes,
     this.billedAt,
+    this.archivedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -963,6 +987,9 @@ class Task extends DataClass implements Insertable<Task> {
     }
     if (!nullToAbsent || billedAt != null) {
       map['billed_at'] = Variable<DateTime>(billedAt);
+    }
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<DateTime>(archivedAt);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1002,6 +1029,9 @@ class Task extends DataClass implements Insertable<Task> {
       billedAt: billedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(billedAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -1028,6 +1058,7 @@ class Task extends DataClass implements Insertable<Task> {
       recurrenceMonthDay: serializer.fromJson<int?>(json['recurrenceMonthDay']),
       estimatedMinutes: serializer.fromJson<int?>(json['estimatedMinutes']),
       billedAt: serializer.fromJson<DateTime?>(json['billedAt']),
+      archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -1051,6 +1082,7 @@ class Task extends DataClass implements Insertable<Task> {
       'recurrenceMonthDay': serializer.toJson<int?>(recurrenceMonthDay),
       'estimatedMinutes': serializer.toJson<int?>(estimatedMinutes),
       'billedAt': serializer.toJson<DateTime?>(billedAt),
+      'archivedAt': serializer.toJson<DateTime?>(archivedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1072,6 +1104,7 @@ class Task extends DataClass implements Insertable<Task> {
     Value<int?> recurrenceMonthDay = const Value.absent(),
     Value<int?> estimatedMinutes = const Value.absent(),
     Value<DateTime?> billedAt = const Value.absent(),
+    Value<DateTime?> archivedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Task(
@@ -1098,6 +1131,7 @@ class Task extends DataClass implements Insertable<Task> {
         ? estimatedMinutes.value
         : this.estimatedMinutes,
     billedAt: billedAt.present ? billedAt.value : this.billedAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -1136,6 +1170,9 @@ class Task extends DataClass implements Insertable<Task> {
           ? data.estimatedMinutes.value
           : this.estimatedMinutes,
       billedAt: data.billedAt.present ? data.billedAt.value : this.billedAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1159,6 +1196,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('recurrenceMonthDay: $recurrenceMonthDay, ')
           ..write('estimatedMinutes: $estimatedMinutes, ')
           ..write('billedAt: $billedAt, ')
+          ..write('archivedAt: $archivedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1182,6 +1220,7 @@ class Task extends DataClass implements Insertable<Task> {
     recurrenceMonthDay,
     estimatedMinutes,
     billedAt,
+    archivedAt,
     createdAt,
     updatedAt,
   );
@@ -1204,6 +1243,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.recurrenceMonthDay == this.recurrenceMonthDay &&
           other.estimatedMinutes == this.estimatedMinutes &&
           other.billedAt == this.billedAt &&
+          other.archivedAt == this.archivedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1224,6 +1264,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<int?> recurrenceMonthDay;
   final Value<int?> estimatedMinutes;
   final Value<DateTime?> billedAt;
+  final Value<DateTime?> archivedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -1243,6 +1284,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.recurrenceMonthDay = const Value.absent(),
     this.estimatedMinutes = const Value.absent(),
     this.billedAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1263,6 +1305,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.recurrenceMonthDay = const Value.absent(),
     this.estimatedMinutes = const Value.absent(),
     this.billedAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1283,6 +1326,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<int>? recurrenceMonthDay,
     Expression<int>? estimatedMinutes,
     Expression<DateTime>? billedAt,
+    Expression<DateTime>? archivedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -1304,6 +1348,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
         'recurrence_month_day': recurrenceMonthDay,
       if (estimatedMinutes != null) 'estimated_minutes': estimatedMinutes,
       if (billedAt != null) 'billed_at': billedAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1326,6 +1371,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<int?>? recurrenceMonthDay,
     Value<int?>? estimatedMinutes,
     Value<DateTime?>? billedAt,
+    Value<DateTime?>? archivedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -1346,6 +1392,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       recurrenceMonthDay: recurrenceMonthDay ?? this.recurrenceMonthDay,
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
       billedAt: billedAt ?? this.billedAt,
+      archivedAt: archivedAt ?? this.archivedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -1400,6 +1447,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (billedAt.present) {
       map['billed_at'] = Variable<DateTime>(billedAt.value);
     }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<DateTime>(archivedAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1430,6 +1480,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('recurrenceMonthDay: $recurrenceMonthDay, ')
           ..write('estimatedMinutes: $estimatedMinutes, ')
           ..write('billedAt: $billedAt, ')
+          ..write('archivedAt: $archivedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -8068,6 +8119,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<int?> recurrenceMonthDay,
       Value<int?> estimatedMinutes,
       Value<DateTime?> billedAt,
+      Value<DateTime?> archivedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -8089,6 +8141,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<int?> recurrenceMonthDay,
       Value<int?> estimatedMinutes,
       Value<DateTime?> billedAt,
+      Value<DateTime?> archivedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -8303,6 +8356,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<DateTime> get billedAt => $composableBuilder(
     column: $table.billedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8569,6 +8627,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -8669,6 +8732,11 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get billedAt =>
       $composableBuilder(column: $table.billedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -8901,6 +8969,7 @@ class $$TasksTableTableManager
                 Value<int?> recurrenceMonthDay = const Value.absent(),
                 Value<int?> estimatedMinutes = const Value.absent(),
                 Value<DateTime?> billedAt = const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8920,6 +8989,7 @@ class $$TasksTableTableManager
                 recurrenceMonthDay: recurrenceMonthDay,
                 estimatedMinutes: estimatedMinutes,
                 billedAt: billedAt,
+                archivedAt: archivedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -8941,6 +9011,7 @@ class $$TasksTableTableManager
                 Value<int?> recurrenceMonthDay = const Value.absent(),
                 Value<int?> estimatedMinutes = const Value.absent(),
                 Value<DateTime?> billedAt = const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8960,6 +9031,7 @@ class $$TasksTableTableManager
                 recurrenceMonthDay: recurrenceMonthDay,
                 estimatedMinutes: estimatedMinutes,
                 billedAt: billedAt,
+                archivedAt: archivedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

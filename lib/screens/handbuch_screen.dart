@@ -237,6 +237,30 @@ class HandbuchScreen extends StatelessWidget {
                     'Checklisten-Vorlagen. Ein Workflow enthält beliebig viele Einträge, die beim Anwenden als Todos in einen Task eingefügt werden.',
               ),
               _Entry(
+                title: 'Workflow-Vorlagen importieren',
+                body:
+                    'Fertige IT-Support-Workflows können als JSON-Datei importiert werden:\n'
+                    '1. Einstellungen → Datenaustausch → Datei importieren\n'
+                    '2. Datei assets/workflows_it_support.json auswählen\n\n'
+                    'Enthaltene Vorlagen (15 Workflows):\n'
+                    '• Windows Neuinstallation\n'
+                    '• Netzwerk-Diagnose & Fehlerbehebung\n'
+                    '• Drucker einrichten\n'
+                    '• E-Mail Einrichtung (Outlook / Thunderbird)\n'
+                    '• Malware- / Virenbereinigung\n'
+                    '• Neuer Mitarbeiter-PC einrichten\n'
+                    '• VPN Einrichtung\n'
+                    '• Hardware-Defekt Diagnose\n'
+                    '• Microsoft 365 Einrichtung\n'
+                    '• Passwort & Konto zurücksetzen\n'
+                    '• Router / Firewall Konfiguration\n'
+                    '• Server-Wartung (monatlich)\n'
+                    '• Datenmigration / PC-Tausch\n'
+                    '• Fernwartungssitzung\n'
+                    '• Vor-Ort-Einsatz Abschluss\n\n'
+                    'Bereits vorhandene Workflows (gleiche ID) werden beim Import übersprungen.',
+              ),
+              _Entry(
                 title: 'Task-Vorlagen',
                 body:
                     'Vollständige Task-Vorlagen mit vorausgefüllten Todos, Hardware-Bundles und Workflow-Zuweisung. Aus dem Dashboard (+ → Aus Vorlage) anwendbar.',
@@ -273,6 +297,51 @@ class HandbuchScreen extends StatelessWidget {
                 title: 'Logo (macOS / iOS)',
                 body:
                     'Das Firmen-Logo für PDF-Berichte kann auf allen Plattformen ausgewählt werden. Die Datei wird in den App-Dokumenten-Ordner kopiert und bleibt auch nach App-Updates erhalten.',
+              ),
+            ],
+          ),
+          _Section(
+            icon: Icons.build_circle_outlined,
+            title: 'Datenpflege',
+            children: [
+              _Entry(
+                title: 'Datenbankpflege öffnen',
+                body:
+                    'Einstellungen → Datenpflege → Datenbankpflege.\n\n'
+                    'Zeigt eine Übersicht über Datenbank- und Foto-Speicherverbrauch sowie Task-Statistiken.',
+              ),
+              _Entry(
+                title: 'Tasks archivieren',
+                body:
+                    'Abgeschlossene Tasks werden aus der Hauptliste entfernt, aber vollständig erhalten (alle Notizen, Fotos, Zeiteinträge bleiben).\n\n'
+                    'Filter: Tasks älter als 14 Tage / 1 Monat / 2 Monate / 3 Monate / 6 Monate.\n\n'
+                    'Archivierte Tasks erscheinen nicht mehr in der Task-Liste und werden auch nicht im Badge-Zähler gezählt. In Monatsberichten sind sie weiterhin enthalten.',
+              ),
+              _Entry(
+                title: 'Archiv verwalten',
+                body:
+                    'Im Datenbankpflege-Screen werden alle archivierten Tasks angezeigt.\n\n'
+                    '• "Reaktivieren" → Task wird als COMPLETED in die Hauptliste zurückgeholt\n'
+                    '• "Archiv leeren" → löscht alle archivierten Tasks dauerhaft inkl. Fotos, Notizen und Zeiteinträge (nicht rückgängig machbar)',
+              ),
+              _Entry(
+                title: 'Fotos komprimieren',
+                body:
+                    'Reduziert die Dateigröße aller Task-Fotos auf dem Gerät. Originale werden in-place ersetzt (kein Rückgängig).\n\n'
+                    'Qualität: 30–90 % (Standard: 70 %). Bilder größer als 1920 px werden proportional verkleinert.\n\n'
+                    'Fotos werden nur ersetzt wenn die komprimierte Version tatsächlich kleiner ist.',
+              ),
+              _Entry(
+                title: 'Verwaiste Dateien löschen',
+                body:
+                    'Findet Foto-Dateien auf dem Gerät, die keinen Datenbankeintrag mehr haben (z.B. nach manueller Löschung oder abgebrochenem Import).\n\n'
+                    '"Löschen" entfernt diese Dateien und gibt Speicher frei.',
+              ),
+              _Entry(
+                title: 'Datenbank VACUUM',
+                body:
+                    'SQLite-Befehl, der ungenutzte Seiten in der Datenbankdatei freigibt. Sinnvoll nach dem Archiv-Leeren oder vielen Löschvorgängen.\n\n'
+                    'Zeigt Vorher-/Nachher-Größe an. Dauert bei großen Datenbanken einige Sekunden.',
               ),
             ],
           ),

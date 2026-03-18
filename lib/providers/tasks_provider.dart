@@ -28,7 +28,9 @@ class TaskWithDetails {
 final tasksProvider = FutureProvider<List<TaskWithDetails>>((ref) async {
   final db = ref.watch(databaseProvider);
 
+  // Archivierte Tasks werden in der Hauptliste nicht angezeigt
   final tasks = await (db.select(db.tasks)
+        ..where((t) => t.archivedAt.isNull())
         ..orderBy([(t) => drift.OrderingTerm.desc(t.updatedAt)]))
       .get();
 

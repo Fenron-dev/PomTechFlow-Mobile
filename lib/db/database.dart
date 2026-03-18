@@ -36,6 +36,7 @@ class Tasks extends Table {
   IntColumn get recurrenceMonthDay => integer().nullable()(); // 1..31 (für MONTHLY, z.B. "jeden 1.") NEU v7
   IntColumn get estimatedMinutes => integer().nullable()(); // NEU v9: Zeitbudget
   DateTimeColumn get billedAt => dateTime().nullable()(); // NEU v9: null=offen, gesetzt=abgerechnet am Datum
+  DateTimeColumn get archivedAt => dateTime().nullable()(); // NEU v11: null=aktiv, gesetzt=archiviert
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -262,7 +263,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -313,6 +314,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 10) {
         // v9 → v10: Allgemeine Notizen mit Tags
         await m.createTable(generalNotes);
+      }
+      if (from < 11) {
+        // v10 → v11: Task-Archiv
+        await m.addColumn(tasks, tasks.archivedAt);
       }
     },
   );

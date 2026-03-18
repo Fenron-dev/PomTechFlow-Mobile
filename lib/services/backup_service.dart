@@ -43,6 +43,11 @@ class BackupService {
         'recurring': t.recurring,
         'recurrenceType': t.recurrenceType,
         'recurrenceInterval': t.recurrenceInterval,
+        'recurrenceWeekday': t.recurrenceWeekday,
+        'recurrenceMonthDay': t.recurrenceMonthDay,
+        'estimatedMinutes': t.estimatedMinutes,
+        'billedAt': t.billedAt?.toIso8601String(),
+        'archivedAt': t.archivedAt?.toIso8601String(),
         'createdAt': t.createdAt.toIso8601String(),
         'updatedAt': t.updatedAt.toIso8601String(),
       }).toList(),
@@ -249,6 +254,15 @@ class BackupService {
             recurring: Value(t['recurring'] ?? false),
             recurrenceType: Value(t['recurrenceType']),
             recurrenceInterval: Value(t['recurrenceInterval'] ?? 1),
+            recurrenceWeekday: Value(t['recurrenceWeekday']),
+            recurrenceMonthDay: Value(t['recurrenceMonthDay']),
+            estimatedMinutes: Value(t['estimatedMinutes']),
+            billedAt: Value(t['billedAt'] != null
+                ? DateTime.tryParse(t['billedAt'])
+                : null),
+            archivedAt: Value(t['archivedAt'] != null
+                ? DateTime.tryParse(t['archivedAt'])
+                : null),
             createdAt: Value(DateTime.tryParse(t['createdAt'] ?? '') ?? DateTime.now()),
             updatedAt: Value(DateTime.tryParse(t['updatedAt'] ?? '') ?? DateTime.now()),
           ));

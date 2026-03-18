@@ -14,6 +14,7 @@ import 'hardware_bundle_screen.dart' show HardwareBundleScreen;
 import 'device_library_screen.dart';
 import 'task_templates_screen.dart';
 import 'data_exchange_screen.dart';
+import 'maintenance_screen.dart';
 import '../handbuch_screen.dart';
 
 bool get _isIOS => !kIsWeb && Platform.isIOS;
@@ -710,6 +711,23 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           ],
         ],
         const SizedBox(height: 20),
+
+        // ── Datenpflege ───────────────────────────────────────────────
+        _SectionHeader('Datenpflege'),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.build_circle_outlined),
+            title: const Text('Datenbankpflege'),
+            subtitle: const Text('Archiv, Foto-Komprimierung, VACUUM'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const MaintenanceScreen()),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
 
         // ── Sicherheit ────────────────────────────────────────────────
         _SectionHeader('Sicherheit'),

@@ -41,6 +41,9 @@ dependencies:
   archive: ^3.6.1
   app_badge_plus: ^1.0.0
 
+  # Foto-Komprimierung
+  image: ^4.2.0                    # Dart-nativ, keine nativen Abhängigkeiten
+
   # Homescreen-Widget
   home_widget: ^0.6.0               # Kommunikation Flutter ↔ nativer Widget
 
