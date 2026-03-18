@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:drift/drift.dart' show Value;
 import '../../providers/database_provider.dart';
 import '../../providers/general_notes_provider.dart';
+import '../../providers/note_templates_provider.dart';
 import '../../db/database.dart';
+import 'note_templates_screen.dart';
 
 class NotesScreen extends ConsumerStatefulWidget {
   const NotesScreen({super.key});
@@ -98,6 +100,15 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             icon: Icon(_showSearch ? Icons.search_off : Icons.search),
             tooltip: _showSearch ? 'Suche schließen' : 'Suchen',
             onPressed: _toggleSearch,
+          ),
+          IconButton(
+            icon: const Icon(Icons.description_outlined),
+            tooltip: 'Vorlagen verwalten',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const NoteTemplatesScreen()),
+            ),
           ),
         ],
       ),
@@ -319,6 +330,156 @@ class _NoteFormSheetState extends ConsumerState<_NoteFormSheet> {
         : [];
   }
 
+  /// Zeigt ein Bottom Sheet mit allen verfügbaren Vorlagen zur Auswahl.
+  Future<void> _pickTemplate() async {
+    final templates =
+        ref.read(noteTemplatesProvider).valueOrNull ?? [];
+    if (templates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Keine Vorlagen vorhanden.'),
+          action: SnackBarAction(
+            label: 'Erstellen',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const NoteTemplatesScreen()),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final chosen = await showModalBottomSheet<NoteTemplate>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (_, scrollCtrl) {
+          final cs = Theme.of(ctx).colorScheme;
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.description_outlined, color: cs.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Vorlage wählen',
+                      style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: cs.primary,
+                          ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  itemCount: templates.length,
+                  itemBuilder: (_, i) {
+                    final t = templates[i];
+                    final tags = t.tags == null || t.tags!.isEmpty
+                        ? <String>[]
+                        : t.tags!
+                            .split(',')
+                            .map((s) => s.trim())
+                            .where((s) => s.isNotEmpty)
+                            .toList();
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: cs.primaryContainer,
+                        child: Icon(Icons.description_outlined,
+                            size: 18, color: cs.primary),
+                      ),
+                      title: Text(t.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t.content,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(ctx)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: cs.outline),
+                          ),
+                          if (tags.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Wrap(
+                              spacing: 4,
+                              children: tags
+                                  .map((tag) => Text(
+                                        '#$tag',
+                                        style: Theme.of(ctx)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                                color: cs.primary),
+                                      ))
+                                  .toList(),
+                            ),
+                          ],
+                        ],
+                      ),
+                      isThreeLine: tags.isNotEmpty,
+                      onTap: () => Navigator.pop(ctx, t),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (chosen == null || !mounted) return;
+    _applyTemplate(chosen);
+  }
+
+  void _applyTemplate(NoteTemplate template) {
+    // Inhalt: bei leerer Notiz direkt setzen, sonst anhängen
+    if (_contentCtrl.text.trim().isEmpty) {
+      _contentCtrl.text = template.content;
+    } else {
+      _contentCtrl.text =
+          '${_contentCtrl.text.trimRight()}\n\n${template.content}';
+    }
+    // Cursor ans Ende
+    _contentCtrl.selection = TextSelection.collapsed(
+        offset: _contentCtrl.text.length);
+
+    // Tags mergen (keine Duplikate)
+    if (template.tags != null && template.tags!.isNotEmpty) {
+      final newTags = template.tags!
+          .split(',')
+          .map((t) => t.trim())
+          .where((t) => t.isNotEmpty && !_selectedTags.contains(t))
+          .toList();
+      if (newTags.isNotEmpty) {
+        setState(() => _selectedTags.addAll(newTags));
+      }
+    }
+  }
+
   @override
   void dispose() {
     _contentCtrl.dispose();
@@ -383,6 +544,12 @@ class _NoteFormSheetState extends ConsumerState<_NoteFormSheet> {
           title:
               Text(widget.note == null ? 'Neue Notiz' : 'Notiz bearbeiten'),
           actions: [
+            if (widget.note == null)
+              IconButton(
+                icon: const Icon(Icons.description_outlined),
+                tooltip: 'Vorlage anwenden',
+                onPressed: _pickTemplate,
+              ),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilledButton.tonal(

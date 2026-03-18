@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "exportedAt": "2026-03-18T00:00:00.000Z",
+  "type": "data_exchange",
+  "noteTemplates": [
+    {
+      "id": "ntpl_001_fernwartung",
+      "name": "Fernwartungs-Bericht",
+      "tags": "fernwartung,bericht,support",
+      "createdAt": "2026-03-18T00:00:00.000Z",
+      "updatedAt": "2026-03-18T00:00:00.000Z",
+      "content": "🖥️ Fernwartungs-Bericht\nDatum: [Datum]\nTechniker: [Techniker]\nKunde / Benutzer: [Kunde]\n\n──────────────────────────\nProblem:\n[Problem genau beschreiben – Symptome, Fehlermeldungen, seit wann]\n\nUrsache:\n[Ursache / Root Cause]\n\nDurchgeführte Maßnahmen:\n[Schritt-für-Schritt was gemacht wurde]\n\nErgebnis:\n[Funktioniert? Offene Punkte?]\n\nDauer: [X] Minuten\nStatus: [Abgeschlossen / Offen / Weitergeleitet]"
+    },
+    {
+      "id": "ntpl_002_kundengespräch",
+      "name": "Kundengespräch Protokoll",
+      "tags": "protokoll,kunde,meeting",
+      "createdAt": "2026-03-18T00:00:01.000Z",
+      "updatedAt": "2026-03-18T00:00:01.000Z",
+      "content": "📋 Gesprächsprotokoll\nDatum: [Datum]  Uhrzeit: [Uhrzeit]\nOrt / Kanal: [Vor Ort / Telefon / Teams / ...]\n\nTeilnehmer:\n• [Name, Funktion]\n• [Name, Funktion]\n\n──────────────────────────\nThemen & Besprochenes:\n1. [Thema]\n   → [Ergebnis / Stand]\n\n2. [Thema]\n   → [Ergebnis / Stand]\n\n──────────────────────────\nOffene Punkte / To-Dos:\n☐ [Aufgabe]  →  Verantwortlich: [Person]  bis: [Datum]\n☐ [Aufgabe]  →  Verantwortlich: [Person]  bis: [Datum]\n\nNächster Termin: [Datum / offen]"
+    },
+    {
+      "id": "ntpl_003_incident",
+      "name": "Incident / Störungsbericht",
+      "tags": "incident,störung,report,eskalation",
+      "createdAt": "2026-03-18T00:00:02.000Z",
+      "updatedAt": "2026-03-18T00:00:02.000Z",
+      "content": "🚨 Incident Report\nDatum/Zeit Beginn: [Datum, Uhrzeit]\nDatum/Zeit Ende:   [Datum, Uhrzeit]\nPriorität: [Kritisch / Hoch / Mittel / Niedrig]\n\nBetroffene Systeme / Nutzer:\n[Welche Systeme, wie viele Nutzer betroffen?]\n\n──────────────────────────\nSymptome / Auswirkung:\n[Was war nicht erreichbar / funktionierte nicht?]\n\nRootcause-Analyse:\n[Ursache – soweit bekannt]\n\nSofortmaßnahmen:\n[Was wurde unmittelbar unternommen?]\n\nLangfristige Lösung / Präventivmaßnahme:\n[Was wird getan, damit es nicht erneut passiert?]\n\nEskalation an: [Name / Team]\nTicket-Nr.: [Ticketnummer falls vorhanden]\nStatus: [Behoben / In Bearbeitung / Weitergeleitet]"
+    },
+    {
+      "id": "ntpl_004_geraet_uebergabe",
+      "name": "Geräteübergabe Protokoll",
+      "tags": "hardware,übergabe,protokoll,inventar",
+      "createdAt": "2026-03-18T00:00:03.000Z",
+      "updatedAt": "2026-03-18T00:00:03.000Z",
+      "content": "📦 Geräteübergabe Protokoll\nDatum: [Datum]\nTechniker: [Techniker]\n\n──────────────────────────\nGerät:\nTyp:            [PC / Laptop / Monitor / Drucker / ...]\nHersteller:     [Hersteller]\nModell:         [Modell]\nSeriennummer:   [S/N]\nAsset-Tag:      [Asset-Nummer]\n\nZustand bei Übergabe:\n☐ Neugerät  ☐ Wiederaufbereitet  ☐ Gebraucht\nBesonderheiten: [Kratzer, Defekte, Hinweise]\n\n──────────────────────────\nMitgeliefertes Zubehör:\n☐ Netzkabel / Netzteil\n☐ Maus\n☐ Tastatur\n☐ Monitorkabel\n☐ Docking-Station\n☐ Sonstiges: [__________]\n\nEmpfänger: [Name]\nAbteilung: [Abteilung]\nUnterschrift Empfänger: ________________________\nUnterschrift Techniker: ________________________"
+    },
+    {
+      "id": "ntpl_005_wartungsprotokoll",
+      "name": "Wartungsprotokoll",
+      "tags": "wartung,protokoll,server,maintenance",
+      "createdAt": "2026-03-18T00:00:04.000Z",
+      "updatedAt": "2026-03-18T00:00:04.000Z",
+      "content": "🔧 Wartungsprotokoll\nDatum: [Datum]\nTechniker: [Techniker]\nSystem / Gerät: [Name, IP/Hostname]\nWartungstyp: [Routine / Reaktiv / Präventiv]\n\n──────────────────────────\nDurchgeführte Arbeiten:\n☐ Betriebssystem-Updates installiert\n☐ Firmware / BIOS aktualisiert\n☐ Backup-Status geprüft (letztes Backup: [Datum])\n☐ Festplatten-SMART geprüft  → Status: [OK / Warnung]\n☐ Eventlog / Syslog auf Fehler geprüft\n☐ Dienste und Prozesse geprüft\n☐ Sicherheitssoftware / AV aktuell\n☐ SSL-Zertifikate geprüft  (läuft ab: [Datum])\n☐ UPS / USV getestet\n☐ Staubreinigung durchgeführt\n\nBefund:\n[Auffälligkeiten, Warnungen, Handlungsbedarf]\n\nEmpfehlung / Folgemaßnahmen:\n[Was sollte als nächstes gemacht werden?]\n\nNächster Wartungstermin: [Datum]"
+    }
+  ]
+}

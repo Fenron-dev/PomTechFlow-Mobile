@@ -14,6 +14,7 @@ class DataExchangeService {
     bool workflows = true,
     bool hardwareBundles = true,
     bool generalNotes = false,
+    bool noteTemplates = false,
   }) async {
     final Map<String, dynamic> data = {
       'version': 1,
@@ -92,6 +93,20 @@ class DataExchangeService {
           .toList();
     }
 
+    if (noteTemplates) {
+      final tmpl = await db.select(db.noteTemplates).get();
+      data['noteTemplates'] = tmpl
+          .map((t) => {
+                'id': t.id,
+                'name': t.name,
+                'content': t.content,
+                'tags': t.tags,
+                'createdAt': t.createdAt.toIso8601String(),
+                'updatedAt': t.updatedAt.toIso8601String(),
+              })
+          .toList();
+    }
+
     final json = const JsonEncoder.withIndent('  ').convert(data);
     final dir = await getApplicationDocumentsDirectory();
     final ts = DateTime.now().millisecondsSinceEpoch;
@@ -130,6 +145,7 @@ class DataExchangeService {
       int importedWorkflows = 0;
       int importedBundles = 0;
       int importedNotes = 0;
+      int importedTemplates = 0;
 
       await db.transaction(() async {
         // Kunden
@@ -231,6 +247,33 @@ class DataExchangeService {
             importedNotes++;
           }
         }
+
+        // Notiz-Vorlagen
+        final templateList = data['noteTemplates'] as List? ?? [];
+        for (final t in templateList) {
+          final existing = await (db.select(db.noteTemplates)
+                ..where((row) => row.id.equals(t['id'] as String)))
+              .getSingleOrNull();
+          if (existing == null) {
+            await db.into(db.noteTemplates).insert(
+                  NoteTemplatesCompanion.insert(
+                    id: drift.Value(t['id'] as String),
+                    name: t['name'] as String,
+                    content: t['content'] as String,
+                    tags: drift.Value(t['tags'] as String?),
+                    createdAt: drift.Value(
+                      DateTime.tryParse(t['createdAt'] as String? ?? '') ??
+                          DateTime.now(),
+                    ),
+                    updatedAt: drift.Value(
+                      DateTime.tryParse(t['updatedAt'] as String? ?? '') ??
+                          DateTime.now(),
+                    ),
+                  ),
+                );
+            importedTemplates++;
+          }
+        }
       });
 
       return DataImportResult.success(
@@ -238,6 +281,7 @@ class DataExchangeService {
         workflows: importedWorkflows,
         bundles: importedBundles,
         notes: importedNotes,
+        templates: importedTemplates,
       );
     } catch (e) {
       return DataImportResult.error('Fehler beim Importieren: $e');
@@ -252,6 +296,7 @@ class DataImportResult {
   final int workflows;
   final int bundles;
   final int notes;
+  final int templates;
 
   DataImportResult._({
     this.cancelled = false,
@@ -260,6 +305,7 @@ class DataImportResult {
     this.workflows = 0,
     this.bundles = 0,
     this.notes = 0,
+    this.templates = 0,
   });
 
   factory DataImportResult.cancelled() => DataImportResult._(cancelled: true);
@@ -269,12 +315,14 @@ class DataImportResult {
     required int workflows,
     required int bundles,
     int notes = 0,
+    int templates = 0,
   }) =>
       DataImportResult._(
           customers: customers,
           workflows: workflows,
           bundles: bundles,
-          notes: notes);
+          notes: notes,
+          templates: templates);
 
   bool get isSuccess => !cancelled && error == null;
 
@@ -284,6 +332,7 @@ class DataImportResult {
       if (workflows > 0) '$workflows Workflows',
       if (bundles > 0) '$bundles Bundles',
       if (notes > 0) '$notes Notizen',
+      if (templates > 0) '$templates Vorlagen',
     ];
     return parts.isEmpty ? 'Keine neuen Einträge' : '${parts.join(', ')} importiert';
   }

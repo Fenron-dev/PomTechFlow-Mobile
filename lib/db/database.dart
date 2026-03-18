@@ -223,6 +223,18 @@ class GeneralNotes extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class NoteTemplates extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get name => text()(); // Anzeigename der Vorlage
+  TextColumn get content => text()(); // Vorlagen-Inhalt (kann Platzhalter wie [Problem] enthalten)
+  TextColumn get tags => text().nullable()(); // kommagetrennte Vorausfüll-Tags
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class DevicePresets extends Table {
   TextColumn get id => text().clientDefault(() => _uuid())();
   TextColumn get type => text()();
@@ -258,12 +270,13 @@ class DevicePresets extends Table {
   TaskTemplateTodos,
   TaskLinks,
   GeneralNotes,
+  NoteTemplates,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -318,6 +331,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 11) {
         // v10 → v11: Task-Archiv
         await m.addColumn(tasks, tasks.archivedAt);
+      }
+      if (from < 12) {
+        // v11 → v12: Notiz-Vorlagen
+        await m.createTable(noteTemplates);
       }
     },
   );

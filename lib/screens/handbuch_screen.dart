@@ -237,6 +237,36 @@ class HandbuchScreen extends StatelessWidget {
                     'Checklisten-Vorlagen. Ein Workflow enthält beliebig viele Einträge, die beim Anwenden als Todos in einen Task eingefügt werden.',
               ),
               _Entry(
+                title: 'Notiz-Vorlagen',
+                body:
+                    'Notiz-Vorlagen sind wiederverwendbare Textbausteine mit vorausgefüllten Tags.\n\n'
+                    'Verwaltung:\n'
+                    '• Einstellungen → Datenpflege → Notiz-Vorlagen\n'
+                    '• Oder: Notizen-Tab → Vorlagen-Symbol (oben rechts)\n\n'
+                    'Vorlage anwenden:\n'
+                    '1. Neue Notiz erstellen (+)\n'
+                    '2. Vorlagen-Symbol in der AppBar tippen\n'
+                    '3. Vorlage aus der Liste auswählen\n'
+                    '4. Inhalt wird eingefügt, Tags werden automatisch gesetzt\n'
+                    '5. Platzhalter [In Eckigen Klammern] ausfüllen\n'
+                    '6. Speichern\n\n'
+                    'Vorlagen können exportiert und mit Kollegen geteilt werden (Datenaustausch → Notiz-Vorlagen).',
+              ),
+              _Entry(
+                title: 'Notiz-Vorlagen importieren (5 IT-Support Muster)',
+                body:
+                    '5 fertige Vorlagen für den IT-Alltag als JSON-Datei importieren:\n'
+                    '1. Einstellungen → Datenaustausch → Datei importieren\n'
+                    '2. Datei assets/note_templates_it_support.json auswählen\n\n'
+                    'Enthaltene Vorlagen:\n'
+                    '• Fernwartungs-Bericht – Datum, Techniker, Problem, Ursache, Maßnahmen, Ergebnis, Dauer\n'
+                    '• Kundengespräch Protokoll – Teilnehmer, Themen, Beschlüsse, offene To-Dos\n'
+                    '• Incident / Störungsbericht – Priorität, Betroffene Systeme, Rootcause, Eskalation\n'
+                    '• Geräteübergabe Protokoll – Gerät, Seriennummer, Zubehör, Empfänger, Unterschrift\n'
+                    '• Wartungsprotokoll – Checkliste mit Checkboxen, Befund, Nächster Termin\n\n'
+                    'Platzhalter wie [Problem] oder [Datum] werden beim Anwenden als ausfüllbare Bereiche hervorgehoben.',
+              ),
+              _Entry(
                 title: 'OS-Referenz-Notizen importieren',
                 body:
                     'Fertige Nachschlagewerke für Windows, Linux und macOS als Notizen importieren:\n'

@@ -15,6 +15,7 @@ import 'device_library_screen.dart';
 import 'task_templates_screen.dart';
 import 'data_exchange_screen.dart';
 import 'maintenance_screen.dart';
+import '../notes/note_templates_screen.dart';
 import '../handbuch_screen.dart';
 
 bool get _isIOS => !kIsWeb && Platform.isIOS;
@@ -715,16 +716,32 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         // ── Datenpflege ───────────────────────────────────────────────
         _SectionHeader('Datenpflege'),
         Card(
-          child: ListTile(
-            leading: const Icon(Icons.build_circle_outlined),
-            title: const Text('Datenbankpflege'),
-            subtitle: const Text('Archiv, Foto-Komprimierung, VACUUM'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const MaintenanceScreen()),
-            ),
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.build_circle_outlined),
+                title: const Text('Datenbankpflege'),
+                subtitle: const Text('Archiv, Foto-Komprimierung, VACUUM'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const MaintenanceScreen()),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('Notiz-Vorlagen'),
+                subtitle: const Text('Eigene Vorlagen erstellen & verwalten'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const NoteTemplatesScreen()),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 24),

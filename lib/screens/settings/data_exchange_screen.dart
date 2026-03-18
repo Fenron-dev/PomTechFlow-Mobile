@@ -5,6 +5,7 @@ import '../../providers/customers_provider.dart';
 import '../../providers/workflows_provider.dart';
 import '../../providers/hardware_bundle_provider.dart';
 import '../../providers/general_notes_provider.dart';
+import '../../providers/note_templates_provider.dart';
 import '../../services/data_exchange_service.dart';
 
 class DataExchangeScreen extends ConsumerStatefulWidget {
@@ -19,10 +20,11 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
   bool _exportWorkflows = true;
   bool _exportBundles = true;
   bool _exportNotes = false;
+  bool _exportTemplates = false;
   bool _loading = false;
 
   Future<void> _export() async {
-    if (!_exportCustomers && !_exportWorkflows && !_exportBundles && !_exportNotes) {
+    if (!_exportCustomers && !_exportWorkflows && !_exportBundles && !_exportNotes && !_exportTemplates) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bitte mindestens eine Kategorie auswählen.')),
       );
@@ -37,6 +39,7 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
         workflows: _exportWorkflows,
         hardwareBundles: _exportBundles,
         generalNotes: _exportNotes,
+        noteTemplates: _exportTemplates,
       );
     } catch (e) {
       if (mounted) {
@@ -68,6 +71,7 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
       ref.invalidate(workflowsProvider);
       ref.invalidate(hardwareBundlesProvider);
       ref.invalidate(generalNotesProvider);
+      ref.invalidate(noteTemplatesProvider);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Importiert: ${result.summary}')),
@@ -151,6 +155,13 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
                   secondary: const Icon(Icons.notes_outlined),
                   value: _exportNotes,
                   onChanged: (v) => setState(() => _exportNotes = v!),
+                ),
+                CheckboxListTile(
+                  title: const Text('Notiz-Vorlagen'),
+                  subtitle: const Text('Eigene Notizvorlagen'),
+                  secondary: const Icon(Icons.description_outlined),
+                  value: _exportTemplates,
+                  onChanged: (v) => setState(() => _exportTemplates = v!),
                 ),
               ],
             ),
