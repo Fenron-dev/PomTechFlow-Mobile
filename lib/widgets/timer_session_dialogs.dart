@@ -5,6 +5,7 @@ import '../db/database.dart';
 import '../providers/database_provider.dart';
 import '../providers/tasks_provider.dart';
 import '../providers/timer_provider.dart';
+import '../services/notification_service.dart';
 
 // ─── Stop-Dialog: Was wurde erledigt? + Schnellnotiz ────────────────────────
 
@@ -239,6 +240,124 @@ Future<void> handleTimerStop(BuildContext context, WidgetRef ref, String taskId)
   ref.invalidate(tasksProvider);
   ref.invalidate(sessionsProvider(taskId));
   ref.invalidate(taskDetailProvider(taskId));
+}
+
+// ─── Erinnerungsdialog ───────────────────────────────────────────────────────
+
+Future<void> showQuickReminderDialog(BuildContext context) async {
+  await showDialog(
+    context: context,
+    builder: (_) => const _ReminderDialog(),
+  );
+}
+
+class _ReminderDialog extends StatefulWidget {
+  const _ReminderDialog();
+
+  @override
+  State<_ReminderDialog> createState() => _ReminderDialogState();
+}
+
+class _ReminderDialogState extends State<_ReminderDialog> {
+  int _minutes = 10;
+  final _textCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _textCtrl.text = 'Server nochmal prüfen';
+  }
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final presets = [5, 10, 15, 20, 30];
+    return AlertDialog(
+      title: const Row(children: [
+        Icon(Icons.alarm_add_outlined),
+        SizedBox(width: 10),
+        Text('Erinnerung setzen'),
+      ]),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _textCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Woran erinnern?',
+              isDense: true,
+            ),
+            textCapitalization: TextCapitalization.sentences,
+          ),
+          const SizedBox(height: 16),
+          Text('In wie vielen Minuten?',
+              style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: presets
+                .map((p) => ChoiceChip(
+                      label: Text('$p min'),
+                      selected: _minutes == p,
+                      onSelected: (_) => setState(() => _minutes = p),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('Individuell: '),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 70,
+                child: TextFormField(
+                  initialValue: _minutes.toString(),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    suffix: Text('min'),
+                  ),
+                  onChanged: (v) {
+                    final val = int.tryParse(v);
+                    if (val != null && val > 0) setState(() => _minutes = val);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton.icon(
+          icon: const Icon(Icons.alarm_on),
+          label: const Text('Setzen'),
+          onPressed: () async {
+            Navigator.pop(context);
+            final when = DateTime.now().add(Duration(minutes: _minutes));
+            final text = _textCtrl.text.trim().isEmpty
+                ? 'Erinnerung'
+                : _textCtrl.text.trim();
+            await NotificationService.scheduleReminder(text, when);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('Erinnerung in $_minutes Min: $text'),
+              ));
+            }
+          },
+        ),
+      ],
+    );
+  }
 }
 
 // ─── Hilfsfunktion: Stop-Ergebnis in DB schreiben ────────────────────────────

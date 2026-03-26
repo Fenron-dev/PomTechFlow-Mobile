@@ -7,6 +7,7 @@ import '../../providers/database_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../db/database.dart';
 import '../../services/task_handover_service.dart';
+import '../../widgets/timer_session_dialogs.dart';
 import 'tabs/overview_tab.dart';
 import 'tabs/checklist_tab.dart';
 import 'tabs/hardware_tab.dart';
@@ -56,6 +57,11 @@ class TaskDetailScreen extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.alarm_add_outlined),
+                  tooltip: 'Erinnerung setzen',
+                  onPressed: () => showQuickReminderDialog(context),
+                ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: () async {

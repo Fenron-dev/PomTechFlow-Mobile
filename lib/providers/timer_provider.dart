@@ -42,6 +42,10 @@ class TimerEntry {
 class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
   final Map<String, Timer> _tickers = {};
   final Map<String, DateTime> _sessionStarts = {};
+  // Timestamp, ab dem das aktuelle Lauf-Intervall begann (null = pausiert)
+  final Map<String, DateTime> _resumeTimestamps = {};
+  // Sekunden, die vor dem aktuellen Lauf-Intervall bereits aufgelaufen sind
+  final Map<String, int> _baseElapsed = {};
 
   @override
   Map<String, TimerEntry> build() {
@@ -57,6 +61,13 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
       state[taskId]?.status == TimerStatus.running;
 
   bool isActive(String taskId) => state.containsKey(taskId);
+
+  int _currentElapsed(String taskId) {
+    final base = _baseElapsed[taskId] ?? 0;
+    final resumeTs = _resumeTimestamps[taskId];
+    if (resumeTs == null) return base;
+    return base + DateTime.now().difference(resumeTs).inSeconds;
+  }
 
   Future<void> start(String taskId) async {
     if (state.containsKey(taskId)) return; // already running
@@ -80,6 +91,8 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
     );
 
     _sessionStarts[taskId] = sessionStart;
+    _resumeTimestamps[taskId] = sessionStart;
+    _baseElapsed[taskId] = 0;
 
     final newState = Map<String, TimerEntry>.from(state);
     newState[taskId] = TimerEntry(
@@ -96,13 +109,20 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
     if (state[taskId]?.status != TimerStatus.running) return;
     _tickers[taskId]?.cancel();
     _tickers.remove(taskId);
+    // Elapsed bis jetzt einfrieren, Resume-Timestamp entfernen
+    _baseElapsed[taskId] = _currentElapsed(taskId);
+    _resumeTimestamps.remove(taskId);
     final newState = Map<String, TimerEntry>.from(state);
-    newState[taskId] = state[taskId]!.copyWith(status: TimerStatus.paused);
+    newState[taskId] = state[taskId]!.copyWith(
+      status: TimerStatus.paused,
+      elapsedSeconds: _baseElapsed[taskId]!,
+    );
     state = newState;
   }
 
   void resume(String taskId) {
     if (state[taskId]?.status != TimerStatus.paused) return;
+    _resumeTimestamps[taskId] = DateTime.now();
     final newState = Map<String, TimerEntry>.from(state);
     newState[taskId] = state[taskId]!.copyWith(status: TimerStatus.running);
     state = newState;
@@ -117,6 +137,8 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
     newState.remove(taskId);
     state = newState;
     _sessionStarts.remove(taskId);
+    _resumeTimestamps.remove(taskId);
+    _baseElapsed.remove(taskId);
   }
 
   void _startTick(String taskId) {
@@ -124,8 +146,9 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
     _tickers[taskId] = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!state.containsKey(taskId)) return;
       final newState = Map<String, TimerEntry>.from(state);
-      newState[taskId] =
-          state[taskId]!.copyWith(elapsedSeconds: state[taskId]!.elapsedSeconds + 1);
+      newState[taskId] = state[taskId]!.copyWith(
+        elapsedSeconds: _currentElapsed(taskId),
+      );
       state = newState;
     });
   }

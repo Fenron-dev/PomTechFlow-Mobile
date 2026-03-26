@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/tasks_provider.dart';
-import '../../services/notification_service.dart';
 import '../../widgets/timer_session_dialogs.dart';
 
 class TimerScreen extends ConsumerWidget {
@@ -158,10 +157,7 @@ class TimerScreen extends ConsumerWidget {
   }
 
   Future<void> _showReminderDialog(BuildContext context) async {
-    await showDialog(
-      context: context,
-      builder: (_) => const _ReminderDialog(),
-    );
+    await showQuickReminderDialog(context);
   }
 }
 
@@ -251,118 +247,6 @@ class _ActiveTimerCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ─── Quick Reminder Dialog ────────────────────────────────────────────────────
-
-class _ReminderDialog extends StatefulWidget {
-  const _ReminderDialog();
-
-  @override
-  State<_ReminderDialog> createState() => _ReminderDialogState();
-}
-
-class _ReminderDialogState extends State<_ReminderDialog> {
-  int _minutes = 10;
-  final _textCtrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _textCtrl.text = 'Server nochmal prüfen';
-  }
-
-  @override
-  void dispose() {
-    _textCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final presets = [5, 10, 15, 20, 30];
-    return AlertDialog(
-      title: const Row(children: [
-        Icon(Icons.alarm_add_outlined),
-        SizedBox(width: 10),
-        Text('Erinnerung setzen'),
-      ]),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _textCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Woran erinnern?',
-              isDense: true,
-            ),
-            textCapitalization: TextCapitalization.sentences,
-          ),
-          const SizedBox(height: 16),
-          Text('In wie vielen Minuten?',
-              style: Theme.of(context).textTheme.labelMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: presets
-                .map((p) => ChoiceChip(
-                      label: Text('$p min'),
-                      selected: _minutes == p,
-                      onSelected: (_) => setState(() => _minutes = p),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Text('Individuell: '),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 70,
-                child: TextFormField(
-                  initialValue: _minutes.toString(),
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    suffix: Text('min'),
-                  ),
-                  onChanged: (v) {
-                    final val = int.tryParse(v);
-                    if (val != null && val > 0) setState(() => _minutes = val);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Abbrechen'),
-        ),
-        FilledButton.icon(
-          icon: const Icon(Icons.alarm_on),
-          label: const Text('Setzen'),
-          onPressed: () async {
-            Navigator.pop(context);
-            final when =
-                DateTime.now().add(Duration(minutes: _minutes));
-            final text = _textCtrl.text.trim().isEmpty
-                ? 'Erinnerung'
-                : _textCtrl.text.trim();
-            await NotificationService.scheduleReminder(text, when);
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('Erinnerung in $_minutes Min: $text'),
-              ));
-            }
-          },
-        ),
-      ],
     );
   }
 }

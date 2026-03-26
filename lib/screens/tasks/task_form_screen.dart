@@ -69,6 +69,51 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     super.dispose();
   }
 
+  Future<void> _createCustomerQuick(BuildContext context) async {
+    final nameCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(children: [
+          Icon(Icons.person_add_outlined),
+          SizedBox(width: 10),
+          Text('Neuer Kunde'),
+        ]),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Name *',
+            hintText: 'z.B. Müller GmbH',
+          ),
+          textCapitalization: TextCapitalization.words,
+          onSubmitted: (_) => Navigator.pop(ctx, true),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Anlegen'),
+          ),
+        ],
+      ),
+    );
+    final name = nameCtrl.text.trim();
+    nameCtrl.dispose();
+    if (confirmed != true || !mounted) return;
+    if (name.isEmpty) return;
+
+    final db = ref.read(databaseProvider);
+    final newId = await db.into(db.customers).insertReturning(
+          CustomersCompanion.insert(name: name),
+        );
+    ref.invalidate(customersProvider);
+    setState(() => _customerId = newId.id);
+  }
+
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -229,18 +274,30 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             customersAsync.when(
               loading: () => const LinearProgressIndicator(),
               error: (_, __) => const SizedBox(),
-              data: (customers) => DropdownButtonFormField<String>(
-                value: _customerId,
-                decoration: const InputDecoration(labelText: 'Kunde'),
-                items: [
-                  const DropdownMenuItem(
-                      value: null, child: Text('Kein Kunde')),
-                  ...customers.map((c) => DropdownMenuItem(
-                        value: c.id,
-                        child: Text(c.name),
-                      )),
+              data: (customers) => Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _customerId,
+                      decoration: const InputDecoration(labelText: 'Kunde'),
+                      items: [
+                        const DropdownMenuItem(
+                            value: null, child: Text('Kein Kunde')),
+                        ...customers.map((c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(c.name),
+                            )),
+                      ],
+                      onChanged: (v) => setState(() => _customerId = v),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.person_add_outlined),
+                    tooltip: 'Neuen Kunden anlegen',
+                    onPressed: () => _createCustomerQuick(context),
+                  ),
                 ],
-                onChanged: (v) => setState(() => _customerId = v),
               ),
             ),
             const SizedBox(height: 16),
