@@ -26,9 +26,11 @@ class BackupService {
     final workflows = await db.select(db.workflows).get();
     final workflowItems = await db.select(db.workflowItems).get();
     final appSettings = await db.select(db.appSettings).get();
+    final generalNotes = await db.select(db.generalNotes).get();
+    final noteTemplates = await db.select(db.noteTemplates).get();
 
     return {
-      'version': 1,
+      'version': 2,
       'exportedAt': DateTime.now().toIso8601String(),
       'customers': customers.map((c) => {
         'id': c.id, 'name': c.name, 'email': c.email,
@@ -79,6 +81,16 @@ class BackupService {
       }).toList(),
       'settings': appSettings.map((s) => {
         'key': s.key, 'value': s.value,
+      }).toList(),
+      'generalNotes': generalNotes.map((n) => {
+        'id': n.id, 'content': n.content, 'tags': n.tags,
+        'createdAt': n.createdAt.toIso8601String(),
+        'updatedAt': n.updatedAt.toIso8601String(),
+      }).toList(),
+      'noteTemplates': noteTemplates.map((t) => {
+        'id': t.id, 'name': t.name, 'content': t.content, 'tags': t.tags,
+        'createdAt': t.createdAt.toIso8601String(),
+        'updatedAt': t.updatedAt.toIso8601String(),
       }).toList(),
     };
   }
@@ -193,7 +205,7 @@ class BackupService {
     }
 
     final version = backup['version'] as int? ?? 0;
-    if (version != 1) return 'Unbekanntes Backup-Format (Version $version)';
+    if (version < 1 || version > 2) return 'Unbekanntes Backup-Format (Version $version)';
 
     try {
       await db.transaction(() async {
@@ -319,6 +331,33 @@ class BackupService {
             endTime: Value(s['endTime'] != null
                 ? DateTime.tryParse(s['endTime'])
                 : null),
+          ));
+        }
+
+        // Allgemeine Notizen
+        await db.delete(db.generalNotes).go();
+        for (final n in (backup['generalNotes'] as List? ?? [])) {
+          await db.into(db.generalNotes).insertOnConflictUpdate(
+              GeneralNotesCompanion(
+            id: Value(n['id']),
+            content: Value(n['content']),
+            tags: Value(n['tags']),
+            createdAt: Value(DateTime.tryParse(n['createdAt'] ?? '') ?? DateTime.now()),
+            updatedAt: Value(DateTime.tryParse(n['updatedAt'] ?? '') ?? DateTime.now()),
+          ));
+        }
+
+        // Notiz-Vorlagen
+        await db.delete(db.noteTemplates).go();
+        for (final t in (backup['noteTemplates'] as List? ?? [])) {
+          await db.into(db.noteTemplates).insertOnConflictUpdate(
+              NoteTemplatesCompanion(
+            id: Value(t['id']),
+            name: Value(t['name']),
+            content: Value(t['content']),
+            tags: Value(t['tags']),
+            createdAt: Value(DateTime.tryParse(t['createdAt'] ?? '') ?? DateTime.now()),
+            updatedAt: Value(DateTime.tryParse(t['updatedAt'] ?? '') ?? DateTime.now()),
           ));
         }
       });

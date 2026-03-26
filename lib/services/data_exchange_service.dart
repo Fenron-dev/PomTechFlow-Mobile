@@ -15,6 +15,7 @@ class DataExchangeService {
     bool hardwareBundles = true,
     bool generalNotes = false,
     bool noteTemplates = false,
+    bool tasks = false,
   }) async {
     final Map<String, dynamic> data = {
       'version': 1,
@@ -107,6 +108,68 @@ class DataExchangeService {
           .toList();
     }
 
+    if (tasks) {
+      final taskRows = await db.select(db.tasks).get();
+      final taskList = [];
+      for (final t in taskRows) {
+        final todos = await (db.select(db.todos)
+              ..where((td) => td.taskId.equals(t.id))
+              ..orderBy([(td) => drift.OrderingTerm.asc(td.sortOrder)]))
+            .get();
+        final hardware = await (db.select(db.hardware)
+              ..where((h) => h.taskId.equals(t.id)))
+            .get();
+        final notes = await (db.select(db.notes)
+              ..where((n) => n.taskId.equals(t.id))
+              ..orderBy([(n) => drift.OrderingTerm.asc(n.createdAt)]))
+            .get();
+        final sessions = await (db.select(db.sessions)
+              ..where((s) => s.taskId.equals(t.id))
+              ..orderBy([(s) => drift.OrderingTerm.asc(s.startTime)]))
+            .get();
+        taskList.add({
+          'id': t.id,
+          'title': t.title,
+          'description': t.description,
+          'customerId': t.customerId,
+          'status': t.status,
+          'priority': t.priority,
+          'totalMinutes': t.totalMinutes,
+          'plannedDate': t.plannedDate?.toIso8601String(),
+          'recurring': t.recurring,
+          'recurrenceType': t.recurrenceType,
+          'recurrenceInterval': t.recurrenceInterval,
+          'recurrenceWeekday': t.recurrenceWeekday,
+          'recurrenceMonthDay': t.recurrenceMonthDay,
+          'estimatedMinutes': t.estimatedMinutes,
+          'billedAt': t.billedAt?.toIso8601String(),
+          'archivedAt': t.archivedAt?.toIso8601String(),
+          'createdAt': t.createdAt.toIso8601String(),
+          'updatedAt': t.updatedAt.toIso8601String(),
+          'todos': todos.map((td) => {
+            'id': td.id, 'content': td.content,
+            'completed': td.completed, 'sortOrder': td.sortOrder,
+            'workflowId': td.workflowId, 'workflowName': td.workflowName,
+          }).toList(),
+          'hardware': hardware.map((h) => {
+            'id': h.id, 'type': h.type, 'name': h.name,
+            'serial': h.serial, 'notes': h.notes,
+          }).toList(),
+          'notes': notes.map((n) => {
+            'id': n.id, 'content': n.content,
+            'createdAt': n.createdAt.toIso8601String(),
+          }).toList(),
+          'sessions': sessions.map((s) => {
+            'id': s.id, 'duration': s.duration, 'type': s.type,
+            'note': s.note,
+            'startTime': s.startTime.toIso8601String(),
+            'endTime': s.endTime?.toIso8601String(),
+          }).toList(),
+        });
+      }
+      data['tasks'] = taskList;
+    }
+
     final json = const JsonEncoder.withIndent('  ').convert(data);
     final dir = await getApplicationDocumentsDirectory();
     final ts = DateTime.now().millisecondsSinceEpoch;
@@ -146,6 +209,7 @@ class DataExchangeService {
       int importedBundles = 0;
       int importedNotes = 0;
       int importedTemplates = 0;
+      int importedTasks = 0;
 
       await db.transaction(() async {
         // Kunden
@@ -274,6 +338,92 @@ class DataExchangeService {
             importedTemplates++;
           }
         }
+
+        // Tasks (inkl. Todos, Hardware, Notizen, Sessions)
+        final taskList = data['tasks'] as List? ?? [];
+        for (final t in taskList) {
+          final taskId = t['id'] as String;
+          final existing = await (db.select(db.tasks)
+                ..where((row) => row.id.equals(taskId)))
+              .getSingleOrNull();
+          if (existing == null) {
+            await db.into(db.tasks).insert(TasksCompanion.insert(
+              id: drift.Value(taskId),
+              title: t['title'] as String,
+              description: drift.Value(t['description'] as String?),
+              customerId: drift.Value(t['customerId'] as String?),
+              status: drift.Value(t['status'] as String? ?? 'PLANNED'),
+              priority: drift.Value(t['priority'] as String? ?? 'NORMAL'),
+              totalMinutes: drift.Value(t['totalMinutes'] as int? ?? 0),
+              plannedDate: drift.Value(t['plannedDate'] != null
+                  ? DateTime.tryParse(t['plannedDate'] as String)
+                  : null),
+              recurring: drift.Value(t['recurring'] as bool? ?? false),
+              recurrenceType: drift.Value(t['recurrenceType'] as String?),
+              recurrenceInterval: drift.Value(t['recurrenceInterval'] as int? ?? 1),
+              recurrenceWeekday: drift.Value(t['recurrenceWeekday'] as int?),
+              recurrenceMonthDay: drift.Value(t['recurrenceMonthDay'] as int?),
+              estimatedMinutes: drift.Value(t['estimatedMinutes'] as int?),
+              billedAt: drift.Value(t['billedAt'] != null
+                  ? DateTime.tryParse(t['billedAt'] as String)
+                  : null),
+              archivedAt: drift.Value(t['archivedAt'] != null
+                  ? DateTime.tryParse(t['archivedAt'] as String)
+                  : null),
+              createdAt: drift.Value(
+                DateTime.tryParse(t['createdAt'] as String? ?? '') ?? DateTime.now(),
+              ),
+              updatedAt: drift.Value(
+                DateTime.tryParse(t['updatedAt'] as String? ?? '') ?? DateTime.now(),
+              ),
+            ));
+            for (final td in (t['todos'] as List? ?? [])) {
+              await db.into(db.todos).insertOnConflictUpdate(TodosCompanion.insert(
+                id: drift.Value(td['id'] as String),
+                taskId: taskId,
+                content: td['content'] as String,
+                completed: drift.Value(td['completed'] as bool? ?? false),
+                sortOrder: drift.Value(td['sortOrder'] as int? ?? 0),
+                workflowId: drift.Value(td['workflowId'] as String?),
+                workflowName: drift.Value(td['workflowName'] as String?),
+              ));
+            }
+            for (final h in (t['hardware'] as List? ?? [])) {
+              await db.into(db.hardware).insertOnConflictUpdate(HardwareCompanion.insert(
+                id: drift.Value(h['id'] as String),
+                taskId: taskId,
+                type: h['type'] as String,
+                name: drift.Value(h['name'] as String?),
+                serial: drift.Value(h['serial'] as String?),
+                notes: drift.Value(h['notes'] as String?),
+              ));
+            }
+            for (final n in (t['notes'] as List? ?? [])) {
+              await db.into(db.notes).insertOnConflictUpdate(NotesCompanion.insert(
+                id: drift.Value(n['id'] as String),
+                taskId: taskId,
+                content: n['content'] as String,
+                createdAt: drift.Value(
+                  DateTime.tryParse(n['createdAt'] as String? ?? '') ?? DateTime.now(),
+                ),
+              ));
+            }
+            for (final s in (t['sessions'] as List? ?? [])) {
+              await db.into(db.sessions).insertOnConflictUpdate(SessionsCompanion.insert(
+                id: drift.Value(s['id'] as String),
+                taskId: taskId,
+                startTime: DateTime.tryParse(s['startTime'] as String? ?? '') ?? DateTime.now(),
+                endTime: drift.Value(s['endTime'] != null
+                    ? DateTime.tryParse(s['endTime'] as String)
+                    : null),
+                duration: drift.Value(s['duration'] as int? ?? 0),
+                type: drift.Value(s['type'] as String? ?? 'WORK'),
+                note: drift.Value(s['note'] as String?),
+              ));
+            }
+            importedTasks++;
+          }
+        }
       });
 
       return DataImportResult.success(
@@ -282,6 +432,7 @@ class DataExchangeService {
         bundles: importedBundles,
         notes: importedNotes,
         templates: importedTemplates,
+        tasks: importedTasks,
       );
     } catch (e) {
       return DataImportResult.error('Fehler beim Importieren: $e');
@@ -297,6 +448,7 @@ class DataImportResult {
   final int bundles;
   final int notes;
   final int templates;
+  final int tasks;
 
   DataImportResult._({
     this.cancelled = false,
@@ -306,6 +458,7 @@ class DataImportResult {
     this.bundles = 0,
     this.notes = 0,
     this.templates = 0,
+    this.tasks = 0,
   });
 
   factory DataImportResult.cancelled() => DataImportResult._(cancelled: true);
@@ -316,18 +469,21 @@ class DataImportResult {
     required int bundles,
     int notes = 0,
     int templates = 0,
+    int tasks = 0,
   }) =>
       DataImportResult._(
           customers: customers,
           workflows: workflows,
           bundles: bundles,
           notes: notes,
-          templates: templates);
+          templates: templates,
+          tasks: tasks);
 
   bool get isSuccess => !cancelled && error == null;
 
   String get summary {
     final parts = <String>[
+      if (tasks > 0) '$tasks Tasks',
       if (customers > 0) '$customers Kunden',
       if (workflows > 0) '$workflows Workflows',
       if (bundles > 0) '$bundles Bundles',

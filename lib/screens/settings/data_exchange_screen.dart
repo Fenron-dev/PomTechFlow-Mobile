@@ -6,6 +6,7 @@ import '../../providers/workflows_provider.dart';
 import '../../providers/hardware_bundle_provider.dart';
 import '../../providers/general_notes_provider.dart';
 import '../../providers/note_templates_provider.dart';
+import '../../providers/tasks_provider.dart';
 import '../../services/data_exchange_service.dart';
 
 class DataExchangeScreen extends ConsumerStatefulWidget {
@@ -16,6 +17,7 @@ class DataExchangeScreen extends ConsumerStatefulWidget {
 }
 
 class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
+  bool _exportTasks = false;
   bool _exportCustomers = true;
   bool _exportWorkflows = true;
   bool _exportBundles = true;
@@ -24,7 +26,7 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
   bool _loading = false;
 
   Future<void> _export() async {
-    if (!_exportCustomers && !_exportWorkflows && !_exportBundles && !_exportNotes && !_exportTemplates) {
+    if (!_exportTasks && !_exportCustomers && !_exportWorkflows && !_exportBundles && !_exportNotes && !_exportTemplates) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bitte mindestens eine Kategorie auswählen.')),
       );
@@ -35,6 +37,7 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
       final db = ref.read(databaseProvider);
       await DataExchangeService.exportData(
         db,
+        tasks: _exportTasks,
         customers: _exportCustomers,
         workflows: _exportWorkflows,
         hardwareBundles: _exportBundles,
@@ -67,6 +70,7 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
       }
 
       // Provider invalidieren
+      ref.invalidate(tasksProvider);
       ref.invalidate(customersProvider);
       ref.invalidate(workflowsProvider);
       ref.invalidate(hardwareBundlesProvider);
@@ -128,6 +132,13 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
           Card(
             child: Column(
               children: [
+                CheckboxListTile(
+                  title: const Text('Tasks'),
+                  subtitle: const Text('Aufgaben inkl. Checkliste, Hardware, Notizen'),
+                  secondary: const Icon(Icons.task_outlined),
+                  value: _exportTasks,
+                  onChanged: (v) => setState(() => _exportTasks = v!),
+                ),
                 CheckboxListTile(
                   title: const Text('Kunden'),
                   subtitle: const Text('Alle Kundendaten'),
