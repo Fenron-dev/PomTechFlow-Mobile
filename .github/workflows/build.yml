@@ -136,11 +136,30 @@ jobs:
       - name: Dependencies installieren
         run: flutter pub get
 
-      - name: Code generieren (Drift)
-        run: dart run build_runner build --delete-conflicting-outputs
+      - name: Code generieren (Drift + Icons)
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          dart run flutter_launcher_icons
+
+      - name: CocoaPods cachen
+        uses: actions/cache@v4
+        with:
+          path: macos/Pods
+          key: pods-macos-${{ hashFiles('macos/Podfile.lock', 'pubspec.lock') }}
+          restore-keys: |
+            pods-macos-
+
+      - name: SQLite DNS-Fallback (sqlite.org erreichbar machen)
+        run: |
+          SQLITE_IP=$(dig +short www.sqlite.org @8.8.8.8 | tail -1)
+          if [ -n "$SQLITE_IP" ]; then
+            echo "$SQLITE_IP www.sqlite.org" | sudo tee -a /etc/hosts
+          fi
 
       - name: macOS bauen
         run: flutter build macos --release
+        env:
+          COCOAPODS_DISABLE_STATS: 'true'
 
       - name: ZIP erstellen
         run: |
