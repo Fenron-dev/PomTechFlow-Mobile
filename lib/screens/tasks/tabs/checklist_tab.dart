@@ -198,6 +198,8 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
                           group: group,
                           onToggle: _toggleTodo,
                           onDelete: _deleteTodo,
+                          onReorder: (o, n) =>
+                              _reorderTodos(group.todos, o, n),
                         ),
                       )),
                 ],
@@ -271,8 +273,13 @@ class _WorkflowGroupCard extends StatefulWidget {
   final _WorkflowGroup group;
   final ValueChanged<Todo> onToggle;
   final ValueChanged<String> onDelete;
-  const _WorkflowGroupCard(
-      {required this.group, required this.onToggle, required this.onDelete});
+  final void Function(int, int) onReorder;
+  const _WorkflowGroupCard({
+    required this.group,
+    required this.onToggle,
+    required this.onDelete,
+    required this.onReorder,
+  });
 
   @override
   State<_WorkflowGroupCard> createState() => _WorkflowGroupCardState();
@@ -374,12 +381,23 @@ class _WorkflowGroupCardState extends State<_WorkflowGroupCard> {
           // ── Todos ────────────────────────────────────────────────
           if (_expanded) ...[
             const Divider(height: 1, indent: 14, endIndent: 14),
-            ...group.todos.map((todo) => _TodoTile(
-                  key: ValueKey(todo.id),
-                  todo: todo,
-                  onToggle: () => widget.onToggle(todo),
-                  onDelete: () => widget.onDelete(todo.id),
-                )),
+            ReorderableListView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              onReorder: widget.onReorder,
+              children: group.todos
+                  .asMap()
+                  .entries
+                  .map((e) => _TodoTile(
+                        key: ValueKey(e.value.id),
+                        todo: e.value,
+                        index: e.key,
+                        onToggle: () => widget.onToggle(e.value),
+                        onDelete: () => widget.onDelete(e.value.id),
+                      ))
+                  .toList(),
+            ),
             const SizedBox(height: 4),
           ],
         ],

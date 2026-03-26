@@ -9,7 +9,9 @@ import '../../providers/settings_provider.dart' hide AppSettings;
 import '../../providers/settings_provider.dart' as sp;
 import '../../providers/database_provider.dart';
 import '../../services/backup_service.dart';
+import '../../services/webdav_service.dart';
 import '../../services/app_lock_service.dart';
+import 'webdav_settings_screen.dart';
 import 'hardware_bundle_screen.dart' show HardwareBundleScreen;
 import 'device_library_screen.dart';
 import 'task_templates_screen.dart';
@@ -234,6 +236,117 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Import Fehler: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _backupLoading = false);
+    }
+  }
+
+  // ── WebDAV ───────────────────────────────────────────────────────────────
+
+  Future<void> _webDavUploadBackup() async {
+    final config = await WebDavService.loadConfig();
+    if (!mounted) return;
+    if (!config.isConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Zuerst WebDAV in den Einstellungen konfigurieren.')),
+      );
+      return;
+    }
+    setState(() => _backupLoading = true);
+    try {
+      final db = ref.read(databaseProvider);
+      final json = await BackupService.buildJsonString(db);
+      final dateStr = DateTime.now().toIso8601String().substring(0, 16).replaceAll(':', '-');
+      final filename = 'pomtechflow_backup_$dateStr.json';
+      await WebDavService.uploadJson(config, json, filename);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Backup hochgeladen: $filename')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('WebDAV Fehler: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _backupLoading = false);
+    }
+  }
+
+  Future<void> _webDavDownloadBackup() async {
+    final config = await WebDavService.loadConfig();
+    if (!mounted) return;
+    if (!config.isConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Zuerst WebDAV in den Einstellungen konfigurieren.')),
+      );
+      return;
+    }
+    setState(() => _backupLoading = true);
+    List<WebDavFile> files;
+    try {
+      files = await WebDavService.listJsonFiles(config);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _backupLoading = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('WebDAV Fehler: $e')));
+      }
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _backupLoading = false);
+
+    if (files.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keine Backup-Dateien auf dem WebDAV-Server gefunden.')),
+      );
+      return;
+    }
+
+    final chosen = await showDialog<WebDavFile>(
+      context: context,
+      builder: (_) => _WebDavPickerDialog(files: files),
+    );
+    if (chosen == null || !mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Backup importieren?'),
+        content: Text('${chosen.name}\n\nAlle aktuellen Daten werden überschrieben. Fortfahren?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Abbrechen')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Importieren')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _backupLoading = true);
+    try {
+      final json = await WebDavService.downloadJson(config, chosen.name);
+      final db = ref.read(databaseProvider);
+      final result = await BackupService.importFromString(db, json);
+      if (!mounted) return;
+      if (result == 'OK') {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Backup erfolgreich importiert')));
+        ref.invalidate(settingsProvider);
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Fehler: $result')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Fehler: $e')));
       }
     } finally {
       if (mounted) setState(() => _backupLoading = false);
@@ -711,6 +824,54 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             ),
           ],
         ],
+        const SizedBox(height: 20),
+
+        // ── WebDAV ────────────────────────────────────────────────────
+        _SectionHeader('WebDAV / Cloud-Backup'),
+        Text(
+          'Backups direkt auf einen WebDAV-Server (z.B. Nextcloud, Synology) hochladen und laden.',
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.outline),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.cloud_outlined),
+            title: const Text('WebDAV konfigurieren'),
+            subtitle: const Text('URL, Benutzername, Passwort'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const WebDavSettingsScreen()),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_backupLoading)
+          const Center(child: CircularProgressIndicator())
+        else
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _webDavUploadBackup,
+                  icon: const Icon(Icons.cloud_upload_outlined),
+                  label: const Text('Backup hochladen'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _webDavDownloadBackup,
+                  icon: const Icon(Icons.cloud_download_outlined),
+                  label: const Text('Backup laden'),
+                ),
+              ),
+            ],
+          ),
         const SizedBox(height: 20),
 
         // ── Datenpflege ───────────────────────────────────────────────
@@ -1206,6 +1367,44 @@ class _PinVerifyDialogState extends State<_PinVerifyDialog> {
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2))
               : Text(widget.confirmLabel),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── WebDAV File Picker Dialog ────────────────────────────────────────────────
+
+class _WebDavPickerDialog extends StatelessWidget {
+  final List<WebDavFile> files;
+  const _WebDavPickerDialog({required this.files});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(children: [
+        Icon(Icons.cloud_download_outlined),
+        SizedBox(width: 10),
+        Text('Backup wählen'),
+      ]),
+      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: files.length,
+          itemBuilder: (_, i) => ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: Text(files[i].name,
+                style: Theme.of(context).textTheme.bodyMedium),
+            onTap: () => Navigator.pop(context, files[i]),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
         ),
       ],
     );

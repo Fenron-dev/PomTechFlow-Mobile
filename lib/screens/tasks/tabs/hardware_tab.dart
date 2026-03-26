@@ -28,13 +28,33 @@ const _hardwareIcons = {
   'OTHER': Icons.devices_other,
 };
 
-class HardwareTab extends ConsumerWidget {
+class HardwareTab extends ConsumerStatefulWidget {
   final String taskId;
   const HardwareTab({super.key, required this.taskId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hwAsync = ref.watch(hardwareProvider(taskId));
+  ConsumerState<HardwareTab> createState() => _HardwareTabState();
+}
+
+class _HardwareTabState extends ConsumerState<HardwareTab> {
+  Future<void> _reorderHardware(
+      List<HardwareData> items, int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex--;
+    if (oldIndex == newIndex) return;
+    final list = List.of(items);
+    final item = list.removeAt(oldIndex);
+    list.insert(newIndex, item);
+    final db = ref.read(databaseProvider);
+    for (int i = 0; i < list.length; i++) {
+      await (db.update(db.hardware)..where((h) => h.id.equals(list[i].id)))
+          .write(HardwareCompanion(sortOrder: drift.Value(i)));
+    }
+    ref.invalidate(hardwareProvider(widget.taskId));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hwAsync = ref.watch(hardwareProvider(widget.taskId));
 
     return Scaffold(
       body: hwAsync.when(
@@ -48,20 +68,26 @@ class HardwareTab extends ConsumerWidget {
                       color: Theme.of(context).colorScheme.outline)),
             );
           }
-          return ListView.separated(
+          return ReorderableListView.builder(
             padding: const EdgeInsets.all(12),
+            buildDefaultDragHandles: false,
+            onReorder: (o, n) => _reorderHardware(items, o, n),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => _HardwareCard(
-              item: items[i],
-              onDelete: () async {
-                final db = ref.read(databaseProvider);
-                await (db.delete(db.hardware)
-                      ..where((h) => h.id.equals(items[i].id)))
-                    .go();
-                ref.invalidate(hardwareProvider(taskId));
-                ref.invalidate(taskDetailProvider(taskId));
-              },
+            itemBuilder: (_, i) => Padding(
+              key: ValueKey(items[i].id),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _HardwareCard(
+                item: items[i],
+                index: i,
+                onDelete: () async {
+                  final db = ref.read(databaseProvider);
+                  await (db.delete(db.hardware)
+                        ..where((h) => h.id.equals(items[i].id)))
+                      .go();
+                  ref.invalidate(hardwareProvider(widget.taskId));
+                  ref.invalidate(taskDetailProvider(widget.taskId));
+                },
+              ),
             ),
           );
         },
@@ -99,9 +125,9 @@ class HardwareTab extends ConsumerWidget {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _HardwareForm(taskId: taskId, ref: ref),
+      builder: (_) => _HardwareForm(taskId: widget.taskId, ref: ref),
     );
-    ref.invalidate(hardwareProvider(taskId));
+    ref.invalidate(hardwareProvider(widget.taskId));
   }
 
   Future<void> _addFromLibrary(BuildContext context, WidgetRef ref) async {
@@ -122,17 +148,17 @@ class HardwareTab extends ConsumerWidget {
     if (selected == null) return;
     final db = ref.read(databaseProvider);
     final existing = await (db.select(db.hardware)
-          ..where((h) => h.taskId.equals(taskId)))
+          ..where((h) => h.taskId.equals(widget.taskId)))
         .get();
     await db.into(db.hardware).insert(HardwareCompanion.insert(
-          taskId: taskId,
+          taskId: widget.taskId,
           type: selected.type,
           name: drift.Value(selected.name),
           serial: drift.Value(selected.serial),
           notes: drift.Value(selected.notes),
           sortOrder: drift.Value(existing.length),
         ));
-    ref.invalidate(hardwareProvider(taskId));
+    ref.invalidate(hardwareProvider(widget.taskId));
   }
 
   Future<void> _applyBundle(BuildContext context, WidgetRef ref) async {
@@ -167,12 +193,12 @@ class HardwareTab extends ConsumerWidget {
     if (selected == null) return;
     final db = ref.read(databaseProvider);
     final existing = await (db.select(db.hardware)
-          ..where((h) => h.taskId.equals(taskId)))
+          ..where((h) => h.taskId.equals(widget.taskId)))
         .get();
     int sortBase = existing.length;
     for (final item in selected.items) {
       await db.into(db.hardware).insert(HardwareCompanion.insert(
-            taskId: taskId,
+            taskId: widget.taskId,
             type: item.type,
             name: drift.Value(item.name),
             serial: drift.Value(item.serial),
@@ -180,15 +206,16 @@ class HardwareTab extends ConsumerWidget {
             sortOrder: drift.Value(sortBase++),
           ));
     }
-    ref.invalidate(hardwareProvider(taskId));
+    ref.invalidate(hardwareProvider(widget.taskId));
   }
 }
 
 class _HardwareCard extends StatelessWidget {
   final HardwareData item;
+  final int index;
   final VoidCallback onDelete;
 
-  const _HardwareCard({required this.item, required this.onDelete});
+  const _HardwareCard({required this.item, required this.index, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -214,10 +241,19 @@ class _HardwareCard extends StatelessWidget {
                       color: Theme.of(context).colorScheme.outline)),
           ],
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline),
-          color: Theme.of(context).colorScheme.error,
-          onPressed: onDelete,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              color: Theme.of(context).colorScheme.error,
+              onPressed: onDelete,
+            ),
+            ReorderableDragStartListener(
+              index: index,
+              child: const Icon(Icons.drag_handle, color: Colors.grey),
+            ),
+          ],
         ),
         isThreeLine: item.serial != null || item.notes != null,
       ),
