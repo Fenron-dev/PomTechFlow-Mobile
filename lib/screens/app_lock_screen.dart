@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/app_lock_service.dart';
 
@@ -14,16 +15,51 @@ class AppLockScreen extends StatefulWidget {
 
 class _AppLockScreenState extends State<AppLockScreen> {
   String _pin = '';
-  int _attempts = 0;
   bool _showRecovery = false;
   String _recoveryInput = '';
   String? _error;
   bool _biometricAvailable = false;
 
+  // Rate-limiting
+  DateTime? _lockedUntil;
+  int _secondsLeft = 0;
+  Timer? _countdownTimer;
+
   @override
   void initState() {
     super.initState();
     _initBiometrics();
+    _checkLockout();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkLockout() async {
+    final until = await AppLockService.getLockoutEnd();
+    if (until != null && mounted) {
+      setState(() {
+        _lockedUntil = until;
+        _secondsLeft = until.difference(DateTime.now()).inSeconds.clamp(0, 9999);
+      });
+      _startCountdown();
+    }
+  }
+
+  void _startCountdown() {
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) { t.cancel(); return; }
+      final left = (_lockedUntil?.difference(DateTime.now()).inSeconds ?? 0).clamp(0, 9999);
+      setState(() => _secondsLeft = left);
+      if (left <= 0) {
+        t.cancel();
+        setState(() { _lockedUntil = null; _error = null; });
+      }
+    });
   }
 
   Future<void> _initBiometrics() async {
@@ -52,19 +88,29 @@ class _AppLockScreenState extends State<AppLockScreen> {
   }
 
   Future<void> _checkPin() async {
-    // Wait a moment so the last dot is visible
+    if (_lockedUntil != null) return; // blocked while locked out
     await Future.delayed(const Duration(milliseconds: 150));
     final ok = await AppLockService.verifyPIN(_pin);
     if (ok) {
       widget.onUnlocked();
     } else {
-      _attempts++;
-      setState(() {
-        _error = _attempts >= 3
-            ? 'Falscher PIN. Biometrie oder Recovery-Code nutzen.'
-            : 'Falscher PIN.';
-        _pin = '';
-      });
+      final until = await AppLockService.recordFailedAttempt();
+      if (!mounted) return;
+      if (until != null) {
+        final secs = until.difference(DateTime.now()).inSeconds.clamp(0, 9999);
+        setState(() {
+          _lockedUntil = until;
+          _secondsLeft = secs;
+          _error = null;
+          _pin = '';
+        });
+        _startCountdown();
+      } else {
+        setState(() {
+          _error = 'Falscher PIN. Biometrie oder Recovery-Code nutzen.';
+          _pin = '';
+        });
+      }
     }
   }
 
@@ -125,7 +171,16 @@ class _AppLockScreenState extends State<AppLockScreen> {
               }),
             ),
             const SizedBox(height: 12),
-            if (_error != null)
+            if (_lockedUntil != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Zu viele Fehlversuche. Noch $_secondsLeft Sekunden gesperrt.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: cs.error, fontSize: 13),
+                ),
+              )
+            else if (_error != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Text(_error!,
@@ -133,8 +188,14 @@ class _AppLockScreenState extends State<AppLockScreen> {
                     style: TextStyle(color: cs.error, fontSize: 13)),
               ),
             const SizedBox(height: 24),
-            // Number pad
-            _NumberPad(onDigit: _onDigit, onDelete: _onDelete),
+            // Number pad – disabled while locked out
+            IgnorePointer(
+              ignoring: _lockedUntil != null,
+              child: Opacity(
+                opacity: _lockedUntil != null ? 0.35 : 1.0,
+                child: _NumberPad(onDigit: _onDigit, onDelete: _onDelete),
+              ),
+            ),
             const SizedBox(height: 16),
             // Biometrics
             if (_biometricAvailable)

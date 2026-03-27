@@ -14,6 +14,7 @@ import '../../services/app_lock_service.dart';
 import 'webdav_settings_screen.dart';
 import 'hardware_bundle_screen.dart' show HardwareBundleScreen;
 import 'device_library_screen.dart';
+import 'device_history_screen.dart';
 import 'task_templates_screen.dart';
 import 'data_exchange_screen.dart';
 import 'maintenance_screen.dart';
@@ -109,6 +110,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     if (path != null) setState(() => _autoBackupPath = path);
   }
 
+  static const _kMaxLogoBytes = 2 * 1024 * 1024; // 2 MB
+
   Future<void> _pickLogo() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -119,6 +122,21 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     if (result == null || result.files.isEmpty) return;
 
     final picked = result.files.single;
+
+    // Guard against oversized logos (DoS / storage exhaustion)
+    final fileSize = picked.bytes?.length ??
+        (picked.path != null ? await File(picked.path!).length() : 0);
+    if (fileSize > _kMaxLogoBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Logo zu groß – maximal 2 MB erlaubt.'),
+          ),
+        );
+      }
+      return;
+    }
+
     final docsDir = await getApplicationDocumentsDirectory();
     final ext = picked.name.split('.').last.toLowerCase();
     final destPath = '${docsDir.path}/company_logo.$ext';
@@ -132,7 +150,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     } else {
       return;
     }
-    setState(() => _logoPath = destPath);
+    if (mounted) setState(() => _logoPath = destPath);
   }
 
   Future<void> _save() async {
@@ -671,6 +689,18 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
               ),
               const Divider(height: 1),
               ListTile(
+                leading: const Icon(Icons.history_outlined),
+                title: const Text('Geräteverlauf'),
+                subtitle: const Text('Alle Geräte über alle Tasks'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const DeviceHistoryScreen()),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
                 leading: const Icon(Icons.inventory_2_outlined),
                 title: const Text('Hardware Bundles'),
                 subtitle: const Text('Geräte-Vorlagen für Tasks'),
@@ -1051,6 +1081,13 @@ class _ExportPasswordDialog extends StatefulWidget {
 class _ExportPasswordDialogState extends State<_ExportPasswordDialog> {
   final _ctrl = TextEditingController();
   bool _obscure = true;
+  bool _confirmNoEncryption = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -1060,6 +1097,7 @@ class _ExportPasswordDialogState extends State<_ExportPasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return AlertDialog(
       title: const Text('Backup exportieren'),
       content: Column(
@@ -1067,7 +1105,7 @@ class _ExportPasswordDialogState extends State<_ExportPasswordDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            'Optional: Backup mit Passwort verschlüsseln. '
+            'Backup mit Passwort verschlüsseln (empfohlen). '
             'Das Passwort wird beim Import benötigt.',
           ),
           const SizedBox(height: 16),
@@ -1075,7 +1113,7 @@ class _ExportPasswordDialogState extends State<_ExportPasswordDialog> {
             controller: _ctrl,
             obscureText: _obscure,
             decoration: InputDecoration(
-              labelText: 'Passwort (optional)',
+              labelText: 'Passwort (empfohlen)',
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
@@ -1083,6 +1121,30 @@ class _ExportPasswordDialogState extends State<_ExportPasswordDialog> {
               ),
             ),
           ),
+          if (_confirmNoEncryption) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: colorScheme.onErrorContainer, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Das Backup enthält sensible Daten und wird unverschlüsselt gespeichert!',
+                      style: TextStyle(
+                          color: colorScheme.onErrorContainer, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
       actions: [
@@ -1090,13 +1152,24 @@ class _ExportPasswordDialogState extends State<_ExportPasswordDialog> {
           onPressed: () => Navigator.pop(context), // cancel → null
           child: const Text('Abbrechen'),
         ),
-        OutlinedButton(
-          onPressed: () => Navigator.pop(context, ''), // no password
-          child: const Text('Ohne Passwort'),
-        ),
+        if (_confirmNoEncryption)
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, ''),
+            child: const Text('Trotzdem exportieren'),
+          )
+        else
+          OutlinedButton(
+            onPressed: () => setState(() => _confirmNoEncryption = true),
+            child: const Text('Ohne Passwort'),
+          ),
         FilledButton(
-          onPressed: () => Navigator.pop(context, _ctrl.text.trim()),
-          child: const Text('Exportieren'),
+          onPressed: _ctrl.text.trim().isEmpty
+              ? null
+              : () => Navigator.pop(context, _ctrl.text.trim()),
+          child: const Text('Verschlüsselt exportieren'),
         ),
       ],
     );

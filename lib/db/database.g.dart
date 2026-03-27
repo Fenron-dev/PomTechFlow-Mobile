@@ -637,6 +637,16 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _reminderOffsetMinutesMeta =
+      const VerificationMeta('reminderOffsetMinutes');
+  @override
+  late final GeneratedColumn<int> reminderOffsetMinutes = GeneratedColumn<int>(
+    'reminder_offset_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -679,6 +689,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     estimatedMinutes,
     billedAt,
     archivedAt,
+    reminderOffsetMinutes,
     createdAt,
     updatedAt,
   ];
@@ -813,6 +824,15 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
       );
     }
+    if (data.containsKey('reminder_offset_minutes')) {
+      context.handle(
+        _reminderOffsetMinutesMeta,
+        reminderOffsetMinutes.isAcceptableOrUnknown(
+          data['reminder_offset_minutes']!,
+          _reminderOffsetMinutesMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -898,6 +918,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}archived_at'],
       ),
+      reminderOffsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reminder_offset_minutes'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -932,6 +956,7 @@ class Task extends DataClass implements Insertable<Task> {
   final int? estimatedMinutes;
   final DateTime? billedAt;
   final DateTime? archivedAt;
+  final int? reminderOffsetMinutes;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Task({
@@ -951,6 +976,7 @@ class Task extends DataClass implements Insertable<Task> {
     this.estimatedMinutes,
     this.billedAt,
     this.archivedAt,
+    this.reminderOffsetMinutes,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -990,6 +1016,9 @@ class Task extends DataClass implements Insertable<Task> {
     }
     if (!nullToAbsent || archivedAt != null) {
       map['archived_at'] = Variable<DateTime>(archivedAt);
+    }
+    if (!nullToAbsent || reminderOffsetMinutes != null) {
+      map['reminder_offset_minutes'] = Variable<int>(reminderOffsetMinutes);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1032,6 +1061,9 @@ class Task extends DataClass implements Insertable<Task> {
       archivedAt: archivedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(archivedAt),
+      reminderOffsetMinutes: reminderOffsetMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reminderOffsetMinutes),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -1059,6 +1091,9 @@ class Task extends DataClass implements Insertable<Task> {
       estimatedMinutes: serializer.fromJson<int?>(json['estimatedMinutes']),
       billedAt: serializer.fromJson<DateTime?>(json['billedAt']),
       archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
+      reminderOffsetMinutes: serializer.fromJson<int?>(
+        json['reminderOffsetMinutes'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -1083,6 +1118,7 @@ class Task extends DataClass implements Insertable<Task> {
       'estimatedMinutes': serializer.toJson<int?>(estimatedMinutes),
       'billedAt': serializer.toJson<DateTime?>(billedAt),
       'archivedAt': serializer.toJson<DateTime?>(archivedAt),
+      'reminderOffsetMinutes': serializer.toJson<int?>(reminderOffsetMinutes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1105,6 +1141,7 @@ class Task extends DataClass implements Insertable<Task> {
     Value<int?> estimatedMinutes = const Value.absent(),
     Value<DateTime?> billedAt = const Value.absent(),
     Value<DateTime?> archivedAt = const Value.absent(),
+    Value<int?> reminderOffsetMinutes = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Task(
@@ -1132,6 +1169,9 @@ class Task extends DataClass implements Insertable<Task> {
         : this.estimatedMinutes,
     billedAt: billedAt.present ? billedAt.value : this.billedAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    reminderOffsetMinutes: reminderOffsetMinutes.present
+        ? reminderOffsetMinutes.value
+        : this.reminderOffsetMinutes,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -1173,6 +1213,9 @@ class Task extends DataClass implements Insertable<Task> {
       archivedAt: data.archivedAt.present
           ? data.archivedAt.value
           : this.archivedAt,
+      reminderOffsetMinutes: data.reminderOffsetMinutes.present
+          ? data.reminderOffsetMinutes.value
+          : this.reminderOffsetMinutes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1197,6 +1240,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('estimatedMinutes: $estimatedMinutes, ')
           ..write('billedAt: $billedAt, ')
           ..write('archivedAt: $archivedAt, ')
+          ..write('reminderOffsetMinutes: $reminderOffsetMinutes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1221,6 +1265,7 @@ class Task extends DataClass implements Insertable<Task> {
     estimatedMinutes,
     billedAt,
     archivedAt,
+    reminderOffsetMinutes,
     createdAt,
     updatedAt,
   );
@@ -1244,6 +1289,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.estimatedMinutes == this.estimatedMinutes &&
           other.billedAt == this.billedAt &&
           other.archivedAt == this.archivedAt &&
+          other.reminderOffsetMinutes == this.reminderOffsetMinutes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1265,6 +1311,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<int?> estimatedMinutes;
   final Value<DateTime?> billedAt;
   final Value<DateTime?> archivedAt;
+  final Value<int?> reminderOffsetMinutes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -1285,6 +1332,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.estimatedMinutes = const Value.absent(),
     this.billedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
+    this.reminderOffsetMinutes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1306,6 +1354,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.estimatedMinutes = const Value.absent(),
     this.billedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
+    this.reminderOffsetMinutes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1327,6 +1376,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<int>? estimatedMinutes,
     Expression<DateTime>? billedAt,
     Expression<DateTime>? archivedAt,
+    Expression<int>? reminderOffsetMinutes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -1349,6 +1399,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (estimatedMinutes != null) 'estimated_minutes': estimatedMinutes,
       if (billedAt != null) 'billed_at': billedAt,
       if (archivedAt != null) 'archived_at': archivedAt,
+      if (reminderOffsetMinutes != null)
+        'reminder_offset_minutes': reminderOffsetMinutes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1372,6 +1424,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<int?>? estimatedMinutes,
     Value<DateTime?>? billedAt,
     Value<DateTime?>? archivedAt,
+    Value<int?>? reminderOffsetMinutes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -1393,6 +1446,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
       billedAt: billedAt ?? this.billedAt,
       archivedAt: archivedAt ?? this.archivedAt,
+      reminderOffsetMinutes:
+          reminderOffsetMinutes ?? this.reminderOffsetMinutes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -1450,6 +1505,11 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (archivedAt.present) {
       map['archived_at'] = Variable<DateTime>(archivedAt.value);
     }
+    if (reminderOffsetMinutes.present) {
+      map['reminder_offset_minutes'] = Variable<int>(
+        reminderOffsetMinutes.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1481,6 +1541,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('estimatedMinutes: $estimatedMinutes, ')
           ..write('billedAt: $billedAt, ')
           ..write('archivedAt: $archivedAt, ')
+          ..write('reminderOffsetMinutes: $reminderOffsetMinutes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -8521,6 +8582,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<int?> estimatedMinutes,
       Value<DateTime?> billedAt,
       Value<DateTime?> archivedAt,
+      Value<int?> reminderOffsetMinutes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -8543,6 +8605,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<int?> estimatedMinutes,
       Value<DateTime?> billedAt,
       Value<DateTime?> archivedAt,
+      Value<int?> reminderOffsetMinutes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -8762,6 +8825,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<DateTime> get archivedAt => $composableBuilder(
     column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reminderOffsetMinutes => $composableBuilder(
+    column: $table.reminderOffsetMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9033,6 +9101,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get reminderOffsetMinutes => $composableBuilder(
+    column: $table.reminderOffsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -9136,6 +9209,11 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get archivedAt => $composableBuilder(
     column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get reminderOffsetMinutes => $composableBuilder(
+    column: $table.reminderOffsetMinutes,
     builder: (column) => column,
   );
 
@@ -9371,6 +9449,7 @@ class $$TasksTableTableManager
                 Value<int?> estimatedMinutes = const Value.absent(),
                 Value<DateTime?> billedAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
+                Value<int?> reminderOffsetMinutes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -9391,6 +9470,7 @@ class $$TasksTableTableManager
                 estimatedMinutes: estimatedMinutes,
                 billedAt: billedAt,
                 archivedAt: archivedAt,
+                reminderOffsetMinutes: reminderOffsetMinutes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -9413,6 +9493,7 @@ class $$TasksTableTableManager
                 Value<int?> estimatedMinutes = const Value.absent(),
                 Value<DateTime?> billedAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
+                Value<int?> reminderOffsetMinutes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -9433,6 +9514,7 @@ class $$TasksTableTableManager
                 estimatedMinutes: estimatedMinutes,
                 billedAt: billedAt,
                 archivedAt: archivedAt,
+                reminderOffsetMinutes: reminderOffsetMinutes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

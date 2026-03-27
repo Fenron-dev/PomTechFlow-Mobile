@@ -112,17 +112,20 @@ class NotificationService {
         break;
 
       case _kActionDone:
-        // Task direkt als erledigt markieren (ohne Riverpod – direkte DB-Verbindung)
+        // Task direkt als erledigt markieren.
+        // Läuft ggf. in einem Background-Isolate → eigene DB-Verbindung nötig.
         try {
           final db = AppDatabase();
           await (db.update(db.tasks)..where((t) => t.id.equals(taskId))).write(
             TasksCompanion(
-              status: const drift.Value('DONE'),
+              status: const drift.Value('COMPLETED'), // war fälschlich 'DONE'
               updatedAt: drift.Value(DateTime.now()),
             ),
           );
           await db.close();
-        } catch (_) {}
+        } catch (e, st) {
+          debugPrint('NotificationService: done-Action fehlgeschlagen: $e\n$st');
+        }
         break;
 
       // null = Tap auf die Benachrichtigung selbst → App öffnen (kein Extra-Code nötig)

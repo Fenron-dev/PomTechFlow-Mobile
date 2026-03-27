@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:drift/drift.dart' show Value;
+import '../utils/app_enums.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -137,9 +138,11 @@ class BackupService {
     final file = File('${dir.path}/$fileName');
     await file.writeAsString(content);
 
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'application/json')],
-      subject: 'PomTechFlow Backup $dateStr${encrypted ? " (verschlüsselt)" : ""}',
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'application/json')],
+        subject: 'PomTechFlow Backup $dateStr${encrypted ? " (verschlüsselt)" : ""}',
+      ),
     );
   }
 
@@ -241,6 +244,10 @@ class BackupService {
   /// Validates required fields in a parsed backup map.
   /// Returns null on success or a human-readable error string on failure.
   /// Called BEFORE any database modification so no data is ever at risk.
+  static final _kValidTaskStatus  = TaskStatus.all;
+  static final _kValidPriority    = TaskPriority.all;
+  static final _kValidSessionType = SessionType.all;
+
   static String? _validateBackup(Map<String, dynamic> backup) {
     String? checkList(String key, List<String> required) {
       final list = backup[key];
@@ -258,12 +265,29 @@ class BackupService {
       return null;
     }
 
+    String? checkEnum(String key, String field, Set<String> allowed) {
+      final list = backup[key];
+      if (list == null || list is! List) return null;
+      for (var i = 0; i < list.length; i++) {
+        final item = list[i];
+        if (item is! Map) continue;
+        final value = item[field];
+        if (value != null && !allowed.contains(value)) {
+          return '$key[$i]: ungültiger Wert "$value" für "$field" (erlaubt: ${allowed.join(', ')})';
+        }
+      }
+      return null;
+    }
+
     return checkList('customers', ['id', 'name']) ??
         checkList('tasks', ['id', 'title', 'status', 'priority']) ??
+        checkEnum('tasks', 'status', _kValidTaskStatus) ??
+        checkEnum('tasks', 'priority', _kValidPriority) ??
         checkList('todos', ['id', 'taskId', 'content']) ??
         checkList('hardware', ['id', 'taskId', 'type']) ??
         checkList('notes', ['id', 'taskId', 'content']) ??
         checkList('sessions', ['id', 'taskId', 'startTime']) ??
+        checkEnum('sessions', 'type', _kValidSessionType) ??
         checkList('workflows', ['id', 'name']) ??
         checkList('workflowItems', ['id', 'workflowId', 'itemText']) ??
         checkList('generalNotes', ['id', 'content']) ??

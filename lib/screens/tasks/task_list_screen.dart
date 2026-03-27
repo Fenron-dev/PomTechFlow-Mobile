@@ -81,7 +81,9 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 
   Widget _buildListScaffold({required bool isTablet}) {
     final tasksAsync = ref.watch(tasksProvider);
-    final timer = ref.watch(timerProvider);
+    // Do NOT watch timerProvider here — it updates every second.
+    // Each TaskCard uses its own Consumer that selects only TimerStatus? for
+    // its task ID, so only start/stop/pause/resume events trigger rebuilds.
     final aeMinutes = ref.watch(settingsProvider).valueOrNull?.aeMinutes ?? 10;
 
     return Scaffold(
@@ -290,38 +292,48 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (_, i) {
                 final taskId = filtered[i].task.id;
-                final isRunning = timer[taskId]?.status == TimerStatus.running;
-                final isPaused = timer[taskId]?.status == TimerStatus.paused;
-                return TaskCard(
-                  task: filtered[i],
-                  isTimerRunning: isRunning,
-                  isTimerPaused: isPaused,
-                  aeMinutes: aeMinutes,
-                  isSelected: isTablet && _selectedTaskId == taskId,
-                  onTap: () async {
-                    if (isTablet) {
-                      setState(() => _selectedTaskId = taskId);
-                    } else {
-                      await context.push('/tasks/$taskId');
-                      ref.invalidate(tasksProvider);
-                    }
-                  },
-                  onDelete: () => _deleteTask(taskId, isTablet: isTablet),
-                  onTimerStart: !timer.containsKey(taskId)
-                      ? () async {
-                          await ref.read(timerProvider.notifier).start(taskId);
+                // Consumer watches only the TimerStatus? for this one task.
+                // TimerStatus is an enum → equality is stable → no rebuild on
+                // every-second elapsed-time ticks, only on start/stop/pause/resume.
+                return Consumer(
+                  builder: (ctx, cRef, _) {
+                    final timerStatus = cRef.watch(
+                      timerProvider.select((m) => m[taskId]?.status),
+                    );
+                    final isRunning = timerStatus == TimerStatus.running;
+                    final isPaused  = timerStatus == TimerStatus.paused;
+                    return TaskCard(
+                      task: filtered[i],
+                      isTimerRunning: isRunning,
+                      isTimerPaused: isPaused,
+                      aeMinutes: aeMinutes,
+                      isSelected: isTablet && _selectedTaskId == taskId,
+                      onTap: () async {
+                        if (isTablet) {
+                          setState(() => _selectedTaskId = taskId);
+                        } else {
+                          await context.push('/tasks/$taskId');
                           ref.invalidate(tasksProvider);
                         }
-                      : null,
-                  onTimerPause: isRunning
-                      ? () => ref.read(timerProvider.notifier).pause(taskId)
-                      : null,
-                  onTimerResume: isPaused
-                      ? () => ref.read(timerProvider.notifier).resume(taskId)
-                      : null,
-                  onTimerStop: (isRunning || isPaused)
-                      ? () => handleTimerStop(context, ref, taskId)
-                      : null,
+                      },
+                      onDelete: () => _deleteTask(taskId, isTablet: isTablet),
+                      onTimerStart: timerStatus == null
+                          ? () async {
+                              await cRef.read(timerProvider.notifier).start(taskId);
+                              cRef.invalidate(tasksProvider);
+                            }
+                          : null,
+                      onTimerPause: isRunning
+                          ? () => cRef.read(timerProvider.notifier).pause(taskId)
+                          : null,
+                      onTimerResume: isPaused
+                          ? () => cRef.read(timerProvider.notifier).resume(taskId)
+                          : null,
+                      onTimerStop: (isRunning || isPaused)
+                          ? () => handleTimerStop(ctx, cRef, taskId)
+                          : null,
+                    );
+                  },
                 );
               },
             ),

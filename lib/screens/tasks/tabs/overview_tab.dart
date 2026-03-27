@@ -65,18 +65,28 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
       final todos = await (db.select(db.todos)
             ..where((t) => t.taskId.equals(taskId)))
           .get();
+      if (!mounted) return;
+
       final hardware = await (db.select(db.hardware)
             ..where((h) => h.taskId.equals(taskId)))
           .get();
+      if (!mounted) return;
+
       final notes = await (db.select(db.notes)
             ..where((n) => n.taskId.equals(taskId)))
           .get();
+      if (!mounted) return;
 
       Uint8List? logoBytes;
       if (settings?.logoPath != null) {
         final logoFile = File(settings!.logoPath!);
-        if (await logoFile.exists()) logoBytes = await logoFile.readAsBytes();
+        if (await logoFile.exists()) {
+          if (!mounted) return;
+          logoBytes = await logoFile.readAsBytes();
+          if (!mounted) return;
+        }
       }
+
       final file = await PdfService.generateReport(
         PdfReportData(
           taskDetail: widget.detail,
@@ -90,8 +100,10 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         ),
         storageBasePath: settings?.storageBasePath ?? '',
       );
+      if (!mounted) return;
+
       await PdfService.shareReport(file);
-      _loadReports();
+      if (mounted) _loadReports();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

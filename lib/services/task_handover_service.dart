@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../db/database.dart';
@@ -45,20 +46,41 @@ class TaskHandoverService {
           ..orderBy([(p) => drift.OrderingTerm.asc(p.createdAt)]))
         .get();
 
-    // Fotos als Base64 einbetten
+    // Fotos komprimiert als Base64 einbetten (max 1200 px, JPEG 75 %)
+    const maxDim  = 1200;
+    const quality = 75;
     final photoData = <Map<String, dynamic>>[];
     for (final photo in photos) {
       final file = File(photo.filePath);
-      if (await file.exists()) {
-        final bytes = await file.readAsBytes();
-        photoData.add({
-          'id': photo.id,
-          'filePath': photo.filePath.split('/').last, // nur Dateiname
-          'caption': photo.caption,
-          'createdAt': photo.createdAt.toIso8601String(),
-          'data': base64Encode(bytes),
-        });
+      if (!await file.exists()) continue;
+      final raw = await file.readAsBytes();
+      List<int> compressed;
+      try {
+        final decoded = img.decodeImage(raw);
+        if (decoded != null) {
+          final needsResize =
+              decoded.width > maxDim || decoded.height > maxDim;
+          final resized = needsResize
+              ? img.copyResize(
+                  decoded,
+                  width:  decoded.width >= decoded.height ? maxDim : null,
+                  height: decoded.height > decoded.width  ? maxDim : null,
+                )
+              : decoded;
+          compressed = img.encodeJpg(resized, quality: quality);
+        } else {
+          compressed = raw; // fallback: unbekanntes Format, Original behalten
+        }
+      } catch (_) {
+        compressed = raw; // fallback bei Decode-Fehler
       }
+      photoData.add({
+        'id': photo.id,
+        'filePath': photo.filePath.split('/').last,
+        'caption': photo.caption,
+        'createdAt': photo.createdAt.toIso8601String(),
+        'data': base64Encode(compressed),
+      });
     }
 
     final export = {
@@ -125,10 +147,12 @@ class TaskHandoverService {
     final file = File('${dir.path}/task_${safeName}_${DateTime.now().millisecondsSinceEpoch}.ptf');
     await file.writeAsString(json);
 
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      subject: 'Task-Übergabe: ${task.title}',
-      text: 'PomTechFlow Task-Übergabe: ${task.title}',
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        subject: 'Task-Übergabe: ${task.title}',
+        text: 'PomTechFlow Task-Übergabe: ${task.title}',
+      ),
     );
   }
 
