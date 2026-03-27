@@ -7,8 +7,8 @@ import '../db/database.dart';
 import 'package:drift/drift.dart' as drift;
 
 class DataExchangeService {
-  /// Exportiert ausgewählte Datenkategorien als JSON-Datei und teilt sie.
-  static Future<void> exportData(
+  /// Builds export JSON and returns it as a string (without sharing).
+  static Future<String> buildExportJson(
     AppDatabase db, {
     bool customers = true,
     bool workflows = true,
@@ -170,12 +170,32 @@ class DataExchangeService {
       data['tasks'] = taskList;
     }
 
-    final json = const JsonEncoder.withIndent('  ').convert(data);
+    return const JsonEncoder.withIndent('  ').convert(data);
+  }
+
+  /// Exportiert ausgewählte Datenkategorien als JSON-Datei und teilt sie.
+  static Future<void> exportData(
+    AppDatabase db, {
+    bool customers = true,
+    bool workflows = true,
+    bool hardwareBundles = true,
+    bool generalNotes = false,
+    bool noteTemplates = false,
+    bool tasks = false,
+  }) async {
+    final json = await buildExportJson(
+      db,
+      customers: customers,
+      workflows: workflows,
+      hardwareBundles: hardwareBundles,
+      generalNotes: generalNotes,
+      noteTemplates: noteTemplates,
+      tasks: tasks,
+    );
     final dir = await getApplicationDocumentsDirectory();
     final ts = DateTime.now().millisecondsSinceEpoch;
     final file = File('${dir.path}/ptf_data_$ts.json');
     await file.writeAsString(json);
-
     await Share.shareXFiles(
       [XFile(file.path)],
       subject: 'PomTechFlow Daten',
@@ -183,21 +203,10 @@ class DataExchangeService {
     );
   }
 
-  /// Importiert Daten aus einer JSON-Datei. Bereits vorhandene Einträge (gleiche ID) werden übersprungen.
-  static Future<DataImportResult> importData(AppDatabase db) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-    );
-    if (result == null || result.files.isEmpty) {
-      return DataImportResult.cancelled();
-    }
-
-    final path = result.files.first.path;
-    if (path == null) return DataImportResult.cancelled();
-
+  /// Importiert Daten aus einem JSON-String. Bereits vorhandene Einträge (gleiche ID) werden übersprungen.
+  static Future<DataImportResult> importFromJsonString(
+      AppDatabase db, String content) async {
     try {
-      final content = await File(path).readAsString();
       final data = jsonDecode(content) as Map<String, dynamic>;
 
       if (data['type'] != 'data_exchange') {
@@ -437,6 +446,19 @@ class DataExchangeService {
     } catch (e) {
       return DataImportResult.error('Fehler beim Importieren: $e');
     }
+  }
+
+  /// Importiert Daten aus einer vom Nutzer gewählten JSON-Datei.
+  static Future<DataImportResult> importData(AppDatabase db) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    if (result == null || result.files.isEmpty) return DataImportResult.cancelled();
+    final path = result.files.first.path;
+    if (path == null) return DataImportResult.cancelled();
+    final content = await File(path).readAsString();
+    return importFromJsonString(db, content);
   }
 }
 

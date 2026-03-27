@@ -86,9 +86,25 @@ class DashboardScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Fehler: $e')),
         data: (tasks) {
-          final active = tasks.where((t) => t.task.status == 'ACTIVE').toList();
+          int pRank(String p) => switch (p) {
+            'CRITICAL' => 3,
+            'HIGH' => 2,
+            'NORMAL' => 1,
+            _ => 0,
+          };
+          int sortByPriorityThenDate(TaskWithDetails a, TaskWithDetails b) {
+            final p = pRank(b.task.priority).compareTo(pRank(a.task.priority));
+            if (p != 0) return p;
+            final aDate = a.task.plannedDate ?? a.task.createdAt;
+            final bDate = b.task.plannedDate ?? b.task.createdAt;
+            return aDate.compareTo(bDate); // oldest first
+          }
+          final active = tasks.where((t) => t.task.status == 'ACTIVE').toList()
+            ..sort(sortByPriorityThenDate);
           final completed = tasks.where((t) => t.task.status == 'COMPLETED').length;
-          final planned = tasks.where((t) => t.task.status == 'PLANNED').length;
+          final plannedTasks = tasks.where((t) => t.task.status == 'PLANNED').toList()
+            ..sort(sortByPriorityThenDate);
+          final planned = plannedTasks.length;
           final today = DateTime.now();
           final todayTasks = tasks.where((t) {
             if (t.task.status == 'COMPLETED') return false;
@@ -98,7 +114,7 @@ class DashboardScreen extends ConsumerWidget {
                 d.month == today.month &&
                 d.day == today.day;
           }).toList()
-            ..sort((a, b) => a.task.plannedDate!.compareTo(b.task.plannedDate!));
+            ..sort(sortByPriorityThenDate);
           final todayStart = DateTime(today.year, today.month, today.day);
           final todayDone = tasks
               .where((t) =>
@@ -262,8 +278,7 @@ class DashboardScreen extends ConsumerWidget {
                     ]),
                     child: Column(children: [
                       const SizedBox(height: 8),
-                      ...tasks
-                          .where((t) => t.task.status == 'PLANNED')
+                      ...plannedTasks
                           .take(3)
                           .map((t) => _TaskRow(
                                 task: t,
@@ -554,7 +569,6 @@ class _StatCard extends StatelessWidget {
   final String sub;
   final IconData icon;
   final Color color;
-  final VoidCallback? onTap;
 
   const _StatCard({
     required this.label,
@@ -562,15 +576,11 @@ class _StatCard extends StatelessWidget {
     required this.sub,
     required this.icon,
     required this.color,
-    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
+    return Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
             color: color, borderRadius: BorderRadius.circular(12)),
@@ -591,7 +601,6 @@ class _StatCard extends StatelessWidget {
                     color: Theme.of(context).colorScheme.outline)),
           ],
         ),
-      ),
     );
   }
 }

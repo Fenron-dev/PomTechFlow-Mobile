@@ -259,19 +259,47 @@ class _ReminderDialog extends StatefulWidget {
 }
 
 class _ReminderDialogState extends State<_ReminderDialog> {
-  int _minutes = 10;
+  // preset quick-picks (minutes) — null means custom is active
+  int? _presetMinutes = 10;
+  // custom value + unit
+  int _customValue = 10;
+  String _customUnit = 'MIN'; // MIN | HOUR | DAY | WEEK
   final _textCtrl = TextEditingController();
+  final _customCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _textCtrl.text = 'Server nochmal prüfen';
+    _customCtrl.text = '10';
   }
 
   @override
   void dispose() {
     _textCtrl.dispose();
+    _customCtrl.dispose();
     super.dispose();
+  }
+
+  int get _totalMinutes {
+    final v = _presetMinutes ?? _customValue;
+    if (_presetMinutes != null) return _presetMinutes!;
+    return switch (_customUnit) {
+      'HOUR' => v * 60,
+      'DAY'  => v * 1440,
+      'WEEK' => v * 10080,
+      _      => v,
+    };
+  }
+
+  String get _durationLabel {
+    if (_presetMinutes != null) return '$_presetMinutes Min';
+    return switch (_customUnit) {
+      'HOUR' => '$_customValue Std',
+      'DAY'  => '$_customValue ${_customValue == 1 ? "Tag" : "Tage"}',
+      'WEEK' => '$_customValue ${_customValue == 1 ? "Woche" : "Wochen"}',
+      _      => '$_customValue Min',
+    };
   }
 
   @override
@@ -296,7 +324,7 @@ class _ReminderDialogState extends State<_ReminderDialog> {
             textCapitalization: TextCapitalization.sentences,
           ),
           const SizedBox(height: 16),
-          Text('In wie vielen Minuten?',
+          Text('Schnellauswahl (Minuten)',
               style: Theme.of(context).textTheme.labelMedium),
           const SizedBox(height: 8),
           Wrap(
@@ -304,30 +332,51 @@ class _ReminderDialogState extends State<_ReminderDialog> {
             children: presets
                 .map((p) => ChoiceChip(
                       label: Text('$p min'),
-                      selected: _minutes == p,
-                      onSelected: (_) => setState(() => _minutes = p),
+                      selected: _presetMinutes == p,
+                      onSelected: (_) => setState(() {
+                        _presetMinutes = p;
+                      }),
                     ))
                 .toList(),
           ),
+          const SizedBox(height: 12),
+          Text('Individuell',
+              style: Theme.of(context).textTheme.labelMedium),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Text('Individuell: '),
-              const SizedBox(width: 8),
               SizedBox(
-                width: 70,
+                width: 64,
                 child: TextFormField(
-                  initialValue: _minutes.toString(),
+                  controller: _customCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    suffix: Text('min'),
-                  ),
+                  decoration: const InputDecoration(isDense: true),
                   onChanged: (v) {
                     final val = int.tryParse(v);
-                    if (val != null && val > 0) setState(() => _minutes = val);
+                    if (val != null && val > 0) {
+                      setState(() {
+                        _customValue = val;
+                        _presetMinutes = null;
+                      });
+                    }
                   },
+                  onTap: () => setState(() => _presetMinutes = null),
                 ),
+              ),
+              const SizedBox(width: 8),
+              DropdownButton<String>(
+                value: _customUnit,
+                isDense: true,
+                items: const [
+                  DropdownMenuItem(value: 'MIN',  child: Text('Minuten')),
+                  DropdownMenuItem(value: 'HOUR', child: Text('Stunden')),
+                  DropdownMenuItem(value: 'DAY',  child: Text('Tage')),
+                  DropdownMenuItem(value: 'WEEK', child: Text('Wochen')),
+                ],
+                onChanged: (v) => setState(() {
+                  _customUnit = v!;
+                  _presetMinutes = null;
+                }),
               ),
             ],
           ),
@@ -343,14 +392,14 @@ class _ReminderDialogState extends State<_ReminderDialog> {
           label: const Text('Setzen'),
           onPressed: () async {
             Navigator.pop(context);
-            final when = DateTime.now().add(Duration(minutes: _minutes));
+            final when = DateTime.now().add(Duration(minutes: _totalMinutes));
             final text = _textCtrl.text.trim().isEmpty
                 ? 'Erinnerung'
                 : _textCtrl.text.trim();
             await NotificationService.scheduleReminder(text, when);
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('Erinnerung in $_minutes Min: $text'),
+                content: Text('Erinnerung in $_durationLabel: $text'),
               ));
             }
           },

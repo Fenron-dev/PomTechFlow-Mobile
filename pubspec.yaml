@@ -41,6 +41,9 @@ dependencies:
   archive: ^3.6.1
   app_badge_plus: ^1.0.0
 
+  # Markdown rendering
+  flutter_markdown: ^0.7.3
+
   # Foto-Komprimierung
   image: ^4.2.0                    # Dart-nativ, keine nativen Abhängigkeiten
 

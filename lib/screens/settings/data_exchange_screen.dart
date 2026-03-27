@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/customers_provider.dart';
 import '../../providers/workflows_provider.dart';
@@ -8,6 +10,7 @@ import '../../providers/general_notes_provider.dart';
 import '../../providers/note_templates_provider.dart';
 import '../../providers/tasks_provider.dart';
 import '../../services/data_exchange_service.dart';
+import '../../services/webdav_service.dart';
 
 class DataExchangeScreen extends ConsumerStatefulWidget {
   const DataExchangeScreen({super.key});
@@ -208,8 +211,231 @@ class _DataExchangeScreenState extends ConsumerState<DataExchangeScreen> {
               icon: const Icon(Icons.download),
               label: const Text('Datei importieren'),
             ),
+
+          const SizedBox(height: 32),
+
+          // ── WebDAV ──────────────────────────────────────────────────────
+          Text('WebDAV Sync',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: cs.primary, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(
+            'Exportiere direkt auf einen WebDAV-Server oder importiere eine dort gespeicherte Datei.',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: cs.outline),
+          ),
+          const SizedBox(height: 12),
+          _WebDavSection(
+            exportFlags: (
+              tasks: _exportTasks,
+              customers: _exportCustomers,
+              workflows: _exportWorkflows,
+              bundles: _exportBundles,
+              notes: _exportNotes,
+              templates: _exportTemplates,
+            ),
+            onImportDone: () {
+              ref.invalidate(tasksProvider);
+              ref.invalidate(customersProvider);
+              ref.invalidate(workflowsProvider);
+              ref.invalidate(hardwareBundlesProvider);
+              ref.invalidate(generalNotesProvider);
+              ref.invalidate(noteTemplatesProvider);
+            },
+          ),
         ],
       ),
+    );
+  }
+}
+
+// ─── WebDAV section widget ────────────────────────────────────────────────────
+
+typedef _ExportFlags = ({
+  bool tasks,
+  bool customers,
+  bool workflows,
+  bool bundles,
+  bool notes,
+  bool templates,
+});
+
+class _WebDavSection extends ConsumerStatefulWidget {
+  final _ExportFlags exportFlags;
+  final VoidCallback onImportDone;
+  const _WebDavSection({required this.exportFlags, required this.onImportDone});
+
+  @override
+  ConsumerState<_WebDavSection> createState() => _WebDavSectionState();
+}
+
+class _WebDavSectionState extends ConsumerState<_WebDavSection> {
+  bool _busy = false;
+
+  Future<WebDavConfig?> _loadConfig() => WebDavService.loadConfig();
+
+  Future<void> _exportViaWebDav() async {
+    final config = await _loadConfig();
+    if (config == null || !config.isConfigured) {
+      if (mounted) _showNotConfigured();
+      return;
+    }
+    final flags = widget.exportFlags;
+    if (!flags.tasks && !flags.customers && !flags.workflows &&
+        !flags.bundles && !flags.notes && !flags.templates) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bitte mindestens eine Kategorie auswählen.')),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final db = ref.read(databaseProvider);
+      final json = await DataExchangeService.buildExportJson(
+        db,
+        tasks: flags.tasks,
+        customers: flags.customers,
+        workflows: flags.workflows,
+        hardwareBundles: flags.bundles,
+        generalNotes: flags.notes,
+        noteTemplates: flags.templates,
+      );
+      final ts = DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
+      final filename = 'ptf_data_$ts.json';
+      await WebDavService.uploadJson(config, json, filename);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hochgeladen: $filename')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Fehler: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _importViaWebDav() async {
+    final config = await _loadConfig();
+    if (config == null || !config.isConfigured) {
+      if (mounted) _showNotConfigured();
+      return;
+    }
+    setState(() => _busy = true);
+    List<WebDavFile> files = [];
+    try {
+      files = await WebDavService.listJsonFiles(config);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Fehler: $e')));
+        setState(() => _busy = false);
+      }
+      return;
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+
+    if (!mounted) return;
+    if (files.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keine JSON-Dateien auf dem Server gefunden.')),
+      );
+      return;
+    }
+
+    final selected = await showDialog<WebDavFile>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Datei auswählen'),
+        content: SizedBox(
+          width: 320,
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: files.length,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (_, i) => ListTile(
+              leading: const Icon(Icons.insert_drive_file_outlined),
+              title: Text(files[i].name,
+                  style: Theme.of(ctx).textTheme.bodyMedium),
+              onTap: () => Navigator.pop(ctx, files[i]),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+        ],
+      ),
+    );
+    if (selected == null || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      final content = await WebDavService.downloadJson(config, selected.name);
+      final db = ref.read(databaseProvider);
+      final result = await DataExchangeService.importFromJsonString(db, content);
+      if (!mounted) return;
+      if (result.error != null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(result.error!)));
+      } else {
+        widget.onImportDone();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Importiert: ${result.summary}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Fehler: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _showNotConfigured() {
+    final router = GoRouter.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('WebDAV nicht konfiguriert.'),
+        action: SnackBarAction(
+          label: 'Einrichten',
+          onPressed: () => router.push('/settings/webdav'),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_busy) return const Center(child: CircularProgressIndicator());
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _exportViaWebDav,
+            icon: const Icon(Icons.cloud_upload_outlined),
+            label: const Text('WebDAV Export'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _importViaWebDav,
+            icon: const Icon(Icons.cloud_download_outlined),
+            label: const Text('WebDAV Import'),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 import '../../../providers/tasks_provider.dart';
 import '../../../providers/database_provider.dart';
@@ -272,6 +273,54 @@ class _NoteCard extends StatelessWidget {
   final VoidCallback onEdit;
   const _NoteCard({required this.note, required this.onDelete, required this.onEdit});
 
+  bool get _isLong => note.content.length > 200 || '\n'.allMatches(note.content).length >= 4;
+
+  void _showPopup(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      DateFormat('dd.MM.yyyy HH:mm').format(note.createdAt.toLocal()),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 8),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: MarkdownBody(
+                  data: note.content,
+                  softLineBreak: true,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -284,8 +333,13 @@ class _NoteCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(note.content,
-                      style: Theme.of(context).textTheme.bodyMedium),
+                  MarkdownBody(
+                    data: note.content,
+                    softLineBreak: true,
+                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                      p: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     DateFormat('dd.MM.yyyy HH:mm')
@@ -299,6 +353,13 @@ class _NoteCard extends StatelessWidget {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (_isLong)
+                  IconButton(
+                    icon: const Icon(Icons.visibility_outlined, size: 18),
+                    tooltip: 'Vollansicht',
+                    onPressed: () => _showPopup(context),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 18),
                   onPressed: onEdit,
