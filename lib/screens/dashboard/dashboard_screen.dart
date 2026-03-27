@@ -562,6 +562,7 @@ class _StatCard extends StatelessWidget {
     required this.sub,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
