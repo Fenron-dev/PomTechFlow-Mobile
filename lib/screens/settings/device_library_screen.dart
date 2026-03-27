@@ -229,9 +229,16 @@ class _DeviceCard extends StatelessWidget {
                       .textTheme
                       .bodySmall
                       ?.copyWith(color: cs.outline)),
+            if (device.maintenanceIntervalDays != null)
+              Text('Wartung alle ${device.maintenanceIntervalDays} Tage',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: cs.tertiary)),
           ],
         ),
-        isThreeLine: device.serial != null || device.notes != null,
+        isThreeLine: device.serial != null || device.notes != null ||
+            device.maintenanceIntervalDays != null,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -267,6 +274,7 @@ class _DeviceFormState extends ConsumerState<_DeviceForm> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _serialCtrl;
   late final TextEditingController _notesCtrl;
+  late final TextEditingController _intervalCtrl;
 
   @override
   void initState() {
@@ -275,6 +283,9 @@ class _DeviceFormState extends ConsumerState<_DeviceForm> {
     _nameCtrl = TextEditingController(text: widget.existing?.name ?? '');
     _serialCtrl = TextEditingController(text: widget.existing?.serial ?? '');
     _notesCtrl = TextEditingController(text: widget.existing?.notes ?? '');
+    _intervalCtrl = TextEditingController(
+      text: widget.existing?.maintenanceIntervalDays?.toString() ?? '',
+    );
   }
 
   @override
@@ -282,6 +293,7 @@ class _DeviceFormState extends ConsumerState<_DeviceForm> {
     _nameCtrl.dispose();
     _serialCtrl.dispose();
     _notesCtrl.dispose();
+    _intervalCtrl.dispose();
     super.dispose();
   }
 
@@ -289,6 +301,7 @@ class _DeviceFormState extends ConsumerState<_DeviceForm> {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
     final db = ref.read(databaseProvider);
+    final intervalDays = int.tryParse(_intervalCtrl.text.trim());
     if (widget.existing == null) {
       await db.into(db.devicePresets).insert(DevicePresetsCompanion.insert(
             type: _type,
@@ -299,6 +312,7 @@ class _DeviceFormState extends ConsumerState<_DeviceForm> {
             notes: drift.Value(_notesCtrl.text.trim().isEmpty
                 ? null
                 : _notesCtrl.text.trim()),
+            maintenanceIntervalDays: drift.Value(intervalDays),
           ));
     } else {
       await (db.update(db.devicePresets)
@@ -312,6 +326,7 @@ class _DeviceFormState extends ConsumerState<_DeviceForm> {
         notes: drift.Value(_notesCtrl.text.trim().isEmpty
             ? null
             : _notesCtrl.text.trim()),
+        maintenanceIntervalDays: drift.Value(intervalDays),
       ));
     }
     if (mounted) Navigator.pop(context);
@@ -365,6 +380,15 @@ class _DeviceFormState extends ConsumerState<_DeviceForm> {
             controller: _notesCtrl,
             decoration: const InputDecoration(
                 labelText: 'Notizen', hintText: 'Optional'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _intervalCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Wartungsintervall (Tage)',
+              hintText: 'z.B. 365 – leer = kein Intervall',
+            ),
+            keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 20),
           FilledButton(

@@ -53,6 +53,7 @@ class Sessions extends Table {
   IntColumn get duration => integer().withDefault(const Constant(0))(); // Minuten
   TextColumn get type => text().withDefault(const Constant('WORK'))();
   // Type: WORK | SHORT_BREAK | LONG_BREAK
+  BoolColumn get remote => boolean().withDefault(const Constant(false))(); // v14: false=Vor Ort, true=Fernwartung
   TextColumn get note => text().nullable()();
 
   @override
@@ -243,7 +244,22 @@ class DevicePresets extends Table {
   TextColumn get name => text()();
   TextColumn get serial => text().nullable()();
   TextColumn get notes => text().nullable()();
+  IntColumn get maintenanceIntervalDays => integer().nullable()(); // v14: Wartungsintervall in Tagen
+  DateTimeColumn get lastMaintenanceDate => dateTime().nullable()(); // v14: Datum der letzten Wartungs-Task-Erstellung
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class KnowledgeEntries extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get title => text()(); // Kurztitel / Symptom
+  TextColumn get problem => text()(); // Problembeschreibung
+  TextColumn get solution => text()(); // Lösungstext (Markdown)
+  TextColumn get tags => text().nullable()(); // kommagetrennte Tags
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -272,12 +288,13 @@ class DevicePresets extends Table {
   TaskLinks,
   GeneralNotes,
   NoteTemplates,
+  KnowledgeEntries,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -340,6 +357,13 @@ class AppDatabase extends _$AppDatabase {
       if (from < 13) {
         // v12 → v13: Erinnerungsvorlauf für Tasks
         await m.addColumn(tasks, tasks.reminderOffsetMinutes);
+      }
+      if (from < 14) {
+        // v13 → v14: Session-Standort, Geräte-Wartungsintervall, Wissensdatenbank
+        await m.addColumn(sessions, sessions.remote);
+        await m.addColumn(devicePresets, devicePresets.maintenanceIntervalDays);
+        await m.addColumn(devicePresets, devicePresets.lastMaintenanceDate);
+        await m.createTable(knowledgeEntries);
       }
     },
   );

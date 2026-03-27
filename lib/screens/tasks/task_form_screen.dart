@@ -8,6 +8,7 @@ import '../../providers/customers_provider.dart';
 import '../../providers/tasks_provider.dart';
 import '../../db/database.dart';
 import '../../services/notification_service.dart';
+import '../knowledge/knowledge_screen.dart' show knowledgeProvider;
 
 class TaskFormScreen extends ConsumerStatefulWidget {
   final String? taskId;
@@ -38,6 +39,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   void initState() {
     super.initState();
     if (widget.taskId != null) _loadTask();
+    _titleCtrl.addListener(() => setState(() {}));
   }
 
   Future<void> _loadTask() async {
@@ -264,10 +266,85 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     }
   }
 
+  List<Widget> _buildKbSuggestions(
+      BuildContext context, ColorScheme cs, List<KnowledgeEntry> suggestions) {
+    if (suggestions.isEmpty) return const [];
+    return [
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: suggestions
+            .map((e) => ActionChip(
+                  avatar: Icon(Icons.menu_book_outlined,
+                      size: 14, color: cs.secondary),
+                  label: Text(e.title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall
+                          ?.copyWith(color: cs.secondary)),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _showKbEntry(context, e),
+                ))
+            .toList(),
+      ),
+    ];
+  }
+
+  void _showKbEntry(BuildContext context, KnowledgeEntry entry) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(entry.title),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Problem',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium
+                      ?.copyWith(
+                          color: Theme.of(context).colorScheme.primary)),
+              const SizedBox(height: 4),
+              Text(entry.problem),
+              const SizedBox(height: 12),
+              Text('Lösung',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium
+                      ?.copyWith(
+                          color: Theme.of(context).colorScheme.primary)),
+              const SizedBox(height: 4),
+              SelectableText(entry.solution),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Schließen')),
+        ],
+      ),
+    );
+  }
+
+  List<KnowledgeEntry> _filterKb(List<KnowledgeEntry> all, String title) {
+    if (title.length < 3) return const [];
+    final q = title.toLowerCase();
+    return all.where((e) {
+      return e.title.toLowerCase().contains(q) ||
+          e.problem.toLowerCase().contains(q) ||
+          (e.tags?.toLowerCase().contains(q) ?? false);
+    }).take(3).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final customersAsync = ref.watch(customersProvider);
     final cs = Theme.of(context).colorScheme;
+    final kbAll = ref.watch(knowledgeProvider).valueOrNull ?? const [];
 
     return Scaffold(
       appBar: AppBar(
@@ -298,6 +375,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   v == null || v.trim().isEmpty ? 'Titel erforderlich' : null,
               textCapitalization: TextCapitalization.sentences,
             ),
+            ..._buildKbSuggestions(context, cs, _filterKb(kbAll, _titleCtrl.text.trim())),
             const SizedBox(height: 16),
             TextFormField(
               controller: _descCtrl,

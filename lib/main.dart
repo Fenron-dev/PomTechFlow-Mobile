@@ -27,6 +27,9 @@ import 'services/widget_service.dart';
 import 'providers/database_provider.dart';
 import 'providers/timer_provider.dart';
 import 'screens/app_lock_screen.dart';
+import 'screens/tools/network_tools_screen.dart';
+import 'screens/knowledge/knowledge_screen.dart';
+import 'services/device_maintenance_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,6 +57,14 @@ final _router = GoRouter(
     GoRoute(
       path: '/reports/monthly',
       builder: (_, _) => const MonthlyReportScreen(),
+    ),
+    GoRoute(
+      path: '/tools/network',
+      builder: (_, _) => const NetworkToolsScreen(),
+    ),
+    GoRoute(
+      path: '/knowledge',
+      builder: (_, _) => const KnowledgeScreen(),
     ),
     GoRoute(
       path: '/settings',
@@ -171,6 +182,7 @@ class PomTechFlowApp extends ConsumerWidget {
         final notifier = ref.read(settingsProvider.notifier);
         AutoBackupService.checkAndRun(db, settings, notifier);
         ref.read(timerProvider.notifier).restoreFromDatabase();
+        DeviceMaintenanceService.checkAndCreateTasks(db);
       }
     });
 

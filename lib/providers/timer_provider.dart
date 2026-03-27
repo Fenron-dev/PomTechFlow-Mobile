@@ -13,11 +13,13 @@ class TimerEntry {
   final TimerStatus status;
   final int elapsedSeconds;
   final String sessionId;
+  final bool remote; // false = Vor Ort, true = Fernwartung
 
   const TimerEntry({
     required this.status,
     required this.elapsedSeconds,
     required this.sessionId,
+    this.remote = false,
   });
 
   double get progress => (elapsedSeconds % _ringCycleSecs) / _ringCycleSecs;
@@ -32,10 +34,12 @@ class TimerEntry {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  TimerEntry copyWith({TimerStatus? status, int? elapsedSeconds}) => TimerEntry(
+  TimerEntry copyWith({TimerStatus? status, int? elapsedSeconds, bool? remote}) =>
+      TimerEntry(
         status: status ?? this.status,
         elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
         sessionId: sessionId,
+        remote: remote ?? this.remote,
       );
 }
 
@@ -68,6 +72,14 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
       state[taskId]?.status == TimerStatus.running;
 
   bool isActive(String taskId) => state.containsKey(taskId);
+
+  /// Togglet den Remote-Status der laufenden Session.
+  void setRemote(String taskId, bool remote) {
+    if (!state.containsKey(taskId)) return;
+    final newState = Map<String, TimerEntry>.from(state);
+    newState[taskId] = state[taskId]!.copyWith(remote: remote);
+    state = newState;
+  }
 
   int _currentElapsed(String taskId) {
     final base = _baseElapsed[taskId] ?? 0;
@@ -193,6 +205,7 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
         status: TimerStatus.running,
         elapsedSeconds: elapsedSecs,
         sessionId: session.id,
+        remote: session.remote,
       );
       _startTick(taskId);
     }
@@ -233,6 +246,7 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
         .write(SessionsCompanion(
       endTime: drift.Value(now),
       duration: drift.Value(duration),
+      remote: drift.Value(entry.remote),
     ));
 
     final task = await (db.select(db.tasks)

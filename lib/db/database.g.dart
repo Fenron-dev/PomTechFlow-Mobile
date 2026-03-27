@@ -1621,6 +1621,19 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     requiredDuringInsert: false,
     defaultValue: const Constant('WORK'),
   );
+  static const VerificationMeta _remoteMeta = const VerificationMeta('remote');
+  @override
+  late final GeneratedColumn<bool> remote = GeneratedColumn<bool>(
+    'remote',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("remote" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _noteMeta = const VerificationMeta('note');
   @override
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
@@ -1638,6 +1651,7 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     endTime,
     duration,
     type,
+    remote,
     note,
   ];
   @override
@@ -1689,6 +1703,12 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         type.isAcceptableOrUnknown(data['type']!, _typeMeta),
       );
     }
+    if (data.containsKey('remote')) {
+      context.handle(
+        _remoteMeta,
+        remote.isAcceptableOrUnknown(data['remote']!, _remoteMeta),
+      );
+    }
     if (data.containsKey('note')) {
       context.handle(
         _noteMeta,
@@ -1728,6 +1748,10 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         DriftSqlType.string,
         data['${effectivePrefix}type'],
       )!,
+      remote: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}remote'],
+      )!,
       note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}note'],
@@ -1748,6 +1772,7 @@ class Session extends DataClass implements Insertable<Session> {
   final DateTime? endTime;
   final int duration;
   final String type;
+  final bool remote;
   final String? note;
   const Session({
     required this.id,
@@ -1756,6 +1781,7 @@ class Session extends DataClass implements Insertable<Session> {
     this.endTime,
     required this.duration,
     required this.type,
+    required this.remote,
     this.note,
   });
   @override
@@ -1769,6 +1795,7 @@ class Session extends DataClass implements Insertable<Session> {
     }
     map['duration'] = Variable<int>(duration);
     map['type'] = Variable<String>(type);
+    map['remote'] = Variable<bool>(remote);
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
@@ -1785,6 +1812,7 @@ class Session extends DataClass implements Insertable<Session> {
           : Value(endTime),
       duration: Value(duration),
       type: Value(type),
+      remote: Value(remote),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
     );
   }
@@ -1801,6 +1829,7 @@ class Session extends DataClass implements Insertable<Session> {
       endTime: serializer.fromJson<DateTime?>(json['endTime']),
       duration: serializer.fromJson<int>(json['duration']),
       type: serializer.fromJson<String>(json['type']),
+      remote: serializer.fromJson<bool>(json['remote']),
       note: serializer.fromJson<String?>(json['note']),
     );
   }
@@ -1814,6 +1843,7 @@ class Session extends DataClass implements Insertable<Session> {
       'endTime': serializer.toJson<DateTime?>(endTime),
       'duration': serializer.toJson<int>(duration),
       'type': serializer.toJson<String>(type),
+      'remote': serializer.toJson<bool>(remote),
       'note': serializer.toJson<String?>(note),
     };
   }
@@ -1825,6 +1855,7 @@ class Session extends DataClass implements Insertable<Session> {
     Value<DateTime?> endTime = const Value.absent(),
     int? duration,
     String? type,
+    bool? remote,
     Value<String?> note = const Value.absent(),
   }) => Session(
     id: id ?? this.id,
@@ -1833,6 +1864,7 @@ class Session extends DataClass implements Insertable<Session> {
     endTime: endTime.present ? endTime.value : this.endTime,
     duration: duration ?? this.duration,
     type: type ?? this.type,
+    remote: remote ?? this.remote,
     note: note.present ? note.value : this.note,
   );
   Session copyWithCompanion(SessionsCompanion data) {
@@ -1843,6 +1875,7 @@ class Session extends DataClass implements Insertable<Session> {
       endTime: data.endTime.present ? data.endTime.value : this.endTime,
       duration: data.duration.present ? data.duration.value : this.duration,
       type: data.type.present ? data.type.value : this.type,
+      remote: data.remote.present ? data.remote.value : this.remote,
       note: data.note.present ? data.note.value : this.note,
     );
   }
@@ -1856,6 +1889,7 @@ class Session extends DataClass implements Insertable<Session> {
           ..write('endTime: $endTime, ')
           ..write('duration: $duration, ')
           ..write('type: $type, ')
+          ..write('remote: $remote, ')
           ..write('note: $note')
           ..write(')'))
         .toString();
@@ -1863,7 +1897,7 @@ class Session extends DataClass implements Insertable<Session> {
 
   @override
   int get hashCode =>
-      Object.hash(id, taskId, startTime, endTime, duration, type, note);
+      Object.hash(id, taskId, startTime, endTime, duration, type, remote, note);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1874,6 +1908,7 @@ class Session extends DataClass implements Insertable<Session> {
           other.endTime == this.endTime &&
           other.duration == this.duration &&
           other.type == this.type &&
+          other.remote == this.remote &&
           other.note == this.note);
 }
 
@@ -1884,6 +1919,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
   final Value<DateTime?> endTime;
   final Value<int> duration;
   final Value<String> type;
+  final Value<bool> remote;
   final Value<String?> note;
   final Value<int> rowid;
   const SessionsCompanion({
@@ -1893,6 +1929,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.endTime = const Value.absent(),
     this.duration = const Value.absent(),
     this.type = const Value.absent(),
+    this.remote = const Value.absent(),
     this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1903,6 +1940,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.endTime = const Value.absent(),
     this.duration = const Value.absent(),
     this.type = const Value.absent(),
+    this.remote = const Value.absent(),
     this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : taskId = Value(taskId),
@@ -1914,6 +1952,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Expression<DateTime>? endTime,
     Expression<int>? duration,
     Expression<String>? type,
+    Expression<bool>? remote,
     Expression<String>? note,
     Expression<int>? rowid,
   }) {
@@ -1924,6 +1963,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       if (endTime != null) 'end_time': endTime,
       if (duration != null) 'duration': duration,
       if (type != null) 'type': type,
+      if (remote != null) 'remote': remote,
       if (note != null) 'note': note,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1936,6 +1976,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Value<DateTime?>? endTime,
     Value<int>? duration,
     Value<String>? type,
+    Value<bool>? remote,
     Value<String?>? note,
     Value<int>? rowid,
   }) {
@@ -1946,6 +1987,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       endTime: endTime ?? this.endTime,
       duration: duration ?? this.duration,
       type: type ?? this.type,
+      remote: remote ?? this.remote,
       note: note ?? this.note,
       rowid: rowid ?? this.rowid,
     );
@@ -1972,6 +2014,9 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     if (type.present) {
       map['type'] = Variable<String>(type.value);
     }
+    if (remote.present) {
+      map['remote'] = Variable<bool>(remote.value);
+    }
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
@@ -1990,6 +2035,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
           ..write('endTime: $endTime, ')
           ..write('duration: $duration, ')
           ..write('type: $type, ')
+          ..write('remote: $remote, ')
           ..write('note: $note, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -5449,6 +5495,28 @@ class $DevicePresetsTable extends DevicePresets
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _maintenanceIntervalDaysMeta =
+      const VerificationMeta('maintenanceIntervalDays');
+  @override
+  late final GeneratedColumn<int> maintenanceIntervalDays =
+      GeneratedColumn<int>(
+        'maintenance_interval_days',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastMaintenanceDateMeta =
+      const VerificationMeta('lastMaintenanceDate');
+  @override
+  late final GeneratedColumn<DateTime> lastMaintenanceDate =
+      GeneratedColumn<DateTime>(
+        'last_maintenance_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -5468,6 +5536,8 @@ class $DevicePresetsTable extends DevicePresets
     name,
     serial,
     notes,
+    maintenanceIntervalDays,
+    lastMaintenanceDate,
     createdAt,
   ];
   @override
@@ -5513,6 +5583,24 @@ class $DevicePresetsTable extends DevicePresets
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
+    if (data.containsKey('maintenance_interval_days')) {
+      context.handle(
+        _maintenanceIntervalDaysMeta,
+        maintenanceIntervalDays.isAcceptableOrUnknown(
+          data['maintenance_interval_days']!,
+          _maintenanceIntervalDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_maintenance_date')) {
+      context.handle(
+        _lastMaintenanceDateMeta,
+        lastMaintenanceDate.isAcceptableOrUnknown(
+          data['last_maintenance_date']!,
+          _lastMaintenanceDateMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -5548,6 +5636,14 @@ class $DevicePresetsTable extends DevicePresets
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      maintenanceIntervalDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}maintenance_interval_days'],
+      ),
+      lastMaintenanceDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_maintenance_date'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -5567,6 +5663,8 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
   final String name;
   final String? serial;
   final String? notes;
+  final int? maintenanceIntervalDays;
+  final DateTime? lastMaintenanceDate;
   final DateTime createdAt;
   const DevicePreset({
     required this.id,
@@ -5574,6 +5672,8 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
     required this.name,
     this.serial,
     this.notes,
+    this.maintenanceIntervalDays,
+    this.lastMaintenanceDate,
     required this.createdAt,
   });
   @override
@@ -5587,6 +5687,12 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || maintenanceIntervalDays != null) {
+      map['maintenance_interval_days'] = Variable<int>(maintenanceIntervalDays);
+    }
+    if (!nullToAbsent || lastMaintenanceDate != null) {
+      map['last_maintenance_date'] = Variable<DateTime>(lastMaintenanceDate);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -5603,6 +5709,12 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      maintenanceIntervalDays: maintenanceIntervalDays == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maintenanceIntervalDays),
+      lastMaintenanceDate: lastMaintenanceDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastMaintenanceDate),
       createdAt: Value(createdAt),
     );
   }
@@ -5618,6 +5730,12 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
       name: serializer.fromJson<String>(json['name']),
       serial: serializer.fromJson<String?>(json['serial']),
       notes: serializer.fromJson<String?>(json['notes']),
+      maintenanceIntervalDays: serializer.fromJson<int?>(
+        json['maintenanceIntervalDays'],
+      ),
+      lastMaintenanceDate: serializer.fromJson<DateTime?>(
+        json['lastMaintenanceDate'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -5630,6 +5748,10 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
       'name': serializer.toJson<String>(name),
       'serial': serializer.toJson<String?>(serial),
       'notes': serializer.toJson<String?>(notes),
+      'maintenanceIntervalDays': serializer.toJson<int?>(
+        maintenanceIntervalDays,
+      ),
+      'lastMaintenanceDate': serializer.toJson<DateTime?>(lastMaintenanceDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -5640,6 +5762,8 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
     String? name,
     Value<String?> serial = const Value.absent(),
     Value<String?> notes = const Value.absent(),
+    Value<int?> maintenanceIntervalDays = const Value.absent(),
+    Value<DateTime?> lastMaintenanceDate = const Value.absent(),
     DateTime? createdAt,
   }) => DevicePreset(
     id: id ?? this.id,
@@ -5647,6 +5771,12 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
     name: name ?? this.name,
     serial: serial.present ? serial.value : this.serial,
     notes: notes.present ? notes.value : this.notes,
+    maintenanceIntervalDays: maintenanceIntervalDays.present
+        ? maintenanceIntervalDays.value
+        : this.maintenanceIntervalDays,
+    lastMaintenanceDate: lastMaintenanceDate.present
+        ? lastMaintenanceDate.value
+        : this.lastMaintenanceDate,
     createdAt: createdAt ?? this.createdAt,
   );
   DevicePreset copyWithCompanion(DevicePresetsCompanion data) {
@@ -5656,6 +5786,12 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
       name: data.name.present ? data.name.value : this.name,
       serial: data.serial.present ? data.serial.value : this.serial,
       notes: data.notes.present ? data.notes.value : this.notes,
+      maintenanceIntervalDays: data.maintenanceIntervalDays.present
+          ? data.maintenanceIntervalDays.value
+          : this.maintenanceIntervalDays,
+      lastMaintenanceDate: data.lastMaintenanceDate.present
+          ? data.lastMaintenanceDate.value
+          : this.lastMaintenanceDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -5668,13 +5804,24 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
           ..write('name: $name, ')
           ..write('serial: $serial, ')
           ..write('notes: $notes, ')
+          ..write('maintenanceIntervalDays: $maintenanceIntervalDays, ')
+          ..write('lastMaintenanceDate: $lastMaintenanceDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, type, name, serial, notes, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    type,
+    name,
+    serial,
+    notes,
+    maintenanceIntervalDays,
+    lastMaintenanceDate,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5684,6 +5831,8 @@ class DevicePreset extends DataClass implements Insertable<DevicePreset> {
           other.name == this.name &&
           other.serial == this.serial &&
           other.notes == this.notes &&
+          other.maintenanceIntervalDays == this.maintenanceIntervalDays &&
+          other.lastMaintenanceDate == this.lastMaintenanceDate &&
           other.createdAt == this.createdAt);
 }
 
@@ -5693,6 +5842,8 @@ class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
   final Value<String> name;
   final Value<String?> serial;
   final Value<String?> notes;
+  final Value<int?> maintenanceIntervalDays;
+  final Value<DateTime?> lastMaintenanceDate;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const DevicePresetsCompanion({
@@ -5701,6 +5852,8 @@ class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
     this.name = const Value.absent(),
     this.serial = const Value.absent(),
     this.notes = const Value.absent(),
+    this.maintenanceIntervalDays = const Value.absent(),
+    this.lastMaintenanceDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -5710,6 +5863,8 @@ class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
     required String name,
     this.serial = const Value.absent(),
     this.notes = const Value.absent(),
+    this.maintenanceIntervalDays = const Value.absent(),
+    this.lastMaintenanceDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : type = Value(type),
@@ -5720,6 +5875,8 @@ class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
     Expression<String>? name,
     Expression<String>? serial,
     Expression<String>? notes,
+    Expression<int>? maintenanceIntervalDays,
+    Expression<DateTime>? lastMaintenanceDate,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -5729,6 +5886,10 @@ class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
       if (name != null) 'name': name,
       if (serial != null) 'serial': serial,
       if (notes != null) 'notes': notes,
+      if (maintenanceIntervalDays != null)
+        'maintenance_interval_days': maintenanceIntervalDays,
+      if (lastMaintenanceDate != null)
+        'last_maintenance_date': lastMaintenanceDate,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -5740,6 +5901,8 @@ class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
     Value<String>? name,
     Value<String?>? serial,
     Value<String?>? notes,
+    Value<int?>? maintenanceIntervalDays,
+    Value<DateTime?>? lastMaintenanceDate,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -5749,6 +5912,9 @@ class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
       name: name ?? this.name,
       serial: serial ?? this.serial,
       notes: notes ?? this.notes,
+      maintenanceIntervalDays:
+          maintenanceIntervalDays ?? this.maintenanceIntervalDays,
+      lastMaintenanceDate: lastMaintenanceDate ?? this.lastMaintenanceDate,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -5772,6 +5938,16 @@ class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (maintenanceIntervalDays.present) {
+      map['maintenance_interval_days'] = Variable<int>(
+        maintenanceIntervalDays.value,
+      );
+    }
+    if (lastMaintenanceDate.present) {
+      map['last_maintenance_date'] = Variable<DateTime>(
+        lastMaintenanceDate.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -5789,6 +5965,8 @@ class DevicePresetsCompanion extends UpdateCompanion<DevicePreset> {
           ..write('name: $name, ')
           ..write('serial: $serial, ')
           ..write('notes: $notes, ')
+          ..write('maintenanceIntervalDays: $maintenanceIntervalDays, ')
+          ..write('lastMaintenanceDate: $lastMaintenanceDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -7978,6 +8156,452 @@ class NoteTemplatesCompanion extends UpdateCompanion<NoteTemplate> {
   }
 }
 
+class $KnowledgeEntriesTable extends KnowledgeEntries
+    with TableInfo<$KnowledgeEntriesTable, KnowledgeEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KnowledgeEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => _uuid(),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _problemMeta = const VerificationMeta(
+    'problem',
+  );
+  @override
+  late final GeneratedColumn<String> problem = GeneratedColumn<String>(
+    'problem',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _solutionMeta = const VerificationMeta(
+    'solution',
+  );
+  @override
+  late final GeneratedColumn<String> solution = GeneratedColumn<String>(
+    'solution',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    problem,
+    solution,
+    tags,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'knowledge_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KnowledgeEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('problem')) {
+      context.handle(
+        _problemMeta,
+        problem.isAcceptableOrUnknown(data['problem']!, _problemMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_problemMeta);
+    }
+    if (data.containsKey('solution')) {
+      context.handle(
+        _solutionMeta,
+        solution.isAcceptableOrUnknown(data['solution']!, _solutionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_solutionMeta);
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  KnowledgeEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KnowledgeEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      problem: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}problem'],
+      )!,
+      solution: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}solution'],
+      )!,
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $KnowledgeEntriesTable createAlias(String alias) {
+    return $KnowledgeEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class KnowledgeEntry extends DataClass implements Insertable<KnowledgeEntry> {
+  final String id;
+  final String title;
+  final String problem;
+  final String solution;
+  final String? tags;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const KnowledgeEntry({
+    required this.id,
+    required this.title,
+    required this.problem,
+    required this.solution,
+    this.tags,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['problem'] = Variable<String>(problem);
+    map['solution'] = Variable<String>(solution);
+    if (!nullToAbsent || tags != null) {
+      map['tags'] = Variable<String>(tags);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  KnowledgeEntriesCompanion toCompanion(bool nullToAbsent) {
+    return KnowledgeEntriesCompanion(
+      id: Value(id),
+      title: Value(title),
+      problem: Value(problem),
+      solution: Value(solution),
+      tags: tags == null && nullToAbsent ? const Value.absent() : Value(tags),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory KnowledgeEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KnowledgeEntry(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      problem: serializer.fromJson<String>(json['problem']),
+      solution: serializer.fromJson<String>(json['solution']),
+      tags: serializer.fromJson<String?>(json['tags']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'problem': serializer.toJson<String>(problem),
+      'solution': serializer.toJson<String>(solution),
+      'tags': serializer.toJson<String?>(tags),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  KnowledgeEntry copyWith({
+    String? id,
+    String? title,
+    String? problem,
+    String? solution,
+    Value<String?> tags = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => KnowledgeEntry(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    problem: problem ?? this.problem,
+    solution: solution ?? this.solution,
+    tags: tags.present ? tags.value : this.tags,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  KnowledgeEntry copyWithCompanion(KnowledgeEntriesCompanion data) {
+    return KnowledgeEntry(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      problem: data.problem.present ? data.problem.value : this.problem,
+      solution: data.solution.present ? data.solution.value : this.solution,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeEntry(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('problem: $problem, ')
+          ..write('solution: $solution, ')
+          ..write('tags: $tags, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, title, problem, solution, tags, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KnowledgeEntry &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.problem == this.problem &&
+          other.solution == this.solution &&
+          other.tags == this.tags &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class KnowledgeEntriesCompanion extends UpdateCompanion<KnowledgeEntry> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String> problem;
+  final Value<String> solution;
+  final Value<String?> tags;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const KnowledgeEntriesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.problem = const Value.absent(),
+    this.solution = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  KnowledgeEntriesCompanion.insert({
+    this.id = const Value.absent(),
+    required String title,
+    required String problem,
+    required String solution,
+    this.tags = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : title = Value(title),
+       problem = Value(problem),
+       solution = Value(solution);
+  static Insertable<KnowledgeEntry> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? problem,
+    Expression<String>? solution,
+    Expression<String>? tags,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (problem != null) 'problem': problem,
+      if (solution != null) 'solution': solution,
+      if (tags != null) 'tags': tags,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  KnowledgeEntriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String>? problem,
+    Value<String>? solution,
+    Value<String?>? tags,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return KnowledgeEntriesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      problem: problem ?? this.problem,
+      solution: solution ?? this.solution,
+      tags: tags ?? this.tags,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (problem.present) {
+      map['problem'] = Variable<String>(problem.value);
+    }
+    if (solution.present) {
+      map['solution'] = Variable<String>(solution.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeEntriesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('problem: $problem, ')
+          ..write('solution: $solution, ')
+          ..write('tags: $tags, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8007,6 +8631,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TaskLinksTable taskLinks = $TaskLinksTable(this);
   late final $GeneralNotesTable generalNotes = $GeneralNotesTable(this);
   late final $NoteTemplatesTable noteTemplates = $NoteTemplatesTable(this);
+  late final $KnowledgeEntriesTable knowledgeEntries = $KnowledgeEntriesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8032,6 +8659,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     taskLinks,
     generalNotes,
     noteTemplates,
+    knowledgeEntries,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -9711,6 +10339,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       Value<DateTime?> endTime,
       Value<int> duration,
       Value<String> type,
+      Value<bool> remote,
       Value<String?> note,
       Value<int> rowid,
     });
@@ -9722,6 +10351,7 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<DateTime?> endTime,
       Value<int> duration,
       Value<String> type,
+      Value<bool> remote,
       Value<String?> note,
       Value<int> rowid,
     });
@@ -9780,6 +10410,11 @@ class $$SessionsTableFilterComposer
 
   ColumnFilters<String> get type => $composableBuilder(
     column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get remote => $composableBuilder(
+    column: $table.remote,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9846,6 +10481,11 @@ class $$SessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get remote => $composableBuilder(
+    column: $table.remote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get note => $composableBuilder(
     column: $table.note,
     builder: (column) => ColumnOrderings(column),
@@ -9898,6 +10538,9 @@ class $$SessionsTableAnnotationComposer
 
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<bool> get remote =>
+      $composableBuilder(column: $table.remote, builder: (column) => column);
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
@@ -9960,6 +10603,7 @@ class $$SessionsTableTableManager
                 Value<DateTime?> endTime = const Value.absent(),
                 Value<int> duration = const Value.absent(),
                 Value<String> type = const Value.absent(),
+                Value<bool> remote = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion(
@@ -9969,6 +10613,7 @@ class $$SessionsTableTableManager
                 endTime: endTime,
                 duration: duration,
                 type: type,
+                remote: remote,
                 note: note,
                 rowid: rowid,
               ),
@@ -9980,6 +10625,7 @@ class $$SessionsTableTableManager
                 Value<DateTime?> endTime = const Value.absent(),
                 Value<int> duration = const Value.absent(),
                 Value<String> type = const Value.absent(),
+                Value<bool> remote = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion.insert(
@@ -9989,6 +10635,7 @@ class $$SessionsTableTableManager
                 endTime: endTime,
                 duration: duration,
                 type: type,
+                remote: remote,
                 note: note,
                 rowid: rowid,
               ),
@@ -13276,6 +13923,8 @@ typedef $$DevicePresetsTableCreateCompanionBuilder =
       required String name,
       Value<String?> serial,
       Value<String?> notes,
+      Value<int?> maintenanceIntervalDays,
+      Value<DateTime?> lastMaintenanceDate,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -13286,6 +13935,8 @@ typedef $$DevicePresetsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String?> serial,
       Value<String?> notes,
+      Value<int?> maintenanceIntervalDays,
+      Value<DateTime?> lastMaintenanceDate,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -13321,6 +13972,16 @@ class $$DevicePresetsTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maintenanceIntervalDays => $composableBuilder(
+    column: $table.maintenanceIntervalDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastMaintenanceDate => $composableBuilder(
+    column: $table.lastMaintenanceDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13364,6 +14025,16 @@ class $$DevicePresetsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get maintenanceIntervalDays => $composableBuilder(
+    column: $table.maintenanceIntervalDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastMaintenanceDate => $composableBuilder(
+    column: $table.lastMaintenanceDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -13393,6 +14064,16 @@ class $$DevicePresetsTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<int> get maintenanceIntervalDays => $composableBuilder(
+    column: $table.maintenanceIntervalDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastMaintenanceDate => $composableBuilder(
+    column: $table.lastMaintenanceDate,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -13434,6 +14115,8 @@ class $$DevicePresetsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> serial = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<int?> maintenanceIntervalDays = const Value.absent(),
+                Value<DateTime?> lastMaintenanceDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DevicePresetsCompanion(
@@ -13442,6 +14125,8 @@ class $$DevicePresetsTableTableManager
                 name: name,
                 serial: serial,
                 notes: notes,
+                maintenanceIntervalDays: maintenanceIntervalDays,
+                lastMaintenanceDate: lastMaintenanceDate,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -13452,6 +14137,8 @@ class $$DevicePresetsTableTableManager
                 required String name,
                 Value<String?> serial = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<int?> maintenanceIntervalDays = const Value.absent(),
+                Value<DateTime?> lastMaintenanceDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DevicePresetsCompanion.insert(
@@ -13460,6 +14147,8 @@ class $$DevicePresetsTableTableManager
                 name: name,
                 serial: serial,
                 notes: notes,
+                maintenanceIntervalDays: maintenanceIntervalDays,
+                lastMaintenanceDate: lastMaintenanceDate,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -15328,6 +16017,250 @@ typedef $$NoteTemplatesTableProcessedTableManager =
       NoteTemplate,
       PrefetchHooks Function()
     >;
+typedef $$KnowledgeEntriesTableCreateCompanionBuilder =
+    KnowledgeEntriesCompanion Function({
+      Value<String> id,
+      required String title,
+      required String problem,
+      required String solution,
+      Value<String?> tags,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$KnowledgeEntriesTableUpdateCompanionBuilder =
+    KnowledgeEntriesCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<String> problem,
+      Value<String> solution,
+      Value<String?> tags,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$KnowledgeEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $KnowledgeEntriesTable> {
+  $$KnowledgeEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get problem => $composableBuilder(
+    column: $table.problem,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get solution => $composableBuilder(
+    column: $table.solution,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$KnowledgeEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $KnowledgeEntriesTable> {
+  $$KnowledgeEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get problem => $composableBuilder(
+    column: $table.problem,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get solution => $composableBuilder(
+    column: $table.solution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$KnowledgeEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $KnowledgeEntriesTable> {
+  $$KnowledgeEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get problem =>
+      $composableBuilder(column: $table.problem, builder: (column) => column);
+
+  GeneratedColumn<String> get solution =>
+      $composableBuilder(column: $table.solution, builder: (column) => column);
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$KnowledgeEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $KnowledgeEntriesTable,
+          KnowledgeEntry,
+          $$KnowledgeEntriesTableFilterComposer,
+          $$KnowledgeEntriesTableOrderingComposer,
+          $$KnowledgeEntriesTableAnnotationComposer,
+          $$KnowledgeEntriesTableCreateCompanionBuilder,
+          $$KnowledgeEntriesTableUpdateCompanionBuilder,
+          (
+            KnowledgeEntry,
+            BaseReferences<
+              _$AppDatabase,
+              $KnowledgeEntriesTable,
+              KnowledgeEntry
+            >,
+          ),
+          KnowledgeEntry,
+          PrefetchHooks Function()
+        > {
+  $$KnowledgeEntriesTableTableManager(
+    _$AppDatabase db,
+    $KnowledgeEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$KnowledgeEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$KnowledgeEntriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$KnowledgeEntriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> problem = const Value.absent(),
+                Value<String> solution = const Value.absent(),
+                Value<String?> tags = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => KnowledgeEntriesCompanion(
+                id: id,
+                title: title,
+                problem: problem,
+                solution: solution,
+                tags: tags,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String title,
+                required String problem,
+                required String solution,
+                Value<String?> tags = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => KnowledgeEntriesCompanion.insert(
+                id: id,
+                title: title,
+                problem: problem,
+                solution: solution,
+                tags: tags,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$KnowledgeEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $KnowledgeEntriesTable,
+      KnowledgeEntry,
+      $$KnowledgeEntriesTableFilterComposer,
+      $$KnowledgeEntriesTableOrderingComposer,
+      $$KnowledgeEntriesTableAnnotationComposer,
+      $$KnowledgeEntriesTableCreateCompanionBuilder,
+      $$KnowledgeEntriesTableUpdateCompanionBuilder,
+      (
+        KnowledgeEntry,
+        BaseReferences<_$AppDatabase, $KnowledgeEntriesTable, KnowledgeEntry>,
+      ),
+      KnowledgeEntry,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -15372,4 +16305,6 @@ class $AppDatabaseManager {
       $$GeneralNotesTableTableManager(_db, _db.generalNotes);
   $$NoteTemplatesTableTableManager get noteTemplates =>
       $$NoteTemplatesTableTableManager(_db, _db.noteTemplates);
+  $$KnowledgeEntriesTableTableManager get knowledgeEntries =>
+      $$KnowledgeEntriesTableTableManager(_db, _db.knowledgeEntries);
 }

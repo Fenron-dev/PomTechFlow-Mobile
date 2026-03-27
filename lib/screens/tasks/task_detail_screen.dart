@@ -95,6 +95,11 @@ class TaskDetailScreen extends ConsumerWidget {
                     } else if (v == 'planned') {
                       await _setStatus(ref, taskId, 'PLANNED');
                       onTaskChanged?.call();
+                    } else if (v == 'duplicate') {
+                      final newId = await _duplicateTask(ref, taskId);
+                      if (newId != null && context.mounted) {
+                        context.push('/tasks/$newId');
+                      }
                     }
                   },
                   itemBuilder: (_) => [
@@ -114,6 +119,15 @@ class TaskDetailScreen extends ConsumerWidget {
                         Icon(Icons.replay_outlined),
                         SizedBox(width: 10),
                         Text('Zurück auf Geplant'),
+                      ]),
+                    ),
+                    const PopupMenuDivider(),
+                    PopupMenuItem(
+                      value: 'duplicate',
+                      child: const Row(children: [
+                        Icon(Icons.copy_outlined),
+                        SizedBox(width: 10),
+                        Text('Duplizieren'),
                       ]),
                     ),
                   ],
@@ -198,6 +212,83 @@ class TaskDetailScreen extends ConsumerWidget {
 
     ref.invalidate(taskDetailProvider(taskId));
     ref.invalidate(tasksProvider);
+  }
+
+  /// Kopiert Task + Todos + Hardware + Notizen als neuen PLANNED-Task.
+  /// Gibt die neue Task-ID zurück, oder null bei Fehler.
+  Future<String?> _duplicateTask(WidgetRef ref, String sourceId) async {
+    final db = ref.read(databaseProvider);
+    final task = await (db.select(db.tasks)
+          ..where((t) => t.id.equals(sourceId)))
+        .getSingleOrNull();
+    if (task == null) return null;
+
+    // Neue Task-ID generieren (Drift nutzt clientDefault, wir übergeben keinen Wert)
+    final newTaskId = await db.into(db.tasks).insertReturning(
+          TasksCompanion.insert(
+            title: '${task.title} (Kopie)',
+            description: drift.Value(task.description),
+            customerId: drift.Value(task.customerId),
+            status: const drift.Value('PLANNED'),
+            priority: drift.Value(task.priority),
+            plannedDate: drift.Value(task.plannedDate),
+            estimatedMinutes: drift.Value(task.estimatedMinutes),
+            recurring: drift.Value(task.recurring),
+            recurrenceType: drift.Value(task.recurrenceType),
+            recurrenceInterval: drift.Value(task.recurrenceInterval),
+            recurrenceWeekday: drift.Value(task.recurrenceWeekday),
+            recurrenceMonthDay: drift.Value(task.recurrenceMonthDay),
+            updatedAt: drift.Value(DateTime.now()),
+          ),
+        );
+
+    final newId = newTaskId.id;
+
+    // Todos kopieren
+    final todos = await (db.select(db.todos)
+          ..where((t) => t.taskId.equals(sourceId))
+          ..orderBy([(t) => drift.OrderingTerm.asc(t.sortOrder)]))
+        .get();
+    for (final t in todos) {
+      await db.into(db.todos).insert(TodosCompanion.insert(
+            taskId: newId,
+            content: t.content,
+            completed: drift.Value(false), // zurücksetzen
+            sortOrder: drift.Value(t.sortOrder),
+            workflowId: drift.Value(t.workflowId),
+            workflowName: drift.Value(t.workflowName),
+          ));
+    }
+
+    // Hardware kopieren
+    final hw = await (db.select(db.hardware)
+          ..where((h) => h.taskId.equals(sourceId))
+          ..orderBy([(h) => drift.OrderingTerm.asc(h.sortOrder)]))
+        .get();
+    for (final h in hw) {
+      await db.into(db.hardware).insert(HardwareCompanion.insert(
+            taskId: newId,
+            type: h.type,
+            name: drift.Value(h.name),
+            serial: drift.Value(h.serial),
+            notes: drift.Value(h.notes),
+            sortOrder: drift.Value(h.sortOrder),
+          ));
+    }
+
+    // Notizen kopieren
+    final notes = await (db.select(db.notes)
+          ..where((n) => n.taskId.equals(sourceId)))
+        .get();
+    for (final n in notes) {
+      await db.into(db.notes).insert(NotesCompanion.insert(
+            taskId: newId,
+            content: n.content,
+          ));
+    }
+
+    ref.invalidate(tasksProvider);
+    return newId;
   }
 
   DateTime _nextRecurrenceDate(

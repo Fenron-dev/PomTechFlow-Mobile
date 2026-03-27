@@ -20,6 +20,8 @@ import 'data_exchange_screen.dart';
 import 'maintenance_screen.dart';
 import '../notes/note_templates_screen.dart';
 import '../handbuch_screen.dart';
+import '../tools/network_tools_screen.dart';
+import '../knowledge/knowledge_screen.dart';
 
 bool get _isIOS => !kIsWeb && Platform.isIOS;
 
@@ -721,6 +723,38 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   context,
                   MaterialPageRoute(
                       builder: (_) => const DataExchangeScreen()),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // ── Tools ────────────────────────────────────────────────────
+        _SectionHeader('Tools'),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.lan_outlined),
+                title: const Text('Netzwerk-Tools'),
+                subtitle: const Text('DNS, Port-Check, HTTP-Check'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const NetworkToolsScreen()),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.menu_book_outlined),
+                title: const Text('Wissensdatenbank'),
+                subtitle: const Text('Problem-Lösungs-Einträge'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const KnowledgeScreen()),
                 ),
               ),
             ],

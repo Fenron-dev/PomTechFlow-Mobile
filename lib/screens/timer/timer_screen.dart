@@ -163,7 +163,7 @@ class TimerScreen extends ConsumerWidget {
 
 // ─── Active Timer Card ────────────────────────────────────────────────────────
 
-class _ActiveTimerCard extends StatelessWidget {
+class _ActiveTimerCard extends ConsumerWidget {
   final String taskId;
   final String taskTitle;
   final TimerEntry entry;
@@ -181,7 +181,7 @@ class _ActiveTimerCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final isRunning = entry.status == TimerStatus.running;
 
@@ -189,60 +189,90 @@ class _ActiveTimerCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       color: isRunning ? cs.primaryContainer : cs.tertiaryContainer,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 72,
-              height: 72,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CustomPaint(
-                    size: const Size(72, 72),
-                    painter: _TimerRingPainter(
-                      progress: entry.progress,
-                      color: isRunning ? cs.primary : cs.tertiary,
-                      backgroundColor: cs.surfaceContainerHighest,
-                    ),
-                  ),
-                  Text(
-                    entry.timeString,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+            Row(
+              children: [
+                SizedBox(
+                  width: 72,
+                  height: 72,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CustomPaint(
+                        size: const Size(72, 72),
+                        painter: _TimerRingPainter(
+                          progress: entry.progress,
+                          color: isRunning ? cs.primary : cs.tertiary,
+                          backgroundColor: cs.surfaceContainerHighest,
                         ),
+                      ),
+                      Text(
+                        entry.timeString,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    taskTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (isRunning)
+                  IconButton.filled(
+                    onPressed: onPause,
+                    icon: const Icon(Icons.pause),
+                    tooltip: 'Pausieren',
+                  )
+                else
+                  IconButton.filled(
+                    onPressed: onResume,
+                    icon: const Icon(Icons.play_arrow),
+                    tooltip: 'Fortsetzen',
+                  ),
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: onStop,
+                  icon: Icon(Icons.stop_circle_outlined, color: cs.error),
+                  tooltip: 'Stoppen',
+                ),
+              ],
+            ),
+            // ── Vor Ort / Fernwartung Toggle ──────────────────────────
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 6, bottom: 2),
+              child: SegmentedButton<bool>(
+                style: SegmentedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  textStyle: Theme.of(context).textTheme.labelSmall,
+                ),
+                segments: const [
+                  ButtonSegment(
+                    value: false,
+                    label: Text('Vor Ort'),
+                    icon: Icon(Icons.location_on_outlined, size: 14),
+                  ),
+                  ButtonSegment(
+                    value: true,
+                    label: Text('Fernwartung'),
+                    icon: Icon(Icons.computer_outlined, size: 14),
                   ),
                 ],
+                selected: {entry.remote},
+                onSelectionChanged: (s) =>
+                    ref.read(timerProvider.notifier).setRemote(taskId, s.first),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                taskTitle,
-                style: Theme.of(context).textTheme.titleSmall,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (isRunning)
-              IconButton.filled(
-                onPressed: onPause,
-                icon: const Icon(Icons.pause),
-                tooltip: 'Pausieren',
-              )
-            else
-              IconButton.filled(
-                onPressed: onResume,
-                icon: const Icon(Icons.play_arrow),
-                tooltip: 'Fortsetzen',
-              ),
-            const SizedBox(width: 4),
-            IconButton(
-              onPressed: onStop,
-              icon: Icon(Icons.stop_circle_outlined, color: cs.error),
-              tooltip: 'Stoppen',
             ),
           ],
         ),
