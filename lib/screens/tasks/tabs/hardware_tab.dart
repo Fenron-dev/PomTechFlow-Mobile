@@ -6,6 +6,7 @@ import '../../../providers/hardware_bundle_provider.dart';
 import '../../../providers/device_library_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../db/database.dart';
+import '../../scanner/barcode_scanner_screen.dart';
 
 const _hardwareTypes = [
   'PC', 'LAPTOP', 'MAC', 'MACBOOK', 'MONITOR', 'PRINTER', 'ROUTER',
@@ -284,6 +285,16 @@ class _HardwareFormState extends ConsumerState<_HardwareForm> {
     super.dispose();
   }
 
+  Future<void> _scanSerial() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    );
+    if (result != null && mounted) {
+      setState(() => _serialCtrl.text = result);
+    }
+  }
+
   Future<void> _save() async {
     final db = ref.read(databaseProvider);
     final existing = await (db.select(db.hardware)
@@ -339,8 +350,15 @@ class _HardwareFormState extends ConsumerState<_HardwareForm> {
           TextField(
             controller: _serialCtrl,
             textDirection: TextDirection.ltr,
-            decoration: const InputDecoration(
-                labelText: 'Seriennummer', hintText: 'Optional'),
+            decoration: InputDecoration(
+              labelText: 'Seriennummer',
+              hintText: 'Optional',
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.qr_code_scanner_outlined),
+                tooltip: 'Barcode / QR-Code scannen',
+                onPressed: _scanSerial,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           TextField(

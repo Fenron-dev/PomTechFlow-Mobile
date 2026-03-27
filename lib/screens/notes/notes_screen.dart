@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:drift/drift.dart' show Value;
@@ -225,11 +226,61 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
 class _NoteCard extends StatelessWidget {
   final GeneralNote note;
-  final VoidCallback onTap;
+  final VoidCallback onTap;   // öffnet Editor
   final VoidCallback onDelete;
 
   const _NoteCard(
       {required this.note, required this.onTap, required this.onDelete});
+
+  bool get _isLong =>
+      note.content.length > 200 || '\n'.allMatches(note.content).length >= 4;
+
+  void _showPopup(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      DateFormat('dd.MM.yyyy HH:mm')
+                          .format(note.createdAt.toLocal()),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 8),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: MarkdownBody(
+                  data: note.content,
+                  softLineBreak: true,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -244,56 +295,88 @@ class _NoteCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onDelete,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                note.content,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Inhalt ──────────────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  MarkdownBody(
+                    data: note.content,
+                    softLineBreak: true,
+                    styleSheet:
+                        MarkdownStyleSheet.fromTheme(Theme.of(context))
+                            .copyWith(
+                      p: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  if (tags.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: tags
+                          .map((t) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: cs.primaryContainer,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '#$t',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(color: cs.primary),
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat('dd.MM.yyyy HH:mm')
+                        .format(note.createdAt.toLocal()),
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: cs.outline),
+                  ),
+                ],
               ),
-              if (tags.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: tags
-                      .map((t) => Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: cs.primaryContainer,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '#$t',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(color: cs.primary),
-                            ),
-                          ))
-                      .toList(),
+            ),
+            // ── Aktions-Icons ────────────────────────────────────────
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isLong)
+                  IconButton(
+                    icon: const Icon(Icons.visibility_outlined, size: 18),
+                    tooltip: 'Vollansicht',
+                    onPressed: () => _showPopup(context),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  tooltip: 'Bearbeiten',
+                  onPressed: onTap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  color: cs.error,
+                  tooltip: 'Löschen',
+                  onPressed: onDelete,
+                  visualDensity: VisualDensity.compact,
                 ),
               ],
-              const SizedBox(height: 6),
-              Text(
-                DateFormat('dd.MM.yyyy HH:mm')
-                    .format(note.createdAt.toLocal()),
-                style: Theme.of(context)
-                    .textTheme
-                    .labelSmall
-                    ?.copyWith(color: cs.outline),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

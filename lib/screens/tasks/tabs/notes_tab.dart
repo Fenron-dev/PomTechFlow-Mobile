@@ -278,7 +278,7 @@ class _NoteCard extends StatelessWidget {
   void _showPopup(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => Dialog(
+      builder: (dialogCtx) => Dialog(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -296,7 +296,7 @@ class _NoteCard extends StatelessWidget {
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(dialogCtx),
                     visualDensity: VisualDensity.compact,
                   ),
                 ],

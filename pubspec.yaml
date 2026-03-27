@@ -47,6 +47,9 @@ dependencies:
   # Foto-Komprimierung
   image: ^4.2.0                    # Dart-nativ, keine nativen Abhängigkeiten
 
+  # Barcode / QR-Code Scanner
+  mobile_scanner: ^6.0.4
+
   # Homescreen-Widget
   home_widget: ^0.6.0               # Kommunikation Flutter ↔ nativer Widget
 
