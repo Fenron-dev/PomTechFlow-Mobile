@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../providers/tasks_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../db/database.dart';
+import 'package:drift/drift.dart' as drift;
 
 class NotesTab extends ConsumerStatefulWidget {
   final String taskId;
@@ -137,6 +138,41 @@ class _NotesTabState extends ConsumerState<NotesTab> {
     ref.invalidate(notesProvider(widget.taskId));
   }
 
+  Future<void> _editNote(Note note) async {
+    final ctrl = TextEditingController(text: note.content);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Notiz bearbeiten'),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 6,
+          minLines: 2,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+    final newContent = ctrl.text.trim();
+    ctrl.dispose();
+    if (confirmed != true || newContent.isEmpty || newContent == note.content) return;
+    final db = ref.read(databaseProvider);
+    await (db.update(db.notes)..where((n) => n.id.equals(note.id)))
+        .write(NotesCompanion(content: drift.Value(newContent)));
+    ref.invalidate(notesProvider(widget.taskId));
+  }
+
   @override
   Widget build(BuildContext context) {
     final notesAsync = ref.watch(notesProvider(widget.taskId));
@@ -191,10 +227,11 @@ class _NotesTabState extends ConsumerState<NotesTab> {
               return ListView.separated(
                 padding: const EdgeInsets.all(12),
                 itemCount: notes.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (_, i) => _NoteCard(
                   note: notes[i],
                   onDelete: () => _deleteNote(notes[i].id),
+                  onEdit: () => _editNote(notes[i]),
                 ),
               );
             },
@@ -232,7 +269,8 @@ class _TemplateField extends StatelessWidget {
 class _NoteCard extends StatelessWidget {
   final Note note;
   final VoidCallback onDelete;
-  const _NoteCard({required this.note, required this.onDelete});
+  final VoidCallback onEdit;
+  const _NoteCard({required this.note, required this.onDelete, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -258,11 +296,21 @@ class _NoteCard extends StatelessWidget {
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, size: 18),
-              color: Theme.of(context).colorScheme.error,
-              onPressed: onDelete,
-              visualDensity: VisualDensity.compact,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  onPressed: onEdit,
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  color: Theme.of(context).colorScheme.error,
+                  onPressed: onDelete,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
             ),
           ],
         ),

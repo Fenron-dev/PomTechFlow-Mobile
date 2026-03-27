@@ -91,6 +91,7 @@ class DashboardScreen extends ConsumerWidget {
           final planned = tasks.where((t) => t.task.status == 'PLANNED').length;
           final today = DateTime.now();
           final todayTasks = tasks.where((t) {
+            if (t.task.status == 'COMPLETED') return false;
             final d = t.task.plannedDate;
             if (d == null) return false;
             return d.year == today.year &&
@@ -98,6 +99,14 @@ class DashboardScreen extends ConsumerWidget {
                 d.day == today.day;
           }).toList()
             ..sort((a, b) => a.task.plannedDate!.compareTo(b.task.plannedDate!));
+          final todayStart = DateTime(today.year, today.month, today.day);
+          final todayDone = tasks
+              .where((t) =>
+                  t.task.status == 'COMPLETED' &&
+                  t.task.updatedAt.isAfter(
+                      todayStart.subtract(const Duration(seconds: 1))))
+              .toList()
+            ..sort((a, b) => b.task.updatedAt.compareTo(a.task.updatedAt));
           final totalMinutes = tasks.fold<int>(0, (s, t) => s + t.task.totalMinutes);
           final aeMin = settings?.aeMinutes ?? 10;
           // Summe der aufgerundeten AE pro Task
@@ -165,100 +174,180 @@ class DashboardScreen extends ConsumerWidget {
 
                 // ── Heute geplant ───────────────────────────────────────
                 if (todayTasks.isNotEmpty) ...[
-                  _SectionHeader(
-                    title: 'Heute geplant',
-                    icon: Icons.today,
-                    count: todayTasks.length,
+                  _CollapsibleSection(
+                    header: _SectionHeader(
+                      title: 'Heute geplant',
+                      icon: Icons.today,
+                      count: todayTasks.length,
+                    ),
+                    child: Column(children: [
+                      const SizedBox(height: 8),
+                      ...todayTasks.map((t) => _PlannedTaskRow(
+                            task: t,
+                            aeMin: aeMin,
+                            onTap: () => context.push('/tasks/${t.task.id}'),
+                          )),
+                      const SizedBox(height: 8),
+                    ]),
                   ),
-                  const SizedBox(height: 8),
-                  ...todayTasks.map((t) => _PlannedTaskRow(
-                        task: t,
-                        aeMin: aeMin,
-                        onTap: () => context.push('/tasks/${t.task.id}'),
-                      )),
                   const SizedBox(height: 16),
                 ],
 
                 // Aktive Tasks
                 if (active.isNotEmpty) ...[
-                  Row(
-                    children: [
+                  _CollapsibleSection(
+                    header: Row(children: [
                       _SectionHeader(
-                          title: 'Aktiv', icon: Icons.play_circle_outline, count: active.length),
+                          title: 'Aktiv',
+                          icon: Icons.play_circle_outline,
+                          count: active.length),
                       const Spacer(),
                       TextButton(
                           onPressed: () => context.go('/tasks'),
                           child: const Text('Alle')),
-                    ],
+                    ]),
+                    child: Column(children: [
+                      const SizedBox(height: 8),
+                      ...active.take(3).map((t) {
+                        final isRunning =
+                            timer[t.task.id]?.status == TimerStatus.running;
+                        final isPaused =
+                            timer[t.task.id]?.status == TimerStatus.paused;
+                        return _TaskRow(
+                          task: t,
+                          isTimerRunning: isRunning,
+                          isTimerPaused: isPaused,
+                          aeMin: aeMin,
+                          onTap: () => context.push('/tasks/${t.task.id}'),
+                          onTimerStart: !timer.containsKey(t.task.id)
+                              ? () async {
+                                  await ref
+                                      .read(timerProvider.notifier)
+                                      .start(t.task.id);
+                                  ref.invalidate(tasksProvider);
+                                }
+                              : null,
+                          onTimerPause: isRunning
+                              ? () => ref
+                                  .read(timerProvider.notifier)
+                                  .pause(t.task.id)
+                              : null,
+                          onTimerResume: isPaused
+                              ? () => ref
+                                  .read(timerProvider.notifier)
+                                  .resume(t.task.id)
+                              : null,
+                          onTimerStop: (isRunning || isPaused)
+                              ? () => handleTimerStop(context, ref, t.task.id)
+                              : null,
+                        );
+                      }),
+                    ]),
                   ),
-                  const SizedBox(height: 8),
-                  ...active.take(3).map((t) {
-                    final isRunning = timer[t.task.id]?.status == TimerStatus.running;
-                    final isPaused = timer[t.task.id]?.status == TimerStatus.paused;
-                    return _TaskRow(
-                      task: t,
-                      isTimerRunning: isRunning,
-                      isTimerPaused: isPaused,
-                      aeMin: aeMin,
-                      onTap: () => context.push('/tasks/${t.task.id}'),
-                      onTimerStart: !timer.containsKey(t.task.id)
-                          ? () async {
-                              await ref.read(timerProvider.notifier).start(t.task.id);
-                              ref.invalidate(tasksProvider);
-                            }
-                          : null,
-                      onTimerPause: isRunning
-                          ? () => ref.read(timerProvider.notifier).pause(t.task.id)
-                          : null,
-                      onTimerResume: isPaused
-                          ? () => ref.read(timerProvider.notifier).resume(t.task.id)
-                          : null,
-                      onTimerStop: (isRunning || isPaused)
-                          ? () => handleTimerStop(context, ref, t.task.id)
-                          : null,
-                    );
-                  }),
                 ],
 
                 // Geplante Tasks
                 if (planned > 0) ...[
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
+                  _CollapsibleSection(
+                    header: Row(children: [
                       _SectionHeader(
-                          title: 'Geplant', icon: Icons.checklist_outlined, count: planned),
+                          title: 'Geplant',
+                          icon: Icons.checklist_outlined,
+                          count: planned),
                       const Spacer(),
                       TextButton(
                           onPressed: () => context.go('/tasks'),
                           child: const Text('Alle')),
-                    ],
+                    ]),
+                    child: Column(children: [
+                      const SizedBox(height: 8),
+                      ...tasks
+                          .where((t) => t.task.status == 'PLANNED')
+                          .take(3)
+                          .map((t) => _TaskRow(
+                                task: t,
+                                isTimerRunning:
+                                    timer[t.task.id]?.status ==
+                                        TimerStatus.running,
+                                isTimerPaused:
+                                    timer[t.task.id]?.status ==
+                                        TimerStatus.paused,
+                                aeMin: aeMin,
+                                onTap: () =>
+                                    context.push('/tasks/${t.task.id}'),
+                                onTimerStart: !timer.containsKey(t.task.id)
+                                    ? () async {
+                                        await ref
+                                            .read(timerProvider.notifier)
+                                            .start(t.task.id);
+                                        ref.invalidate(tasksProvider);
+                                      }
+                                    : null,
+                                onTimerPause:
+                                    timer[t.task.id]?.status ==
+                                            TimerStatus.running
+                                        ? () => ref
+                                            .read(timerProvider.notifier)
+                                            .pause(t.task.id)
+                                        : null,
+                                onTimerResume:
+                                    timer[t.task.id]?.status ==
+                                            TimerStatus.paused
+                                        ? () => ref
+                                            .read(timerProvider.notifier)
+                                            .resume(t.task.id)
+                                        : null,
+                                onTimerStop: (timer[t.task.id] != null)
+                                    ? () => handleTimerStop(
+                                        context, ref, t.task.id)
+                                    : null,
+                              )),
+                    ]),
                   ),
-                  const SizedBox(height: 8),
-                  ...tasks
-                      .where((t) => t.task.status == 'PLANNED')
-                      .take(3)
-                      .map((t) => _TaskRow(
-                            task: t,
-                            isTimerRunning: timer[t.task.id]?.status == TimerStatus.running,
-                            isTimerPaused: timer[t.task.id]?.status == TimerStatus.paused,
-                            aeMin: aeMin,
-                            onTap: () => context.push('/tasks/${t.task.id}'),
-                            onTimerStart: !timer.containsKey(t.task.id)
-                                ? () async {
-                                    await ref.read(timerProvider.notifier).start(t.task.id);
-                                    ref.invalidate(tasksProvider);
-                                  }
+                ],
+
+                // ── Heute erledigt ─────────────────────────────────────
+                if (todayDone.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _CollapsibleSection(
+                    initiallyExpanded: false,
+                    header: _SectionHeader(
+                      title: 'Heute erledigt',
+                      icon: Icons.check_circle_outline,
+                      count: todayDone.length,
+                    ),
+                    child: Column(children: [
+                      const SizedBox(height: 8),
+                      ...todayDone.map((t) {
+                        final ae = t.aeCount(aeMin);
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          child: ListTile(
+                            dense: true,
+                            leading: Icon(Icons.check_circle,
+                                color: Colors.green.shade600, size: 20),
+                            title: Text(t.task.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    decoration: TextDecoration.lineThrough)),
+                            subtitle: t.customer != null
+                                ? Text(t.customer!.name)
                                 : null,
-                            onTimerPause: timer[t.task.id]?.status == TimerStatus.running
-                                ? () => ref.read(timerProvider.notifier).pause(t.task.id)
-                                : null,
-                            onTimerResume: timer[t.task.id]?.status == TimerStatus.paused
-                                ? () => ref.read(timerProvider.notifier).resume(t.task.id)
-                                : null,
-                            onTimerStop: (timer[t.task.id] != null)
-                                ? () => handleTimerStop(context, ref, t.task.id)
-                                : null,
-                          )),
+                            trailing: Text('$ae AE',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(color: cs.outline)),
+                            onTap: () =>
+                                context.push('/tasks/${t.task.id}'),
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ]),
+                  ),
                 ],
 
                 if (tasks.isEmpty) ...[
@@ -328,6 +417,59 @@ class _SectionHeader extends StatelessWidget {
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary)),
         ),
+      ],
+    );
+  }
+}
+
+// ─── Collapsible Section ──────────────────────────────────────────────────────
+
+class _CollapsibleSection extends StatefulWidget {
+  final Widget header;
+  final Widget child;
+  final bool initiallyExpanded;
+  const _CollapsibleSection({
+    required this.header,
+    required this.child,
+    this.initiallyExpanded = true,
+  });
+
+  @override
+  State<_CollapsibleSection> createState() => _CollapsibleSectionState();
+}
+
+class _CollapsibleSectionState extends State<_CollapsibleSection> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.initiallyExpanded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                Expanded(child: widget.header),
+                Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_expanded) widget.child,
       ],
     );
   }
@@ -420,7 +562,6 @@ class _StatCard extends StatelessWidget {
     required this.sub,
     required this.icon,
     required this.color,
-    this.onTap,
   });
 
   @override

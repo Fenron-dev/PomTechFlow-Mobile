@@ -44,7 +44,7 @@ class TaskTemplatesScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(12),
             itemCount: templates.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _TemplateCard(
               twd: templates[i],
               onEdit: () => _showForm(context, ref, templates[i]),
@@ -353,7 +353,7 @@ class _TemplateFormState extends ConsumerState<_TemplateForm> {
                   // Kunde
                   customersAsync.maybeWhen(
                     data: (customers) => DropdownButtonFormField<String?>(
-                      value: _customerId,
+                      initialValue: _customerId,
                       decoration: const InputDecoration(
                           labelText: 'Kunde (optional)'),
                       items: [
@@ -456,7 +456,7 @@ class _TemplateFormState extends ConsumerState<_TemplateForm> {
                     data: (bundles) => bundles.isEmpty
                         ? const SizedBox()
                         : DropdownButtonFormField<String?>(
-                            value: _bundleId,
+                            initialValue: _bundleId,
                             decoration: const InputDecoration(
                                 labelText: 'Hardware Bundle (optional)'),
                             items: [

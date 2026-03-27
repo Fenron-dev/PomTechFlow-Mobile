@@ -31,6 +31,8 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   int? _recurrenceMonthDay; // 1..31
   final _budgetCtrl = TextEditingController();
   bool _loading = false;
+  int _reminderOffsetValue = 0; // 0 = zur geplanten Zeit
+  String _reminderUnit = 'MIN'; // MIN | HOUR | DAY | WEEK
 
   @override
   void initState() {
@@ -57,6 +59,23 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       _recurrenceMonthDay = task.recurrenceMonthDay;
       if (task.estimatedMinutes != null) {
         _budgetCtrl.text = task.estimatedMinutes.toString();
+      }
+      final offsetMin = task.reminderOffsetMinutes ?? 0;
+      if (offsetMin <= 0) {
+        _reminderOffsetValue = 0;
+        _reminderUnit = 'MIN';
+      } else if (offsetMin % (7 * 24 * 60) == 0) {
+        _reminderOffsetValue = offsetMin ~/ (7 * 24 * 60);
+        _reminderUnit = 'WEEK';
+      } else if (offsetMin % (24 * 60) == 0) {
+        _reminderOffsetValue = offsetMin ~/ (24 * 60);
+        _reminderUnit = 'DAY';
+      } else if (offsetMin % 60 == 0) {
+        _reminderOffsetValue = offsetMin ~/ 60;
+        _reminderUnit = 'HOUR';
+      } else {
+        _reminderOffsetValue = offsetMin;
+        _reminderUnit = 'MIN';
       }
     });
   }
@@ -137,6 +156,16 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     });
   }
 
+  int _computeReminderOffsetMinutes() {
+    if (_reminderOffsetValue <= 0) return 0;
+    return switch (_reminderUnit) {
+      'WEEK' => _reminderOffsetValue * 7 * 24 * 60,
+      'DAY' => _reminderOffsetValue * 24 * 60,
+      'HOUR' => _reminderOffsetValue * 60,
+      _ => _reminderOffsetValue,
+    };
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
@@ -168,6 +197,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                       ? _recurrenceMonthDay
                       : null),
               estimatedMinutes: drift.Value(budget),
+              reminderOffsetMinutes: drift.Value(_computeReminderOffsetMinutes()),
               updatedAt: drift.Value(now),
             ));
       } else {
@@ -192,6 +222,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   ? _recurrenceMonthDay
                   : null),
           estimatedMinutes: drift.Value(budget),
+          reminderOffsetMinutes: drift.Value(_computeReminderOffsetMinutes()),
           updatedAt: drift.Value(now),
         ));
       }
@@ -200,12 +231,20 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
 
       // Notification schedulieren/abbrechen — Fehler blockieren das Speichern nicht
       try {
-        if (_plannedDate != null && _plannedDate!.isAfter(DateTime.now())) {
-          await NotificationService.scheduleTaskReminder(
-            widget.taskId ?? 'new_${DateTime.now().millisecondsSinceEpoch}',
-            _titleCtrl.text.trim(),
-            _plannedDate!,
-          );
+        if (_plannedDate != null) {
+          final offsetMin = _computeReminderOffsetMinutes();
+          final reminderTime = offsetMin > 0
+              ? _plannedDate!.subtract(Duration(minutes: offsetMin))
+              : _plannedDate!;
+          if (reminderTime.isAfter(DateTime.now())) {
+            await NotificationService.scheduleTaskReminder(
+              widget.taskId ?? 'new_${DateTime.now().millisecondsSinceEpoch}',
+              _titleCtrl.text.trim(),
+              reminderTime,
+            );
+          } else if (widget.taskId != null) {
+            await NotificationService.cancelTaskReminder(widget.taskId!);
+          }
         } else if (widget.taskId != null) {
           await NotificationService.cancelTaskReminder(widget.taskId!);
         }
@@ -273,13 +312,13 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             const SizedBox(height: 16),
             customersAsync.when(
               loading: () => const LinearProgressIndicator(),
-              error: (_, __) => const SizedBox(),
+              error: (_, _) => const SizedBox(),
               data: (customers) => Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _customerId,
+                      initialValue: _customerId,
                       decoration: const InputDecoration(labelText: 'Kunde'),
                       items: [
                         const DropdownMenuItem(
@@ -389,6 +428,87 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             ),
             const SizedBox(height: 16),
 
+            // ── Erinnerung ────────────────────────────────────────────
+            if (_plannedDate != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.notifications_outlined, size: 20, color: cs.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Erinnerung',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(color: cs.outline)),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 64,
+                                child: TextFormField(
+                                  initialValue: _reminderOffsetValue > 0
+                                      ? '$_reminderOffsetValue'
+                                      : '',
+                                  decoration: const InputDecoration(
+                                    hintText: '0',
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 8),
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (v) => setState(() =>
+                                      _reminderOffsetValue =
+                                          int.tryParse(v) ?? 0),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              DropdownButton<String>(
+                                value: _reminderUnit,
+                                isDense: true,
+                                underline: const SizedBox(),
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: 'MIN', child: Text('Minuten')),
+                                  DropdownMenuItem(
+                                      value: 'HOUR', child: Text('Stunden')),
+                                  DropdownMenuItem(
+                                      value: 'DAY', child: Text('Tage')),
+                                  DropdownMenuItem(
+                                      value: 'WEEK', child: Text('Wochen')),
+                                ],
+                                onChanged: (v) =>
+                                    setState(() => _reminderUnit = v!),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _reminderOffsetValue <= 0
+                                    ? 'zur geplanten Zeit'
+                                    : 'vorher',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: cs.outline),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // ── Zeitbudget ────────────────────────────────────────────
             TextField(
               controller: _budgetCtrl,
@@ -420,7 +540,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _recurrenceType,
+                      initialValue: _recurrenceType,
                       decoration:
                           const InputDecoration(labelText: 'Intervall'),
                       items: const [

@@ -20,6 +20,17 @@ class HandbuchScreen extends StatelessWidget {
                     'Das Dashboard zeigt aktive und geplante Tasks mit Echtzeit-Timer, Status-Badge und Prioritätsbalken. Play/Pause/Stopp direkt in der Karte bedienbar.',
               ),
               _Entry(
+                title: 'Kollabierbare Abschnitte',
+                body:
+                    'Alle Abschnitte auf dem Dashboard (Heute geplant, Aktiv, Geplant, Heute erledigt) können durch Tippen auf den Titel ein- und ausgeklappt werden. So behältst du die Übersicht auch bei vielen Tasks.',
+              ),
+              _Entry(
+                title: 'Heute erledigt',
+                body:
+                    'Der unterste Abschnitt "Heute erledigt" listet alle Tasks, die heute abgeschlossen wurden – mit Durchgestrichen-Stil, Kundennamen und AE-Anzahl.\n'
+                    'Standardmäßig eingeklappt. Abgeschlossene Tasks werden aus "Heute geplant" ausgeblendet und nur hier angezeigt.',
+              ),
+              _Entry(
                 title: 'Prioritätsbalken',
                 body:
                     'Tasks mit erhöhter Priorität zeigen einen farbigen 4px-Balken links:\n'
@@ -82,6 +93,15 @@ class HandbuchScreen extends StatelessWidget {
                     'Im Formular kannst du ein Zeitbudget in Minuten setzen. Sobald die erfasste Zeit das Budget übersteigt, erscheint in der Task-Karte ein oranges Warnsymbol und in der Übersicht eine Fortschrittsleiste.',
               ),
               _Entry(
+                title: 'Erinnerung (Vorlauf)',
+                body:
+                    'Im Task-Formular kannst du – sobald ein geplantes Datum gesetzt ist – eine Erinnerung mit Vorlauf einstellen.\n'
+                    '• Zahlenfeld + Einheit: Minuten / Stunden / Tage / Wochen\n'
+                    '• Beispiel: "1 Tag vorher" → Benachrichtigung 24 Stunden vor dem Termin\n'
+                    '• Wert 0 = Benachrichtigung genau zum geplanten Datum\n'
+                    'Die Benachrichtigung enthält die Aktionen Schlummern (10 Min), Erledigt und Abbrechen.',
+              ),
+              _Entry(
                 title: 'Wiederkehrende Tasks',
                 body:
                     'Aktiviere "Wiederkehrend" im Formular und wähle Intervall (täglich, wöchentlich, monatlich). Beim Abschließen wird automatisch ein neuer Task für den nächsten Termin angelegt.',
@@ -110,7 +130,13 @@ class HandbuchScreen extends StatelessWidget {
               _Entry(
                 title: 'Notizen (Task-Notizen)',
                 body:
-                    'Zeitgestempelte Einträge pro Task. Im Tab "Notizen" gibt es eine Fernwartungs-Vorlage (Problem / Ursache / Lösung / Ergebnis), die als formatierten Block gespeichert wird.',
+                    'Zeitgestempelte Einträge pro Task. Im Tab "Notizen" gibt es eine Fernwartungs-Vorlage (Problem / Ursache / Lösung / Ergebnis), die als formatierten Block gespeichert wird.\n'
+                    'Notizen können nachträglich bearbeitet werden: Stift-Icon neben dem Lösch-Button.',
+              ),
+              _Entry(
+                title: 'Checkliste bearbeiten',
+                body:
+                    'Einzelne Checklistenpunkte können nachträglich bearbeitet werden: Stift-Icon rechts neben dem Schließen-Button (×) eines Eintrags. Funktioniert sowohl bei ungruppierten Einträgen als auch bei Einträgen innerhalb von Workflow-Gruppen.',
               ),
               _Entry(
                 title: 'Fotos',
@@ -176,6 +202,34 @@ class HandbuchScreen extends StatelessWidget {
                     '• "Aus Bibliothek" – wähle ein gespeichertes Gerät; es wird mit Typ, Bezeichnung und S/N vorausgefüllt\n'
                     '• "Manuell" – freie Eingabe\n'
                     '• Lesezeichen-Symbol (🔖) – manuell erfasste Geräte können beim Speichern des Bundles automatisch in die Geräte-Bibliothek übertragen werden',
+              ),
+            ],
+          ),
+          _Section(
+            icon: Icons.bar_chart_outlined,
+            title: 'Statistiken',
+            children: [
+              _Entry(
+                title: 'Heute',
+                body:
+                    'Der oberste Abschnitt zeigt die heutigen Kennzahlen:\n'
+                    '• AE und Minuten, die heute erfasst wurden\n'
+                    '• Anzahl der heute abgeschlossenen Tasks',
+              ),
+              _Entry(
+                title: 'Diese Woche / Dieser Monat',
+                body:
+                    'AE, Minuten und abgeschlossene Tasks für die laufende Woche bzw. den laufenden Monat.',
+              ),
+              _Entry(
+                title: 'Top Kunden',
+                body:
+                    'Die 5 Kunden mit dem höchsten Zeitaufwand (AE + Minuten gesamt).',
+              ),
+              _Entry(
+                title: 'CSV-Export',
+                body:
+                    'Alle Tasks als CSV-Datei exportieren (Tabellen-Symbol in der AppBar). Enthält Titel, Status, Minuten, AE und Kundennamen.',
               ),
             ],
           ),
@@ -489,6 +543,11 @@ class HandbuchScreen extends StatelessWidget {
                 title: 'Schnellstart-Timer',
                 body:
                     'Dashboard → + → Schnellstart. Erstellt sofort einen Task mit Zeitstempel als Titel und startet den Timer. Details können später ergänzt werden.',
+              ),
+              _Entry(
+                title: 'Timer nach App-Neustart',
+                body:
+                    'Laufende Timer werden beim App-Neustart automatisch wiederhergestellt. Wenn die App während einer aktiven Zeitmessung geschlossen oder abgestürzt ist, wird die Session beim nächsten Start erkannt und der Timer mit der korrekten verstrichenen Zeit fortgesetzt.',
               ),
               _Entry(
                 title: 'Desktop (Windows/Linux/macOS)',

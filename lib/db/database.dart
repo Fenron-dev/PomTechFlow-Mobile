@@ -37,6 +37,7 @@ class Tasks extends Table {
   IntColumn get estimatedMinutes => integer().nullable()(); // NEU v9: Zeitbudget
   DateTimeColumn get billedAt => dateTime().nullable()(); // NEU v9: null=offen, gesetzt=abgerechnet am Datum
   DateTimeColumn get archivedAt => dateTime().nullable()(); // NEU v11: null=aktiv, gesetzt=archiviert
+  IntColumn get reminderOffsetMinutes => integer().nullable()(); // NEU v13: Erinnerungsvorlauf in Minuten vor plannedDate
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -276,7 +277,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -335,6 +336,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 12) {
         // v11 → v12: Notiz-Vorlagen
         await m.createTable(noteTemplates);
+      }
+      if (from < 13) {
+        // v12 → v13: Erinnerungsvorlauf für Tasks
+        await m.addColumn(tasks, tasks.reminderOffsetMinutes);
       }
     },
   );

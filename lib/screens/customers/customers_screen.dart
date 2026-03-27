@@ -37,7 +37,7 @@ class CustomersScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(12),
             itemCount: customers.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _CustomerCard(
               customer: customers[i],
               onEdit: () => _showForm(context, ref, customers[i]),

@@ -67,6 +67,39 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
     ref.invalidate(todosProvider(widget.taskId));
   }
 
+  Future<void> _editTodo(Todo todo) async {
+    final ctrl = TextEditingController(text: todo.content);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Eintrag bearbeiten'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+    final newContent = ctrl.text.trim();
+    ctrl.dispose();
+    if (confirmed != true || newContent.isEmpty || newContent == todo.content) return;
+    final db = ref.read(databaseProvider);
+    await (db.update(db.todos)..where((t) => t.id.equals(todo.id)))
+        .write(TodosCompanion(content: drift.Value(newContent)));
+    ref.invalidate(todosProvider(widget.taskId));
+  }
+
   Future<void> _applyWorkflow(WorkflowWithDetails wf) async {
     final db = ref.read(databaseProvider);
     final existing = await (db.select(db.todos)
@@ -187,6 +220,7 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
                       todos: ungrouped,
                       onToggle: _toggleTodo,
                       onDelete: _deleteTodo,
+                      onEdit: _editTodo,
                       onReorder: (o, n) =>
                           _reorderTodos(ungrouped, o, n),
                     ),
@@ -198,6 +232,7 @@ class _ChecklistTabState extends ConsumerState<ChecklistTab> {
                           group: group,
                           onToggle: _toggleTodo,
                           onDelete: _deleteTodo,
+                          onEdit: _editTodo,
                           onReorder: (o, n) =>
                               _reorderTodos(group.todos, o, n),
                         ),
@@ -225,12 +260,14 @@ class _UngroupedSection extends StatelessWidget {
   final List<Todo> todos;
   final ValueChanged<Todo> onToggle;
   final ValueChanged<String> onDelete;
+  final ValueChanged<Todo> onEdit;
   final void Function(int, int) onReorder;
 
   const _UngroupedSection({
     required this.todos,
     required this.onToggle,
     required this.onDelete,
+    required this.onEdit,
     required this.onReorder,
   });
 
@@ -261,6 +298,7 @@ class _UngroupedSection extends StatelessWidget {
                     index: e.key,
                     onToggle: () => onToggle(e.value),
                     onDelete: () => onDelete(e.value.id),
+                    onEdit: () => onEdit(e.value),
                   ))
               .toList(),
         ),
@@ -273,11 +311,13 @@ class _WorkflowGroupCard extends StatefulWidget {
   final _WorkflowGroup group;
   final ValueChanged<Todo> onToggle;
   final ValueChanged<String> onDelete;
+  final ValueChanged<Todo> onEdit;
   final void Function(int, int) onReorder;
   const _WorkflowGroupCard({
     required this.group,
     required this.onToggle,
     required this.onDelete,
+    required this.onEdit,
     required this.onReorder,
   });
 
@@ -395,6 +435,7 @@ class _WorkflowGroupCardState extends State<_WorkflowGroupCard> {
                         index: e.key,
                         onToggle: () => widget.onToggle(e.value),
                         onDelete: () => widget.onDelete(e.value.id),
+                        onEdit: () => widget.onEdit(e.value),
                       ))
                   .toList(),
             ),
@@ -411,12 +452,14 @@ class _TodoTile extends StatelessWidget {
   final int? index; // null = in workflow group (no drag handle)
   final VoidCallback onToggle;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
   const _TodoTile({
     super.key,
     required this.todo,
     this.index,
     required this.onToggle,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -439,6 +482,11 @@ class _TodoTile extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            onPressed: onEdit,
+            visualDensity: VisualDensity.compact,
+          ),
           IconButton(
             icon: const Icon(Icons.close, size: 18),
             onPressed: onDelete,

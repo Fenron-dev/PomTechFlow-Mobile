@@ -131,7 +131,7 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
               : ListView.separated(
                   padding: const EdgeInsets.all(12),
                   itemCount: _reports.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 4),
+                  separatorBuilder: (_, _) => const SizedBox(height: 4),
                   itemBuilder: (_, i) {
                     final f = _reports[i];
                     return Card(

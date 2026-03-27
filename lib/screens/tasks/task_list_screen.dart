@@ -215,9 +215,14 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           filtered = List.of(filtered);
           switch (_sortBy) {
             case 'priority_desc':
-              filtered.sort((a, b) =>
-                  _priorityRank(b.task.priority)
-                      .compareTo(_priorityRank(a.task.priority)));
+              filtered.sort((a, b) {
+                final p = _priorityRank(b.task.priority)
+                    .compareTo(_priorityRank(a.task.priority));
+                if (p != 0) return p;
+                final aDate = a.task.plannedDate ?? a.task.updatedAt;
+                final bDate = b.task.plannedDate ?? b.task.updatedAt;
+                return bDate.compareTo(aDate);
+              });
             case 'date_asc':
               filtered.sort((a, b) =>
                   a.task.updatedAt.compareTo(b.task.updatedAt));
@@ -282,7 +287,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
             child: ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: filtered.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (_, i) {
                 final taskId = filtered[i].task.id;
                 final isRunning = timer[taskId]?.status == TimerStatus.running;

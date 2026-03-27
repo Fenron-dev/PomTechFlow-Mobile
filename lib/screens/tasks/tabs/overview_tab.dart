@@ -48,7 +48,10 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
   }
 
   Future<void> _loadReports() async {
-    final reports = await PdfService.listReports(widget.detail.task.id);
+    final reports = await PdfService.listReports(
+      widget.detail.task.id,
+      taskTitle: widget.detail.task.title,
+    );
     if (mounted) setState(() => _previousReports = reports);
   }
 
@@ -1139,7 +1142,7 @@ class _SessionFormState extends State<_SessionForm> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _type,
+            initialValue: _type,
             decoration: const InputDecoration(labelText: 'Typ'),
             items: const [
               DropdownMenuItem(value: 'WORK', child: Text('Arbeit')),
@@ -1258,7 +1261,7 @@ class _TaskLinksSection extends ConsumerWidget {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2)))),
-          error: (_, __) => const SizedBox(),
+          error: (_, _) => const SizedBox(),
           data: (links) {
             if (links.isEmpty) return const SizedBox();
             final directLinks =

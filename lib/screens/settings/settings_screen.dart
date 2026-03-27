@@ -449,7 +449,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   height: 48,
                   width: 80,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) =>
+                  errorBuilder: (_, _, _) =>
                       const Icon(Icons.broken_image_outlined, size: 48),
                 ),
               ),

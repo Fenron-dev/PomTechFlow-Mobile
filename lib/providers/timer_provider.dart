@@ -141,6 +141,40 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
     _baseElapsed.remove(taskId);
   }
 
+  /// Restores any timer sessions that were interrupted (app kill/crash).
+  /// Queries for sessions with no endTime and restores them as running timers.
+  Future<void> restoreFromDatabase() async {
+    final db = ref.read(databaseProvider);
+    final runningSessions = await (db.select(db.sessions)
+          ..where((s) => s.endTime.isNull()))
+        .get();
+
+    if (runningSessions.isEmpty) return;
+
+    final newState = Map<String, TimerEntry>.from(state);
+    for (final session in runningSessions) {
+      final taskId = session.taskId;
+      if (newState.containsKey(taskId)) continue;
+
+      _sessionStarts[taskId] = session.startTime;
+      _resumeTimestamps[taskId] = session.startTime;
+      _baseElapsed[taskId] = 0;
+
+      final elapsedSecs =
+          DateTime.now().difference(session.startTime).inSeconds;
+      newState[taskId] = TimerEntry(
+        status: TimerStatus.running,
+        elapsedSeconds: elapsedSecs,
+        sessionId: session.id,
+      );
+      _startTick(taskId);
+    }
+
+    if (newState.length > state.length) {
+      state = newState;
+    }
+  }
+
   void _startTick(String taskId) {
     _tickers[taskId]?.cancel();
     _tickers[taskId] = Timer.periodic(const Duration(seconds: 1), (_) {

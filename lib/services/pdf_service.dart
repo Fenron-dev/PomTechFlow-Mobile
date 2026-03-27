@@ -600,10 +600,14 @@ class PdfService {
   }
 
   /// Lists all previously generated PDF reports (legacy + new naming scheme).
-  static Future<List<File>> listReports(String taskId) async {
+  static Future<List<File>> listReports(
+    String taskId, {
+    String? taskTitle,
+  }) async {
     final dir = await getApplicationDocumentsDirectory();
     final legacyPrefix =
         'bericht_${taskId.substring(0, taskId.length.clamp(0, 8))}_';
+    final titleSlug = taskTitle != null ? _slug(taskTitle) : null;
     final docDir = Directory(dir.path);
     if (!await docDir.exists()) return [];
     return docDir
@@ -611,9 +615,14 @@ class PdfService {
         .whereType<File>()
         .where((f) {
           final name = f.uri.pathSegments.last;
-          return name.endsWith('.pdf') &&
-              (name.startsWith(legacyPrefix) ||
-               RegExp(r'^\d{4}-\d{2}-\d{2}_').hasMatch(name));
+          if (!name.endsWith('.pdf')) return false;
+          if (name.startsWith(legacyPrefix)) return true;
+          if (RegExp(r'^\d{4}-\d{2}-\d{2}_').hasMatch(name)) {
+            if (name.contains('_monatsabschluss_')) return false;
+            if (titleSlug != null && !name.contains('_$titleSlug')) return false;
+            return true;
+          }
+          return false;
         })
         .toList()
         ..sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));

@@ -42,7 +42,7 @@ class WorkflowsScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(12),
             itemCount: workflows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _WorkflowCard(
               wf: workflows[i],
               onEdit: () => _showForm(context, ref, workflows[i]),

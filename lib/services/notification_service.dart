@@ -13,6 +13,7 @@ const _kChannelQuick = 'quick_reminders';
 const _kCategoryTask = 'task_alert';
 const _kActionSnooze = 'snooze';
 const _kActionDone = 'done';
+const _kActionCancel = 'cancel';
 
 // Trennzeichen zwischen taskId und taskTitle im Payload
 const _kSep = '|||';
@@ -62,6 +63,11 @@ class NotificationService {
               _kActionDone,
               'Erledigt',
               options: {DarwinNotificationActionOption.foreground},
+            ),
+            DarwinNotificationAction.plain(
+              _kActionCancel,
+              'Abbrechen',
+              options: {DarwinNotificationActionOption.destructive},
             ),
           ],
           options: const {
@@ -160,6 +166,11 @@ class NotificationService {
               AndroidNotificationAction(
                 _kActionDone,
                 'Erledigt',
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                _kActionCancel,
+                'Abbrechen',
                 cancelNotification: true,
               ),
             ],

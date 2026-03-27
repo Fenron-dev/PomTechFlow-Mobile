@@ -64,6 +64,7 @@ class _StatisticsBody extends ConsumerWidget {
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
     final monthStart = DateTime(now.year, now.month, 1);
+    final todayStart = DateTime(now.year, now.month, now.day);
 
     // Alle Sessions laden
     final sessionsAsync = ref.watch(_allSessionsProvider);
@@ -76,6 +77,8 @@ class _StatisticsBody extends ConsumerWidget {
             s.startTime.isAfter(weekStart.subtract(const Duration(days: 1))));
         final thisMonthSessions = sessions.where((s) =>
             s.startTime.isAfter(monthStart.subtract(const Duration(days: 1))));
+        final todaySessions = sessions.where(
+            (s) => s.startTime.isAfter(todayStart.subtract(const Duration(seconds: 1))));
 
         final weekMin =
             thisWeekSessions.fold<int>(0, (s, sess) => s + sess.duration);
@@ -85,6 +88,14 @@ class _StatisticsBody extends ConsumerWidget {
             weekMin == 0 ? 0 : (weekMin / aeMin).ceil();
         final monthAE =
             monthMin == 0 ? 0 : (monthMin / aeMin).ceil();
+        final todayMin =
+            todaySessions.fold<int>(0, (s, sess) => s + sess.duration);
+        final todayAE = todayMin == 0 ? 0 : (todayMin / aeMin).ceil();
+        final completedToday = tasks
+            .where((t) =>
+                t.task.status == 'COMPLETED' &&
+                t.task.updatedAt.isAfter(todayStart.subtract(const Duration(seconds: 1))))
+            .length;
 
         // Tasks nach Status
         final completed = tasks
@@ -126,6 +137,29 @@ class _StatisticsBody extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // ── Heute ────────────────────────────────────────────────
+            _SectionHeader('Heute',
+                sub: DateFormat('dd. MMMM yyyy', 'de_DE').format(now)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                    child: _StatTile(
+                        value: '$todayAE AE',
+                        label: '$todayMin Min',
+                        icon: Icons.wb_sunny_outlined,
+                        color: cs.primaryContainer)),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: _StatTile(
+                        value: '$completedToday',
+                        label: 'heute erledigt',
+                        icon: Icons.check_circle_outline,
+                        color: cs.secondaryContainer)),
+              ],
+            ),
+            const SizedBox(height: 24),
+
             // ── Diese Woche ──────────────────────────────────────────
             _SectionHeader('Diese Woche',
                 sub: '${DateFormat('dd.MM').format(weekStart)} – ${DateFormat('dd.MM.yyyy').format(now)}'),

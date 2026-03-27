@@ -61,7 +61,7 @@ class HardwareBundleScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(12),
             itemCount: bundles.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _BundleCard(
               bundle: bundles[i],
               onEdit: () => _showForm(context, ref, bundles[i]),
@@ -458,7 +458,7 @@ class _ItemRowState extends State<_ItemRow> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: draft.type,
+                    initialValue: draft.type,
                     decoration: const InputDecoration(
                         labelText: 'Typ', isDense: true),
                     items: _hwTypes
@@ -638,7 +638,7 @@ class _LibraryPickerState extends ConsumerState<_LibraryPicker> {
                   controller: ctrl,
                   padding: const EdgeInsets.all(8),
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 4),
+                  separatorBuilder: (_, _) => const SizedBox(height: 4),
                   itemBuilder: (_, i) {
                     final d = filtered[i];
                     return ListTile(

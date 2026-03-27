@@ -145,9 +145,9 @@ class _MonthlyReportScreenState extends ConsumerState<MonthlyReportScreen> {
                 // Kunden-Filter
                 customersAsync.when(
                   loading: () => const LinearProgressIndicator(),
-                  error: (_, __) => const SizedBox(),
+                  error: (_, _) => const SizedBox(),
                   data: (customers) => DropdownButtonFormField<String?>(
-                    value: _customerId,
+                    initialValue: _customerId,
                     decoration: const InputDecoration(
                       labelText: 'Kunde',
                       isDense: true,
@@ -235,7 +235,7 @@ class _MonthlyReportScreenState extends ConsumerState<MonthlyReportScreen> {
                       child: ListView.separated(
                         padding: const EdgeInsets.all(12),
                         itemCount: filtered.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: 4),
                         itemBuilder: (_, i) {
                           final t = filtered[i];

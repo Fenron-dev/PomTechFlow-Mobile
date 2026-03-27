@@ -41,31 +41,31 @@ final _router = GoRouter(
   routes: [
     GoRoute(
       path: '/search',
-      builder: (_, __) => const SearchScreen(),
+      builder: (_, _) => const SearchScreen(),
     ),
     GoRoute(
       path: '/statistics',
-      builder: (_, __) => const StatisticsScreen(),
+      builder: (_, _) => const StatisticsScreen(),
     ),
     GoRoute(
       path: '/reports',
-      builder: (_, __) => const AllReportsScreen(),
+      builder: (_, _) => const AllReportsScreen(),
     ),
     GoRoute(
       path: '/reports/monthly',
-      builder: (_, __) => const MonthlyReportScreen(),
+      builder: (_, _) => const MonthlyReportScreen(),
     ),
     GoRoute(
       path: '/settings',
-      builder: (_, __) => const SettingsScreen(),
+      builder: (_, _) => const SettingsScreen(),
       routes: [
         GoRoute(
           path: 'customers',
-          builder: (_, __) => const CustomersScreen(),
+          builder: (_, _) => const CustomersScreen(),
         ),
         GoRoute(
           path: 'workflows',
-          builder: (_, __) => const WorkflowsScreen(),
+          builder: (_, _) => const WorkflowsScreen(),
         ),
       ],
     ),
@@ -76,17 +76,17 @@ final _router = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
               path: '/dashboard',
-              builder: (_, __) => const DashboardScreen()),
+              builder: (_, _) => const DashboardScreen()),
         ]),
         // 1 - Tasks
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/tasks',
-            builder: (_, __) => const TaskListScreen(),
+            builder: (_, _) => const TaskListScreen(),
             routes: [
               GoRoute(
                 path: 'new',
-                builder: (_, __) => const TaskFormScreen(),
+                builder: (_, _) => const TaskFormScreen(),
               ),
               GoRoute(
                 path: ':id',
@@ -107,7 +107,7 @@ final _router = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/notes',
-            builder: (_, __) => const NotesScreen(),
+            builder: (_, _) => const NotesScreen(),
           ),
         ]),
       ],
@@ -170,6 +170,7 @@ class PomTechFlowApp extends ConsumerWidget {
         final db = ref.read(databaseProvider);
         final notifier = ref.read(settingsProvider.notifier);
         AutoBackupService.checkAndRun(db, settings, notifier);
+        ref.read(timerProvider.notifier).restoreFromDatabase();
       }
     });
 

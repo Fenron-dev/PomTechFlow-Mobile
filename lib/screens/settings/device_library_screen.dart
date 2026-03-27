@@ -142,7 +142,7 @@ class _DeviceLibraryScreenState extends ConsumerState<DeviceLibraryScreen> {
                 return ListView.separated(
                   padding: const EdgeInsets.all(12),
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 6),
+                  separatorBuilder: (_, _) => const SizedBox(height: 6),
                   itemBuilder: (_, i) {
                     final d = filtered[i];
                     return _DeviceCard(
@@ -338,7 +338,7 @@ class _DeviceFormState extends ConsumerState<_DeviceForm> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _type,
+            initialValue: _type,
             decoration: const InputDecoration(labelText: 'Typ'),
             items: _hardwareTypes
                 .map((t) => DropdownMenuItem(

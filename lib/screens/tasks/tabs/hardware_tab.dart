@@ -320,7 +320,7 @@ class _HardwareFormState extends ConsumerState<_HardwareForm> {
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _type,
+            initialValue: _type,
             decoration: const InputDecoration(labelText: 'Typ'),
             items: _hardwareTypes
                 .map((t) => DropdownMenuItem(
