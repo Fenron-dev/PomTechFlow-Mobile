@@ -238,9 +238,47 @@ class BackupService {
     return 'OK';
   }
 
+  /// Validates required fields in a parsed backup map.
+  /// Returns null on success or a human-readable error string on failure.
+  /// Called BEFORE any database modification so no data is ever at risk.
+  static String? _validateBackup(Map<String, dynamic> backup) {
+    String? checkList(String key, List<String> required) {
+      final list = backup[key];
+      if (list == null) { return null; } // optional section
+      if (list is! List) { return '$key muss eine Liste sein'; }
+      for (var i = 0; i < list.length; i++) {
+        final item = list[i];
+        if (item is! Map) { return '$key[$i]: kein Objekt'; }
+        for (final field in required) {
+          if (item[field] == null) {
+            return '$key[$i]: Pflichtfeld "$field" fehlt oder ist null';
+          }
+        }
+      }
+      return null;
+    }
+
+    return checkList('customers', ['id', 'name']) ??
+        checkList('tasks', ['id', 'title', 'status', 'priority']) ??
+        checkList('todos', ['id', 'taskId', 'content']) ??
+        checkList('hardware', ['id', 'taskId', 'type']) ??
+        checkList('notes', ['id', 'taskId', 'content']) ??
+        checkList('sessions', ['id', 'taskId', 'startTime']) ??
+        checkList('workflows', ['id', 'name']) ??
+        checkList('workflowItems', ['id', 'workflowId', 'itemText']) ??
+        checkList('generalNotes', ['id', 'content']) ??
+        checkList('noteTemplates', ['id', 'name', 'content']);
+  }
+
   /// Applies a parsed backup map to the database inside a transaction.
   static Future<void> _applyBackup(
       AppDatabase db, Map<String, dynamic> backup) async {
+    // Validate structure before touching the database — fast, no side effects.
+    final validationError = _validateBackup(backup);
+    if (validationError != null) {
+      throw Exception('Backup-Validierung fehlgeschlagen: $validationError');
+    }
+
     await db.transaction(() async {
       // Settings
       for (final s in (backup['settings'] as List? ?? [])) {

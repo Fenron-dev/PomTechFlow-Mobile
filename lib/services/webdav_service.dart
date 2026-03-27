@@ -58,11 +58,28 @@ class WebDavService {
     ..connectionTimeout = const Duration(seconds: 15)
     ..idleTimeout = const Duration(seconds: 15);
 
+  /// Throws if [url] is not HTTPS (localhost/LAN are allowed for dev/testing).
+  static void _requireSecureUrl(String url) {
+    final lower = url.toLowerCase();
+    if (lower.startsWith('https://')) { return; }
+    // Allow local addresses without TLS (NAS, dev server)
+    if (lower.startsWith('http://localhost') ||
+        lower.startsWith('http://127.') ||
+        lower.startsWith('http://10.') ||
+        lower.startsWith('http://172.') ||
+        lower.startsWith('http://192.168.')) { return; }
+    throw Exception(
+      'Unsichere Verbindung verweigert: Bitte HTTPS verwenden. '
+      'HTTP ist nur für lokale Adressen (192.168.x.x, 10.x.x.x) erlaubt.',
+    );
+  }
+
   // ── Public API ──────────────────────────────────────────────────────────────
 
   /// Tests the connection. Returns null on success, error message on failure.
   static Future<String?> testConnection(WebDavConfig config) async {
     try {
+      _requireSecureUrl(config.normalizedUrl);
       final uri = Uri.parse(config.normalizedUrl);
       final client = _client();
       final request = await client.openUrl('PROPFIND', uri)
@@ -93,6 +110,7 @@ class WebDavService {
   /// Uploads a UTF-8 JSON string to WebDAV as [filename].
   static Future<void> uploadJson(
       WebDavConfig config, String content, String filename) async {
+    _requireSecureUrl(config.normalizedUrl);
     final uri = Uri.parse('${config.normalizedUrl}$filename');
     final bytes = utf8.encode(content);
     final client = _client();
@@ -114,6 +132,7 @@ class WebDavService {
 
   /// Lists all .json files in the WebDAV directory.
   static Future<List<WebDavFile>> listJsonFiles(WebDavConfig config) async {
+    _requireSecureUrl(config.normalizedUrl);
     final uri = Uri.parse(config.normalizedUrl);
     final client = _client();
     final request = await client.openUrl('PROPFIND', uri)
@@ -162,6 +181,7 @@ class WebDavService {
   /// Downloads a file from WebDAV and returns its UTF-8 content.
   static Future<String> downloadJson(
       WebDavConfig config, String filename) async {
+    _requireSecureUrl(config.normalizedUrl);
     final uri = Uri.parse('${config.normalizedUrl}$filename');
     final client = _client();
     final request = await client.openUrl('GET', uri)

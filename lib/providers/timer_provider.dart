@@ -46,6 +46,8 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
   final Map<String, DateTime> _resumeTimestamps = {};
   // Sekunden, die vor dem aktuellen Lauf-Intervall bereits aufgelaufen sind
   final Map<String, int> _baseElapsed = {};
+  // Guard against concurrent stop() calls for the same task
+  final Set<String> _stopping = {};
 
   @override
   Map<String, TimerEntry> build() {
@@ -53,6 +55,11 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
       for (final t in _tickers.values) {
         t.cancel();
       }
+      _tickers.clear();
+      _sessionStarts.clear();
+      _resumeTimestamps.clear();
+      _baseElapsed.clear();
+      _stopping.clear();
     });
     return {};
   }
@@ -130,15 +137,35 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
   }
 
   Future<void> stop(String taskId) async {
-    _tickers[taskId]?.cancel();
-    _tickers.remove(taskId);
-    await _finalizeSession(taskId);
-    final newState = Map<String, TimerEntry>.from(state);
-    newState.remove(taskId);
-    state = newState;
-    _sessionStarts.remove(taskId);
-    _resumeTimestamps.remove(taskId);
-    _baseElapsed.remove(taskId);
+    // Guard: prevent concurrent stop() calls from duplicating DB writes
+    if (_stopping.contains(taskId)) return;
+    _stopping.add(taskId);
+
+    try {
+      _tickers[taskId]?.cancel();
+      _tickers.remove(taskId);
+
+      // Snapshot session data BEFORE clearing state to avoid race conditions
+      final entry = state[taskId];
+      final sessionStart = _sessionStarts[taskId];
+
+      // Remove from state and helper maps immediately —
+      // any further stop() call will exit via the guard above, and
+      // _finalizeSession can no longer read stale/double data from state.
+      final newState = Map<String, TimerEntry>.from(state);
+      newState.remove(taskId);
+      state = newState;
+      _sessionStarts.remove(taskId);
+      _resumeTimestamps.remove(taskId);
+      _baseElapsed.remove(taskId);
+
+      // Finalize with pre-captured data (DB write happens after state is clean)
+      if (entry != null && sessionStart != null) {
+        await _finalizeSessionData(entry, taskId, sessionStart);
+      }
+    } finally {
+      _stopping.remove(taskId);
+    }
   }
 
   /// Restores any timer sessions that were interrupted (app kill/crash).
@@ -187,11 +214,14 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
     });
   }
 
-  Future<void> _finalizeSession(String taskId) async {
-    final entry = state[taskId];
-    final sessionStart = _sessionStarts[taskId];
-    if (entry == null || sessionStart == null) return;
-
+  /// Writes session end-time and updates task totalMinutes.
+  /// Takes pre-captured [entry] and [sessionStart] so it is safe to call
+  /// after state and helper maps have already been cleared.
+  Future<void> _finalizeSessionData(
+    TimerEntry entry,
+    String taskId,
+    DateTime sessionStart,
+  ) async {
     final db = ref.read(databaseProvider);
     final now = DateTime.now();
     // Ceiling: angefangene Minute zählt voll (z.B. 90s → 2 Min, 30s → 1 Min)
