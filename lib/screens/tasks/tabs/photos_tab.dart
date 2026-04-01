@@ -7,9 +7,20 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
+import 'package:image/image.dart' as img_lib;
 import '../../../providers/database_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../db/database.dart';
+
+/// Komprimiert ein Bild auf max. 1920px Breite, Qualität 85 (JPEG).
+/// Läuft via [compute] in einem separaten Isolate, blockiert nicht den UI-Thread.
+Uint8List _compressBytes(Uint8List bytes) {
+  final decoded = img_lib.decodeImage(bytes);
+  if (decoded == null) return bytes;
+  final resized =
+      decoded.width > 1920 ? img_lib.copyResize(decoded, width: 1920) : decoded;
+  return Uint8List.fromList(img_lib.encodeJpg(resized, quality: 85));
+}
 
 final _photosProvider = FutureProvider.family<List<Photo>, String>((ref, taskId) async {
   final db = ref.watch(databaseProvider);
@@ -116,10 +127,12 @@ class PhotosTab extends ConsumerWidget {
         : await getApplicationDocumentsDirectory();
     final photoDir = Directory('${baseDir.path}/photos');
     await photoDir.create(recursive: true);
-    final ext = path.contains('.') ? '.${path.split('.').last}' : '.jpg';
-    final fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}$ext';
+    // Desktop-Pfad: immer als JPEG speichern + komprimieren (max 1920px, Q85)
+    final fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final dest = File('${photoDir.path}/$fileName');
-    await File(path).copy(dest.path);
+    final rawBytes = await File(path).readAsBytes();
+    final compressed = await compute(_compressBytes, rawBytes);
+    await dest.writeAsBytes(compressed);
 
     final db = ref.read(databaseProvider);
     await db.into(db.photos).insert(PhotosCompanion.insert(

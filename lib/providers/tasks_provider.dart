@@ -117,13 +117,18 @@ final notesProvider =
       .get();
 });
 
-// Anzahl offener Tasks (für App-Badge)
-final openTasksCountProvider = Provider<int>((ref) {
-  final tasks = ref.watch(tasksProvider).valueOrNull ?? [];
-  return tasks
-      .where((t) =>
-          t.task.status == 'PLANNED' || t.task.status == 'ACTIVE')
-      .length;
+// Anzahl offener Tasks (für App-Badge) – gezielter DB-Stream statt Ableitung aus
+// dem vollständigen tasksProvider (der Todos/Sessions/Customers mitlädt).
+final openTasksCountProvider = StreamProvider<int>((ref) {
+  final db = ref.watch(databaseProvider);
+  final count = db.tasks.id.count();
+  final query = db.selectOnly(db.tasks)
+    ..addColumns([count])
+    ..where(
+      db.tasks.archivedAt.isNull() &
+      (db.tasks.status.equals('PLANNED') | db.tasks.status.equals('ACTIVE')),
+    );
+  return query.watchSingle().map((row) => row.read(count) ?? 0);
 });
 
 // Sessions eines Tasks (für manuelle Bearbeitung)

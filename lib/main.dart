@@ -29,6 +29,7 @@ import 'providers/timer_provider.dart';
 import 'screens/app_lock_screen.dart';
 import 'screens/tools/network_tools_screen.dart';
 import 'screens/knowledge/knowledge_screen.dart';
+import 'screens/calendar/calendar_screen.dart';
 import 'services/device_maintenance_service.dart';
 
 void main() async {
@@ -121,6 +122,13 @@ final _router = GoRouter(
             builder: (_, _) => const NotesScreen(),
           ),
         ]),
+        // 3 - Kalender
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/calendar',
+            builder: (_, _) => const CalendarScreen(),
+          ),
+        ]),
       ],
     ),
   ],
@@ -133,13 +141,13 @@ class PomTechFlowApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // App-Icon Badge: offene Tasks
     ref.listen(openTasksCountProvider, (_, count) {
-      BadgeService.update(count);
+      BadgeService.update(count.valueOrNull ?? 0);
     });
 
     // Homescreen-Widget: aktualisiern bei Timer-Änderungen
     ref.listen(timerProvider, (_, timers) {
       final tasks = ref.read(tasksProvider).valueOrNull ?? [];
-      final openCount = ref.read(openTasksCountProvider);
+      final openCount = ref.read(openTasksCountProvider).valueOrNull ?? 0;
 
       // Find first running timer, fall back to first paused
       final running = timers.entries
