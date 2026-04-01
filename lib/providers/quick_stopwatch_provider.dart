@@ -38,6 +38,10 @@ class StopwatchState {
 
 class QuickStopwatchNotifier extends Notifier<StopwatchState> {
   Timer? _ticker;
+  // Timestamp when the current run segment started (after start or resume).
+  DateTime? _resumeTime;
+  // Accumulated seconds from all previous run segments (before current one).
+  int _baseSeconds = 0;
 
   @override
   StopwatchState build() {
@@ -48,6 +52,8 @@ class QuickStopwatchNotifier extends Notifier<StopwatchState> {
   void start() {
     if (state.isRunning) return;
     _ticker?.cancel();
+    _baseSeconds = 0;
+    _resumeTime = DateTime.now();
     state = StopwatchState(
       status: StopwatchStatus.running,
       seconds: 0,
@@ -60,11 +66,18 @@ class QuickStopwatchNotifier extends Notifier<StopwatchState> {
     if (!state.isRunning) return;
     _ticker?.cancel();
     _ticker = null;
-    state = state.copyWith(status: StopwatchStatus.paused);
+    // Freeze the accumulated seconds so resume continues from here.
+    _baseSeconds = _currentSeconds();
+    _resumeTime = null;
+    state = state.copyWith(
+      status: StopwatchStatus.paused,
+      seconds: _baseSeconds,
+    );
   }
 
   void resume() {
     if (!state.isPaused) return;
+    _resumeTime = DateTime.now();
     state = state.copyWith(status: StopwatchStatus.running);
     _tick();
   }
@@ -87,8 +100,10 @@ class QuickStopwatchNotifier extends Notifier<StopwatchState> {
     _ticker = null;
     state = state.copyWith(
       status: StopwatchStatus.idle,
+      seconds: _currentSeconds(),
       pendingSave: true,
     );
+    _resumeTime = null;
   }
 
   /// Called by the card after it has handled the save dialog.
@@ -98,10 +113,16 @@ class QuickStopwatchNotifier extends Notifier<StopwatchState> {
         : state.copyWith(pendingSave: false);
   }
 
+  int _currentSeconds() {
+    final resume = _resumeTime;
+    if (resume == null) return _baseSeconds;
+    return _baseSeconds + DateTime.now().difference(resume).inSeconds;
+  }
+
   void _tick() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      state = state.copyWith(seconds: state.seconds + 1);
+      state = state.copyWith(seconds: _currentSeconds());
     });
   }
 }
