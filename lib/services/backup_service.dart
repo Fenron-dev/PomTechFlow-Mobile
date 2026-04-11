@@ -35,7 +35,10 @@ class BackupService {
       'exportedAt': DateTime.now().toIso8601String(),
       'customers': customers.map((c) => {
         'id': c.id, 'name': c.name, 'email': c.email,
-        'phone': c.phone, 'address': c.address, 'notes': c.notes,
+        'phone': c.phone,
+        'street': c.street, 'houseNumber': c.houseNumber,
+        'zipCode': c.zipCode, 'city': c.city,
+        'notes': c.notes,
         'createdAt': c.createdAt.toIso8601String(),
       }).toList(),
       'tasks': tasks.map((t) => {
@@ -318,7 +321,10 @@ class BackupService {
           name: Value(c['name']),
           email: Value(c['email']),
           phone: Value(c['phone']),
-          address: Value(c['address']),
+          street: Value(c['street'] as String? ?? c['address'] as String?),
+          houseNumber: Value(c['houseNumber'] as String?),
+          zipCode: Value(c['zipCode'] as String?),
+          city: Value(c['city'] as String?),
           notes: Value(c['notes']),
           createdAt: Value(DateTime.tryParse(c['createdAt'] ?? '') ?? DateTime.now()),
         ));

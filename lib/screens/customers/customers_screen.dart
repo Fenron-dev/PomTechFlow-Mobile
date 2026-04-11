@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/customers_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../db/database.dart';
+import 'customer_detail_screen.dart';
 
 class CustomersScreen extends ConsumerWidget {
   const CustomersScreen({super.key});
@@ -40,6 +41,10 @@ class CustomersScreen extends ConsumerWidget {
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _CustomerCard(
               customer: customers[i],
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) =>
+                    CustomerDetailScreen(customer: customers[i]),
+              )),
               onEdit: () => _showForm(context, ref, customers[i]),
               onDelete: () => _delete(context, ref, customers[i].id),
             ),
@@ -88,23 +93,29 @@ class CustomersScreen extends ConsumerWidget {
 
 class _CustomerCard extends StatelessWidget {
   final Customer customer;
+  final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _CustomerCard(
-      {required this.customer, required this.onEdit, required this.onDelete});
+  const _CustomerCard({
+    required this.customer,
+    required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  /// Decodes "street||zip||city" and opens the native maps app.
-  Future<void> _openMaps(String rawAddress) async {
-    final parts = rawAddress.split('||');
-    final address = parts.length == 3
-        ? '${parts[0]} ${parts[1]} ${parts[2]}'.trim()
-        : rawAddress;
+  Future<void> _openMaps(Customer c) async {
+    final address = [
+      if (c.street != null) c.street!,
+      if (c.houseNumber != null) c.houseNumber!,
+      if (c.zipCode != null) c.zipCode!,
+      if (c.city != null) c.city!,
+    ].join(' ').trim();
     final encoded = Uri.encodeComponent(address);
     final nativeUri = Platform.isIOS
         ? Uri.parse('maps://?q=$encoded')
@@ -119,8 +130,16 @@ class _CustomerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    // Adresse aus strukturierten Feldern zusammenbauen
+    final cityLine = [customer.zipCode, customer.city]
+        .where((s) => s != null && s.isNotEmpty)
+        .join(' ');
+
     return Card(
-      child: Padding(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,23 +158,14 @@ class _CustomerCard extends StatelessWidget {
                     children: [
                       Text(customer.name,
                           style: Theme.of(context).textTheme.titleSmall),
-                      if (customer.address != null) Builder(builder: (_) {
-                        final parts = customer.address!.split('||');
-                        final display = parts.length == 3
-                            ? [
-                                if (parts[0].isNotEmpty) parts[0],
-                                if (parts[1].isNotEmpty || parts[2].isNotEmpty)
-                                  '${parts[1]} ${parts[2]}'.trim(),
-                              ].join(', ')
-                            : customer.address!;
-                        return Text(display,
+                      if (cityLine.isNotEmpty)
+                        Text(cityLine,
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall
                                 ?.copyWith(color: cs.outline),
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis);
-                      }),
+                            overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
@@ -172,7 +182,7 @@ class _CustomerCard extends StatelessWidget {
             ),
             if (customer.phone != null ||
                 customer.email != null ||
-                customer.address != null) ...[
+                cityLine.isNotEmpty) ...[
               const SizedBox(height: 8),
               Wrap(
                 spacing: 6,
@@ -194,11 +204,11 @@ class _CustomerCard extends StatelessWidget {
                           _launch('mailto:${customer.email}'),
                       visualDensity: VisualDensity.compact,
                     ),
-                  if (customer.address != null)
+                  if (cityLine.isNotEmpty)
                     ActionChip(
                       avatar: const Icon(Icons.map_outlined, size: 16),
                       label: const Text('In Maps öffnen'),
-                      onPressed: () => _openMaps(customer.address!),
+                      onPressed: () => _openMaps(customer),
                       visualDensity: VisualDensity.compact,
                     ),
                 ],
@@ -216,8 +226,9 @@ class _CustomerCard extends StatelessWidget {
             ],
           ],
         ),
-      ),
-    );
+        ), // Padding (InkWell child)
+      ), // InkWell
+    ); // Card
   }
 }
 
@@ -238,36 +249,18 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
   final _cityCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
-  /// Encodes street/zip/city into the single address column with "||" separator.
-  static String? _encodeAddress(String street, String zip, String city) {
-    final s = street.trim();
-    final z = zip.trim();
-    final c = city.trim();
-    if (s.isEmpty && z.isEmpty && c.isEmpty) return null;
-    return '$s||$z||$c';
-  }
-
-  /// Decodes the address column into [street, zip, city].
-  static List<String> _decodeAddress(String? address) {
-    if (address == null || address.isEmpty) return ['', '', ''];
-    final parts = address.split('||');
-    if (parts.length == 3) return parts;
-    // Legacy single-line address → put in street
-    return [address, '', ''];
-  }
-
   @override
   void initState() {
     super.initState();
-    if (widget.customer != null) {
-      _nameCtrl.text = widget.customer!.name;
-      _emailCtrl.text = widget.customer!.email ?? '';
-      _phoneCtrl.text = widget.customer!.phone ?? '';
-      final addr = _decodeAddress(widget.customer!.address);
-      _streetCtrl.text = addr[0];
-      _zipCtrl.text = addr[1];
-      _cityCtrl.text = addr[2];
-      _notesCtrl.text = widget.customer!.notes ?? '';
+    final c = widget.customer;
+    if (c != null) {
+      _nameCtrl.text = c.name;
+      _emailCtrl.text = c.email ?? '';
+      _phoneCtrl.text = c.phone ?? '';
+      _streetCtrl.text = c.street ?? '';
+      _zipCtrl.text = c.zipCode ?? '';
+      _cityCtrl.text = c.city ?? '';
+      _notesCtrl.text = c.notes ?? '';
     }
   }
 
@@ -286,27 +279,31 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) return;
     final db = ref.read(databaseProvider);
-    v(String s) => drift.Value(s.trim().isEmpty ? null : s.trim());
-    final encodedAddress = _encodeAddress(
-        _streetCtrl.text, _zipCtrl.text, _cityCtrl.text);
+    drift.Value<String?> v(TextEditingController c) =>
+        drift.Value(c.text.trim().isEmpty ? null : c.text.trim());
 
     if (widget.customer == null) {
       await db.into(db.customers).insert(CustomersCompanion.insert(
             name: _nameCtrl.text.trim(),
-            email: v(_emailCtrl.text),
-            phone: v(_phoneCtrl.text),
-            address: drift.Value(encodedAddress),
-            notes: v(_notesCtrl.text),
+            email: v(_emailCtrl),
+            phone: v(_phoneCtrl),
+            street: v(_streetCtrl),
+            zipCode: v(_zipCtrl),
+            city: v(_cityCtrl),
+            notes: v(_notesCtrl),
           ));
     } else {
       await (db.update(db.customers)
             ..where((c) => c.id.equals(widget.customer!.id)))
           .write(CustomersCompanion(
         name: drift.Value(_nameCtrl.text.trim()),
-        email: v(_emailCtrl.text),
-        phone: v(_phoneCtrl.text),
-        address: drift.Value(encodedAddress),
-        notes: v(_notesCtrl.text),
+        email: v(_emailCtrl),
+        phone: v(_phoneCtrl),
+        street: v(_streetCtrl),
+        zipCode: v(_zipCtrl),
+        city: v(_cityCtrl),
+        notes: v(_notesCtrl),
+        modifiedAt: drift.Value(DateTime.now()),
       ));
     }
     if (mounted) Navigator.pop(context);

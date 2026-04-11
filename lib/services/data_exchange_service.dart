@@ -31,7 +31,10 @@ class DataExchangeService {
                 'name': c.name,
                 'email': c.email,
                 'phone': c.phone,
-                'address': c.address,
+                'street': c.street,
+                'houseNumber': c.houseNumber,
+                'zipCode': c.zipCode,
+                'city': c.city,
                 'notes': c.notes,
               })
           .toList();
@@ -233,7 +236,10 @@ class DataExchangeService {
                   name: c['name'] as String,
                   email: drift.Value(c['email'] as String?),
                   phone: drift.Value(c['phone'] as String?),
-                  address: drift.Value(c['address'] as String?),
+                  street: drift.Value(c['street'] as String? ?? c['address'] as String?),
+                  houseNumber: drift.Value(c['houseNumber'] as String?),
+                  zipCode: drift.Value(c['zipCode'] as String?),
+                  city: drift.Value(c['city'] as String?),
                   notes: drift.Value(c['notes'] as String?),
                 ));
             importedCustomers++;

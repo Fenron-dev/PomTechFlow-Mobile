@@ -11,9 +11,36 @@ class Customers extends Table {
   TextColumn get name => text()();
   TextColumn get email => text().nullable()();
   TextColumn get phone => text().nullable()();
-  TextColumn get address => text().nullable()();
+  // Strukturierte Adressfelder (kompatibel mit WaWi-Schema). v15+
+  // Die alte address-Spalte bleibt als Legacy in der DB (SQLite DROP nicht möglich).
+  TextColumn get street => text().nullable()();
+  TextColumn get houseNumber => text().nullable()();
+  TextColumn get zipCode => text().nullable()();
+  TextColumn get city => text().nullable()();
   TextColumn get notes => text().nullable()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Ansprechpartner eines Kunden — kompatibel mit WaWi-Contacts-Schema.
+class Contacts extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  TextColumn get customerId =>
+      text().references(Customers, #id, onDelete: KeyAction.cascade)();
+  TextColumn get firstName => text()();
+  TextColumn get lastName => text()();
+  TextColumn get position => text().nullable()();
+  TextColumn get email => text().nullable()();
+  TextColumn get phoneLandline => text().nullable()();
+  TextColumn get phoneMobile => text().nullable()();
+  TextColumn get location => text().nullable()(); // Standort / Büro
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -269,6 +296,7 @@ class KnowledgeEntries extends Table {
 
 @DriftDatabase(tables: [
   Customers,
+  Contacts,
   Tasks,
   Sessions,
   Todos,
@@ -294,7 +322,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -364,6 +392,40 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(devicePresets, devicePresets.maintenanceIntervalDays);
         await m.addColumn(devicePresets, devicePresets.lastMaintenanceDate);
         await m.createTable(knowledgeEntries);
+      }
+      if (from < 15) {
+        // v14 → v15: Strukturierte Adressfelder in Customers, isActive, modifiedAt
+        //            + neue Contacts-Tabelle (WaWi-Kompatibilität)
+        await m.addColumn(customers, customers.street);
+        await m.addColumn(customers, customers.houseNumber);
+        await m.addColumn(customers, customers.zipCode);
+        await m.addColumn(customers, customers.city);
+        await m.addColumn(customers, customers.isActive);
+        await m.addColumn(customers, customers.modifiedAt);
+        await m.createTable(contacts);
+        // Alte address-Spalte (Format "street||zip||city") in neue Felder migrieren
+        await customStatement('''
+          UPDATE customers
+          SET
+            street   = CASE WHEN instr(address, '||') > 0
+                            THEN substr(address, 1, instr(address,'||')-1)
+                            ELSE address END,
+            zip_code = CASE WHEN length(address) - length(replace(address,'||','')) >= 2
+                            THEN trim(substr(
+                              substr(address, instr(address,'||')+2),
+                              1,
+                              instr(substr(address, instr(address,'||')+2),'||')-1
+                            ))
+                            ELSE NULL END,
+            city     = CASE WHEN length(address) - length(replace(address,'||','')) >= 2
+                            THEN trim(substr(
+                              address,
+                              instr(address,'||') + 2 +
+                              instr(substr(address, instr(address,'||')+2),'||')
+                            ))
+                            ELSE NULL END
+          WHERE address IS NOT NULL
+        ''');
       }
     },
   );

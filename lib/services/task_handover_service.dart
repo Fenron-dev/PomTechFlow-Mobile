@@ -101,7 +101,12 @@ class TaskHandoverService {
               'name': customer.name,
               'email': customer.email,
               'phone': customer.phone,
-              'address': customer.address,
+              'address': [
+                if (customer.street != null) customer.street!,
+                if (customer.houseNumber != null) customer.houseNumber!,
+                if (customer.zipCode != null) customer.zipCode!,
+                if (customer.city != null) customer.city!,
+              ].join(' '),
             },
       'todos': todos
           .map((t) => {
@@ -208,7 +213,7 @@ class TaskHandoverService {
                   name: customerName,
                   email: drift.Value(customerData['email'] as String?),
                   phone: drift.Value(customerData['phone'] as String?),
-                  address: drift.Value(customerData['address'] as String?),
+                  street: drift.Value(customerData['address'] as String?),
                 ));
             customerId = newId;
           }
