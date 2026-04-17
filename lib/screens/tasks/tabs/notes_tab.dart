@@ -4,6 +4,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 import '../../../providers/tasks_provider.dart';
 import '../../../providers/database_provider.dart';
+import '../../../providers/note_templates_provider.dart';
 import '../../../db/database.dart';
 import 'package:drift/drift.dart' as drift;
 
@@ -35,11 +36,98 @@ class _NotesTabState extends ConsumerState<NotesTab> {
     ref.invalidate(notesProvider(widget.taskId));
   }
 
-  Future<void> _showRemoteSupportTemplate() async {
-    final problemCtrl = TextEditingController();
-    final causeCtrl = TextEditingController();
-    final solutionCtrl = TextEditingController();
-    final resultCtrl = TextEditingController();
+  /// Extracts unique [placeholder] names from template content, preserving order.
+  List<String> _extractPlaceholders(String content) {
+    final regex = RegExp(r'\[([^\]]+)\]');
+    final seen = <String>{};
+    final result = <String>[];
+    for (final match in regex.allMatches(content)) {
+      final name = match.group(1)!;
+      if (seen.add(name)) result.add(name);
+    }
+    return result;
+  }
+
+  Future<void> _showTemplatePicker() async {
+    final templatesAsync = ref.read(noteTemplatesProvider);
+    final templates = templatesAsync.valueOrNull ?? [];
+
+    if (!mounted) return;
+
+    if (templates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keine Vorlagen vorhanden. Vorlagen zuerst anlegen.')),
+      );
+      return;
+    }
+
+    final selected = await showModalBottomSheet<NoteTemplate>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetCtx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (_, scrollCtrl) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.description_outlined),
+                  const SizedBox(width: 10),
+                  Text('Vorlage wählen',
+                      style: Theme.of(sheetCtx).textTheme.titleLarge),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                controller: scrollCtrl,
+                itemCount: templates.length,
+                itemBuilder: (_, i) {
+                  final t = templates[i];
+                  final placeholders = _extractPlaceholders(t.content);
+                  return ListTile(
+                    leading: const Icon(Icons.article_outlined),
+                    title: Text(t.name),
+                    subtitle: placeholders.isEmpty
+                        ? const Text('Kein Formular – direkt einfügen')
+                        : Text('${placeholders.length} Felder: ${placeholders.take(3).map((p) => p.length > 20 ? '${p.substring(0, 20)}…' : p).join(', ')}${placeholders.length > 3 ? ' …' : ''}'),
+                    onTap: () => Navigator.pop(sheetCtx, t),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (selected == null || !mounted) return;
+
+    final placeholders = _extractPlaceholders(selected.content);
+
+    if (placeholders.isEmpty) {
+      // No placeholders – insert content directly
+      final db = ref.read(databaseProvider);
+      await db.into(db.notes).insert(
+            NotesCompanion.insert(taskId: widget.taskId, content: selected.content),
+          );
+      ref.invalidate(notesProvider(widget.taskId));
+      return;
+    }
+
+    await _showTemplateFillForm(selected, placeholders);
+  }
+
+  Future<void> _showTemplateFillForm(
+      NoteTemplate template, List<String> placeholders) async {
+    final controllers = {
+      for (final p in placeholders) p: TextEditingController(),
+    };
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -59,11 +147,13 @@ class _NotesTabState extends ConsumerState<NotesTab> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: Row(
                   children: [
-                    const Icon(Icons.computer_outlined),
+                    const Icon(Icons.description_outlined),
                     const SizedBox(width: 10),
-                    Text('Fernwartungs-Vorlage',
-                        style: Theme.of(sheetCtx).textTheme.titleLarge),
-                    const Spacer(),
+                    Expanded(
+                      child: Text(template.name,
+                          style: Theme.of(sheetCtx).textTheme.titleLarge,
+                          overflow: TextOverflow.ellipsis),
+                    ),
                     FilledButton(
                       onPressed: () => Navigator.pop(sheetCtx, true),
                       child: const Text('Speichern'),
@@ -77,25 +167,14 @@ class _NotesTabState extends ConsumerState<NotesTab> {
                   controller: scrollCtrl,
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   children: [
-                    _TemplateField(
-                        ctrl: problemCtrl,
-                        label: 'Problem *',
-                        hint: 'Was war das Problem?'),
-                    const SizedBox(height: 12),
-                    _TemplateField(
-                        ctrl: causeCtrl,
-                        label: 'Ursache',
-                        hint: 'Was hat das Problem verursacht?'),
-                    const SizedBox(height: 12),
-                    _TemplateField(
-                        ctrl: solutionCtrl,
-                        label: 'Lösung *',
-                        hint: 'Was wurde gemacht?'),
-                    const SizedBox(height: 12),
-                    _TemplateField(
-                        ctrl: resultCtrl,
-                        label: 'Ergebnis',
-                        hint: 'Was ist das Ergebnis?'),
+                    for (int i = 0; i < placeholders.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 12),
+                      _TemplateField(
+                        ctrl: controllers[placeholders[i]]!,
+                        label: placeholders[i],
+                        hint: placeholders[i],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -106,31 +185,21 @@ class _NotesTabState extends ConsumerState<NotesTab> {
     );
 
     if (confirmed == true) {
-      final problem = problemCtrl.text.trim();
-      final solution = solutionCtrl.text.trim();
-      if (problem.isEmpty && solution.isEmpty) {
-        problemCtrl.dispose();
-        causeCtrl.dispose();
-        solutionCtrl.dispose();
-        resultCtrl.dispose();
-        return;
+      String filled = template.content;
+      for (final p in placeholders) {
+        final value = controllers[p]!.text.trim();
+        filled = filled.replaceAll('[$p]', value.isEmpty ? '[$p]' : value);
       }
-      final lines = <String>['[Fernwartung]'];
-      if (problem.isNotEmpty) lines.add('Problem: $problem');
-      if (causeCtrl.text.trim().isNotEmpty) lines.add('Ursache: ${causeCtrl.text.trim()}');
-      if (solution.isNotEmpty) lines.add('Lösung: $solution');
-      if (resultCtrl.text.trim().isNotEmpty) lines.add('Ergebnis: ${resultCtrl.text.trim()}');
       final db = ref.read(databaseProvider);
       await db.into(db.notes).insert(
-            NotesCompanion.insert(taskId: widget.taskId, content: lines.join('\n')),
+            NotesCompanion.insert(taskId: widget.taskId, content: filled),
           );
       ref.invalidate(notesProvider(widget.taskId));
     }
 
-    problemCtrl.dispose();
-    causeCtrl.dispose();
-    solutionCtrl.dispose();
-    resultCtrl.dispose();
+    for (final c in controllers.values) {
+      c.dispose();
+    }
   }
 
   Future<void> _deleteNote(String id) async {
@@ -205,9 +274,9 @@ class _NotesTabState extends ConsumerState<NotesTab> {
               ),
               const SizedBox(width: 4),
               IconButton(
-                icon: const Icon(Icons.computer_outlined),
-                tooltip: 'Fernwartungs-Vorlage',
-                onPressed: _showRemoteSupportTemplate,
+                icon: const Icon(Icons.description_outlined),
+                tooltip: 'Vorlage verwenden',
+                onPressed: _showTemplatePicker,
               ),
             ],
           ),

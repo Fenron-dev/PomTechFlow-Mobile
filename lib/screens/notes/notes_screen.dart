@@ -535,18 +535,38 @@ class _NoteFormSheetState extends ConsumerState<_NoteFormSheet> {
     );
 
     if (chosen == null || !mounted) return;
-    _applyTemplate(chosen);
+    await _applyTemplate(chosen);
   }
 
-  void _applyTemplate(NoteTemplate template) {
+  List<String> _extractPlaceholders(String content) {
+    final regex = RegExp(r'\[([^\]]+)\]');
+    final seen = <String>{};
+    final result = <String>[];
+    for (final match in regex.allMatches(content)) {
+      final name = match.group(1)!;
+      if (seen.add(name)) result.add(name);
+    }
+    return result;
+  }
+
+  Future<void> _applyTemplate(NoteTemplate template) async {
+    final placeholders = _extractPlaceholders(template.content);
+
+    String filledContent;
+    if (placeholders.isNotEmpty) {
+      filledContent = await _showPlaceholderForm(template, placeholders) ?? '';
+      if (filledContent.isEmpty) return;
+    } else {
+      filledContent = template.content;
+    }
+
     // Inhalt: bei leerer Notiz direkt setzen, sonst anhängen
     if (_contentCtrl.text.trim().isEmpty) {
-      _contentCtrl.text = template.content;
+      _contentCtrl.text = filledContent;
     } else {
       _contentCtrl.text =
-          '${_contentCtrl.text.trimRight()}\n\n${template.content}';
+          '${_contentCtrl.text.trimRight()}\n\n$filledContent';
     }
-    // Cursor ans Ende
     _contentCtrl.selection = TextSelection.collapsed(
         offset: _contentCtrl.text.length);
 
@@ -561,6 +581,93 @@ class _NoteFormSheetState extends ConsumerState<_NoteFormSheet> {
         setState(() => _selectedTags.addAll(newTags));
       }
     }
+  }
+
+  Future<String?> _showPlaceholderForm(
+      NoteTemplate template, List<String> placeholders) async {
+    final controllers = {
+      for (final p in placeholders) p: TextEditingController(),
+    };
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetCtx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollCtrl) => Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.description_outlined),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        template.name,
+                        style: Theme.of(sheetCtx).textTheme.titleLarge,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(sheetCtx, true),
+                      child: const Text('Übernehmen'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  children: [
+                    for (int i = 0; i < placeholders.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 12),
+                      TextField(
+                        controller: controllers[placeholders[i]],
+                        maxLines: 3,
+                        minLines: 2,
+                        decoration: InputDecoration(
+                          labelText: placeholders[i],
+                          hintText: placeholders[i],
+                          alignLabelWithHint: true,
+                          border: const OutlineInputBorder(),
+                        ),
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    String? result;
+    if (confirmed == true) {
+      String filled = template.content;
+      for (final p in placeholders) {
+        final value = controllers[p]!.text.trim();
+        filled = filled.replaceAll('[$p]', value.isEmpty ? '[$p]' : value);
+      }
+      result = filled;
+    }
+
+    for (final c in controllers.values) {
+      c.dispose();
+    }
+    return result;
   }
 
   @override
