@@ -31,6 +31,9 @@ import 'screens/tools/network_tools_screen.dart';
 import 'screens/knowledge/knowledge_screen.dart';
 import 'screens/calendar/calendar_screen.dart';
 import 'services/device_maintenance_service.dart';
+import 'sync/sync_provider.dart';
+import 'sync/client/sync_scheduler.dart';
+import 'sync/ui/conflict_resolution_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -134,22 +137,34 @@ final _router = GoRouter(
   ],
 );
 
-class PomTechFlowApp extends ConsumerWidget {
+class PomTechFlowApp extends ConsumerStatefulWidget {
   const PomTechFlowApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PomTechFlowApp> createState() => _PomTechFlowAppState();
+}
+
+class _PomTechFlowAppState extends ConsumerState<PomTechFlowApp> {
+  SyncScheduler? _syncScheduler;
+
+  @override
+  void dispose() {
+    _syncScheduler?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // App-Icon Badge: offene Tasks
     ref.listen(openTasksCountProvider, (_, count) {
       BadgeService.update(count.valueOrNull ?? 0);
     });
 
-    // Homescreen-Widget: aktualisiern bei Timer-Änderungen
+    // Homescreen-Widget: aktualisieren bei Timer-Änderungen
     ref.listen(timerProvider, (_, timers) {
       final tasks = ref.read(tasksProvider).valueOrNull ?? [];
       final openCount = ref.read(openTasksCountProvider).valueOrNull ?? 0;
 
-      // Find first running timer, fall back to first paused
       final running = timers.entries
           .where((e) => e.value.status == TimerStatus.running)
           .firstOrNull;
@@ -176,13 +191,14 @@ class PomTechFlowApp extends ConsumerWidget {
           elapsedSecs: active.value.elapsedSeconds,
           taskName: task.task.title,
           openTasks: openCount,
-          startTime: isRunning ? DateTime.now().subtract(
-              Duration(seconds: active.value.elapsedSeconds)) : null,
+          startTime: isRunning
+              ? DateTime.now().subtract(Duration(seconds: active.value.elapsedSeconds))
+              : null,
         );
       }
     });
 
-    // Auto-Backup: einmalig beim ersten Build nach App-Start prüfen
+    // Auto-Backup und Sync-Init: einmalig beim ersten Build nach App-Start
     ref.listen(settingsProvider, (prev, next) {
       if (prev == null && next.hasValue) {
         final settings = next.value!;
@@ -191,6 +207,49 @@ class PomTechFlowApp extends ConsumerWidget {
         AutoBackupService.checkAndRun(db, settings, notifier);
         ref.read(timerProvider.notifier).restoreFromDatabase();
         DeviceMaintenanceService.checkAndCreateTasks(db);
+
+        // Sync-Scheduler starten (Client-Mode)
+        _syncScheduler?.dispose();
+        _syncScheduler = SyncScheduler(
+          db: db,
+          settings: settings,
+          onResult: (result) => ref.read(syncStatusProvider.notifier).onResult(result),
+        );
+        _syncScheduler!.start();
+
+        // Server starten falls konfiguriert
+        if (settings.syncRole == 'SERVER') {
+          ref.read(syncServerProvider).start(
+            db: db,
+            serverDeviceId: settings.deviceId,
+            serverName: settings.effectiveDeviceName,
+            syncAppSettings: settings.syncAppSettings,
+          );
+        }
+      }
+
+      // Settings-Änderung → Scheduler aktualisieren
+      if (prev != null && next.hasValue) {
+        _syncScheduler?.onSettingsChanged(next.value!);
+      }
+    });
+
+    // Conflicts nach Sync anzeigen
+    ref.listen(syncStatusProvider, (prev, next) {
+      if (next.pendingConflicts.isNotEmpty && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          showDialog<void>(
+            context: context,
+            builder: (_) => ConflictResolutionDialog(
+              conflicts: next.pendingConflicts,
+              onDismiss: () {
+                Navigator.of(context).pop();
+                ref.read(syncStatusProvider.notifier).clearConflicts();
+              },
+            ),
+          );
+        });
       }
     });
 

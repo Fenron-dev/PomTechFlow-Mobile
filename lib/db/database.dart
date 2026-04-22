@@ -82,6 +82,9 @@ class Sessions extends Table {
   // Type: WORK | SHORT_BREAK | LONG_BREAK
   BoolColumn get remote => boolean().withDefault(const Constant(false))(); // v14: false=Vor Ort, true=Fernwartung
   TextColumn get note => text().nullable()();
+  // v16: Techniker-Name (denormalisiert für Multi-Techniker-Sync)
+  TextColumn get technicianName => text().withDefault(const Constant(''))();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -95,6 +98,7 @@ class Todos extends Table {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   TextColumn get workflowId => text().nullable()();
   TextColumn get workflowName => text().nullable()();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -109,6 +113,7 @@ class Hardware extends Table {
   TextColumn get serial => text().nullable()();
   TextColumn get notes => text().nullable()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -119,6 +124,7 @@ class Notes extends Table {
   TextColumn get taskId => text().references(Tasks, #id, onDelete: KeyAction.cascade)();
   TextColumn get content => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -129,6 +135,7 @@ class Workflows extends Table {
   TextColumn get name => text()();
   TextColumn get description => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -139,6 +146,7 @@ class WorkflowItems extends Table {
   TextColumn get workflowId => text().references(Workflows, #id, onDelete: KeyAction.cascade)();
   TextColumn get itemText => text()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -158,6 +166,7 @@ class Photos extends Table {
   TextColumn get filePath => text()();
   TextColumn get caption => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -168,6 +177,7 @@ class HardwareBundles extends Table {
   TextColumn get name => text()();
   TextColumn get description => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -181,6 +191,7 @@ class HardwareBundleItems extends Table {
   TextColumn get serial => text().nullable()();
   TextColumn get notes => text().nullable()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -203,6 +214,7 @@ class TaskTemplates extends Table {
   TextColumn get hardwareBundleId => text().nullable()();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -223,6 +235,7 @@ class TaskTemplateTodos extends Table {
       text().references(TaskTemplates, #id, onDelete: KeyAction.cascade)();
   TextColumn get content => text()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -236,6 +249,7 @@ class TaskLinks extends Table {
   TextColumn get linkType => text().withDefault(const Constant('RELATED'))();
   // RELATED | BLOCKS | FOLLOW_UP
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -274,6 +288,7 @@ class DevicePresets extends Table {
   IntColumn get maintenanceIntervalDays => integer().nullable()(); // v14: Wartungsintervall in Tagen
   DateTimeColumn get lastMaintenanceDate => dateTime().nullable()(); // v14: Datum der letzten Wartungs-Task-Erstellung
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)(); // v16
 
   @override
   Set<Column> get primaryKey => {id};
@@ -290,6 +305,31 @@ class KnowledgeEntries extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+// v16: Tombstone-Tabelle — erfasst gelöschte Entities für Sync-Propagierung
+class SyncDeletions extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid())();
+  // Tabellenname in snake_case, z.B. 'tasks', 'sessions', 'customers'
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  DateTimeColumn get deletedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deletedByDeviceId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {entityType, entityId};
+}
+
+// v16: Speichert Sync-Status pro Peer (Server aus Client-Perspektive)
+class SyncState extends Table {
+  // UUID des Server-Geräts
+  TextColumn get peerId => text()();
+  TextColumn get peerName => text().nullable()();
+  DateTimeColumn get lastPullAt => dateTime().nullable()();
+  DateTimeColumn get lastPushAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {peerId};
 }
 
 // ─── Datenbank ────────────────────────────────────────────────────────────────
@@ -317,12 +357,14 @@ class KnowledgeEntries extends Table {
   GeneralNotes,
   NoteTemplates,
   KnowledgeEntries,
+  SyncDeletions,
+  SyncState,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -427,8 +469,65 @@ class AppDatabase extends _$AppDatabase {
           WHERE address IS NOT NULL
         ''');
       }
+      if (from < 16) {
+        // v15 → v16: Sync-Infrastruktur
+        //   Sessions: technicianName + modifiedAt
+        //   Weitere Tabellen: modifiedAt
+        //   Neue Tabellen: sync_deletions, sync_state
+
+        // Sessions
+        await m.addColumn(sessions, sessions.technicianName);
+        await m.addColumn(sessions, sessions.modifiedAt);
+        // Backfill technicianName aus AppSettings
+        await customStatement('''
+          UPDATE sessions
+          SET technician_name = COALESCE(
+            (SELECT value FROM app_settings WHERE key = 'technicianName'), ''
+          )
+          WHERE technician_name = ''
+        ''');
+
+        // Todos, Hardware, Notes, Photos, WorkflowItems
+        await m.addColumn(todos, todos.modifiedAt);
+        await m.addColumn(hardware, hardware.modifiedAt);
+        await m.addColumn(notes, notes.modifiedAt);
+        await m.addColumn(photos, photos.modifiedAt);
+        await m.addColumn(workflows, workflows.modifiedAt);
+        await m.addColumn(workflowItems, workflowItems.modifiedAt);
+
+        // HardwareBundles, HardwareBundleItems
+        await m.addColumn(hardwareBundles, hardwareBundles.modifiedAt);
+        await m.addColumn(hardwareBundleItems, hardwareBundleItems.modifiedAt);
+
+        // TaskTemplates, TaskTemplateTodos, TaskLinks
+        await m.addColumn(taskTemplates, taskTemplates.modifiedAt);
+        await m.addColumn(taskTemplateTodos, taskTemplateTodos.modifiedAt);
+        await m.addColumn(taskLinks, taskLinks.modifiedAt);
+
+        // DevicePresets
+        await m.addColumn(devicePresets, devicePresets.modifiedAt);
+
+        // Neue Sync-Tabellen
+        await m.createTable(syncDeletions);
+        await m.createTable(syncState);
+      }
     },
   );
+
+  /// Löscht eine Entity und trägt sie in SyncDeletions ein (Tombstone).
+  /// Immer statt direktem db.delete() für sync-relevante Tabellen verwenden.
+  Future<void> softDeleteEntity(
+    String entityType,
+    String entityId, {
+    String? deviceId,
+  }) async {
+    await into(syncDeletions).insertOnConflictUpdate(SyncDeletionsCompanion(
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      deletedAt: Value(DateTime.now()),
+      deletedByDeviceId: Value(deviceId),
+    ));
+  }
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'pomtechflow.db');

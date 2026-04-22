@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'database_provider.dart';
 import '../db/database.dart';
@@ -28,6 +29,28 @@ class AppSettings {
   /// ISO date string of last successful auto-backup (YYYY-MM-DD).
   final String lastAutoBackupDate;
 
+  // ── Lokale Synchronisation (v16) ──────────────────────────────────────────
+  /// 'STANDALONE' | 'SERVER' | 'CLIENT'
+  final String syncRole;
+  /// Stable UUID for this device, generated once at first start.
+  final String deviceId;
+  /// Human-readable name for this device shown to peers (default: technicianName).
+  final String deviceName;
+  /// Host/IP of the server (only relevant in CLIENT mode).
+  final String syncServerHost;
+  /// Port the server listens on / client connects to.
+  final int syncServerPort;
+  /// Auto-sync enabled (timer-based polling).
+  final bool syncAutoEnabled;
+  /// Auto-sync interval in minutes.
+  final int syncAutoIntervalMinutes;
+  /// Sync when app starts or comes to foreground.
+  final bool syncOnAppStart;
+  final bool syncOnResume;
+  /// Sync AppSettings table across devices (off by default —
+  /// device-specific keys like storagePath are always excluded).
+  final bool syncAppSettings;
+
   const AppSettings({
     this.companyName = 'Meine IT-Firma',
     this.technicianName = '',
@@ -44,6 +67,17 @@ class AppSettings {
     this.autoBackupEnabled = false,
     this.autoBackupPath = '',
     this.lastAutoBackupDate = '',
+    // sync defaults
+    this.syncRole = 'STANDALONE',
+    this.deviceId = '',
+    this.deviceName = '',
+    this.syncServerHost = '',
+    this.syncServerPort = 8765,
+    this.syncAutoEnabled = true,
+    this.syncAutoIntervalMinutes = 5,
+    this.syncOnAppStart = true,
+    this.syncOnResume = true,
+    this.syncAppSettings = false,
   });
 
   AppSettings copyWith({
@@ -63,6 +97,16 @@ class AppSettings {
     bool? autoBackupEnabled,
     String? autoBackupPath,
     String? lastAutoBackupDate,
+    String? syncRole,
+    String? deviceId,
+    String? deviceName,
+    String? syncServerHost,
+    int? syncServerPort,
+    bool? syncAutoEnabled,
+    int? syncAutoIntervalMinutes,
+    bool? syncOnAppStart,
+    bool? syncOnResume,
+    bool? syncAppSettings,
   }) =>
       AppSettings(
         companyName: companyName ?? this.companyName,
@@ -80,7 +124,21 @@ class AppSettings {
         autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
         autoBackupPath: autoBackupPath ?? this.autoBackupPath,
         lastAutoBackupDate: lastAutoBackupDate ?? this.lastAutoBackupDate,
+        syncRole: syncRole ?? this.syncRole,
+        deviceId: deviceId ?? this.deviceId,
+        deviceName: deviceName ?? this.deviceName,
+        syncServerHost: syncServerHost ?? this.syncServerHost,
+        syncServerPort: syncServerPort ?? this.syncServerPort,
+        syncAutoEnabled: syncAutoEnabled ?? this.syncAutoEnabled,
+        syncAutoIntervalMinutes: syncAutoIntervalMinutes ?? this.syncAutoIntervalMinutes,
+        syncOnAppStart: syncOnAppStart ?? this.syncOnAppStart,
+        syncOnResume: syncOnResume ?? this.syncOnResume,
+        syncAppSettings: syncAppSettings ?? this.syncAppSettings,
       );
+
+  /// Effective device name for display: falls back to technicianName then 'Dieses Gerät'.
+  String get effectiveDeviceName =>
+      deviceName.isNotEmpty ? deviceName : (technicianName.isNotEmpty ? technicianName : 'Dieses Gerät');
 }
 
 class SettingsNotifier extends AsyncNotifier<AppSettings> {
@@ -89,6 +147,16 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     final db = ref.watch(databaseProvider);
     final rows = await db.select(db.appSettings).get();
     final map = {for (final r in rows) r.key: r.value};
+
+    // Generate deviceId once if missing
+    String deviceId = map['deviceId'] ?? '';
+    if (deviceId.isEmpty) {
+      deviceId = _generateDeviceId();
+      final db2 = ref.read(databaseProvider);
+      await db2.into(db2.appSettings).insertOnConflictUpdate(
+            AppSettingsCompanion.insert(key: 'deviceId', value: deviceId),
+          );
+    }
 
     return AppSettings(
       companyName: map['companyName'] ?? 'Meine IT-Firma',
@@ -106,6 +174,17 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       autoBackupEnabled: map['autoBackupEnabled'] == 'true',
       autoBackupPath: map['autoBackupPath'] ?? '',
       lastAutoBackupDate: map['lastAutoBackupDate'] ?? '',
+      // sync
+      syncRole: map['syncRole'] ?? 'STANDALONE',
+      deviceId: deviceId,
+      deviceName: map['deviceName'] ?? '',
+      syncServerHost: map['syncServerHost'] ?? '',
+      syncServerPort: int.tryParse(map['syncServerPort'] ?? '') ?? 8765,
+      syncAutoEnabled: (map['syncAutoEnabled'] ?? 'true') == 'true',
+      syncAutoIntervalMinutes: int.tryParse(map['syncAutoIntervalMinutes'] ?? '') ?? 5,
+      syncOnAppStart: (map['syncOnAppStart'] ?? 'true') == 'true',
+      syncOnResume: (map['syncOnResume'] ?? 'true') == 'true',
+      syncAppSettings: map['syncAppSettings'] == 'true',
     );
   }
 
@@ -127,6 +206,17 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       'autoBackupEnabled': settings.autoBackupEnabled.toString(),
       'autoBackupPath': settings.autoBackupPath,
       'lastAutoBackupDate': settings.lastAutoBackupDate,
+      // sync
+      'syncRole': settings.syncRole,
+      'deviceId': settings.deviceId,
+      'deviceName': settings.deviceName,
+      'syncServerHost': settings.syncServerHost,
+      'syncServerPort': settings.syncServerPort.toString(),
+      'syncAutoEnabled': settings.syncAutoEnabled.toString(),
+      'syncAutoIntervalMinutes': settings.syncAutoIntervalMinutes.toString(),
+      'syncOnAppStart': settings.syncOnAppStart.toString(),
+      'syncOnResume': settings.syncOnResume.toString(),
+      'syncAppSettings': settings.syncAppSettings.toString(),
     };
     // If logoPath was cleared (null), delete the key from DB
     if (settings.logoPath == null) {
@@ -145,3 +235,16 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
 
 final settingsProvider =
     AsyncNotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+String _generateDeviceId() {
+  final rng = Random.secure();
+  final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  String hex(int b) => b.toRadixString(16).padLeft(2, '0');
+  final h = bytes.map(hex).join();
+  return '${h.substring(0, 8)}-${h.substring(8, 12)}-'
+      '${h.substring(12, 16)}-${h.substring(16, 20)}-${h.substring(20, 32)}';
+}

@@ -22,6 +22,7 @@ import '../notes/note_templates_screen.dart';
 import '../handbuch_screen.dart';
 import '../tools/network_tools_screen.dart';
 import '../knowledge/knowledge_screen.dart';
+import 'sync_settings_screen.dart';
 
 bool get _isIOS => !kIsWeb && Platform.isIOS;
 
@@ -726,6 +727,22 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // ── Synchronisation ───────────────────────────────────────────
+        _SectionHeader('Synchronisation'),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.sync_alt),
+            title: const Text('Lokale Synchronisation'),
+            subtitle: const Text('Daten im WLAN mit anderen Geräten teilen'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const SyncSettingsScreen()),
+            ),
           ),
         ),
         const SizedBox(height: 24),

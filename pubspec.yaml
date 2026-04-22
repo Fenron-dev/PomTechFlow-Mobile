@@ -59,6 +59,14 @@ dependencies:
   encrypt: ^5.0.3                  # AES-256 für verschlüsselte Exporte
   crypto: ^3.0.6                   # PBKDF2 / HMAC-SHA256 (direkte Abhängigkeit)
 
+  # Lokale LAN-Synchronisation
+  shelf: ^1.4.1                    # HTTP-Server (Server-Modus)
+  shelf_router: ^1.1.4             # REST-Routing
+  http: ^1.4.0                     # HTTP-Client (Client-Modus)
+  bonsoir: ^5.1.7                  # mDNS advertise + discover (Bonjour/Zeroconf)
+  dart_jsonwebtoken: ^2.8.0        # JWT für Pairing-Auth
+  qr_flutter: ^4.1.0               # QR-Code-Anzeige (Pairing)
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
