@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
 /// Pushes the current timer/task state to the native Homescreen-Widget.
@@ -14,8 +15,14 @@ class WidgetService {
   static const String _iOSName = 'PomTechFlowWidget';
   static const String _iOSAppGroup = 'group.dev.fenron.pomtechflowMobile';
 
+  // home_widget only supports Android and iOS — guard every call.
+  static bool get _supported =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
   /// Call once at app start to register the iOS App Group.
   static Future<void> init() async {
+    if (!_supported) return;
     await HomeWidget.setAppGroupId(_iOSAppGroup);
   }
 
@@ -27,6 +34,7 @@ class WidgetService {
     required int openTasks,
     DateTime? startTime,
   }) async {
+    if (!_supported) return;
     try {
       await Future.wait([
         HomeWidget.saveWidgetData('widgetTimerStatus', timerStatus),
@@ -50,6 +58,7 @@ class WidgetService {
   /// Called when the user taps the Quick-Start button in the widget.
   /// Returns the launch URI if the app was opened from the widget.
   static Future<Uri?> initialUri() async {
+    if (!_supported) return null;
     try {
       return await HomeWidget.initiallyLaunchedFromHomeWidget();
     } catch (_) {
