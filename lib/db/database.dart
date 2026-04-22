@@ -443,7 +443,9 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(customers, customers.zipCode);
         await m.addColumn(customers, customers.city);
         await m.addColumn(customers, customers.isActive);
-        await m.addColumn(customers, customers.modifiedAt);
+        // modifiedAt: SQLite ALTER TABLE only accepts constant defaults — use 0 and backfill.
+        await customStatement('ALTER TABLE "customers" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        await customStatement('UPDATE "customers" SET "modified_at" = CAST(strftime(\'%s\', \'now\') AS INTEGER) * 1000');
         await m.createTable(contacts);
         // Alte address-Spalte (Format "street||zip||city") in neue Felder migrieren
         await customStatement('''
@@ -477,7 +479,8 @@ class AppDatabase extends _$AppDatabase {
 
         // Sessions
         await m.addColumn(sessions, sessions.technicianName);
-        await m.addColumn(sessions, sessions.modifiedAt);
+        // modifiedAt: SQLite ALTER TABLE only accepts constant defaults — use 0 and backfill.
+        await customStatement('ALTER TABLE "sessions" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
         // Backfill technicianName aus AppSettings
         await customStatement('''
           UPDATE sessions
@@ -488,24 +491,24 @@ class AppDatabase extends _$AppDatabase {
         ''');
 
         // Todos, Hardware, Notes, Photos, WorkflowItems
-        await m.addColumn(todos, todos.modifiedAt);
-        await m.addColumn(hardware, hardware.modifiedAt);
-        await m.addColumn(notes, notes.modifiedAt);
-        await m.addColumn(photos, photos.modifiedAt);
-        await m.addColumn(workflows, workflows.modifiedAt);
-        await m.addColumn(workflowItems, workflowItems.modifiedAt);
+        await customStatement('ALTER TABLE "todos" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        await customStatement('ALTER TABLE "hardware" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        await customStatement('ALTER TABLE "notes" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        await customStatement('ALTER TABLE "photos" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        await customStatement('ALTER TABLE "workflows" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        await customStatement('ALTER TABLE "workflow_items" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
 
         // HardwareBundles, HardwareBundleItems
-        await m.addColumn(hardwareBundles, hardwareBundles.modifiedAt);
-        await m.addColumn(hardwareBundleItems, hardwareBundleItems.modifiedAt);
+        await customStatement('ALTER TABLE "hardware_bundles" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        await customStatement('ALTER TABLE "hardware_bundle_items" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
 
         // TaskTemplates, TaskTemplateTodos, TaskLinks
-        await m.addColumn(taskTemplates, taskTemplates.modifiedAt);
-        await m.addColumn(taskTemplateTodos, taskTemplateTodos.modifiedAt);
-        await m.addColumn(taskLinks, taskLinks.modifiedAt);
+        await customStatement('ALTER TABLE "task_templates" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        await customStatement('ALTER TABLE "task_template_todos" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        await customStatement('ALTER TABLE "task_links" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
 
         // DevicePresets
-        await m.addColumn(devicePresets, devicePresets.modifiedAt);
+        await customStatement('ALTER TABLE "device_presets" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
 
         // Neue Sync-Tabellen
         await m.createTable(syncDeletions);
