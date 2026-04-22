@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../providers/settings_provider.dart';
 import '../client/sync_api_client.dart';
 import '../discovery/mdns_service.dart';
+
+bool get _isMobile => Platform.isAndroid || Platform.isIOS;
 
 class PairingFlowScreen extends ConsumerStatefulWidget {
   const PairingFlowScreen({super.key});
@@ -31,7 +34,8 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    // On desktop, start on the Manual tab — QR scanner not available
+    _tabs = TabController(length: 3, vsync: this, initialIndex: _isMobile ? 0 : 2);
     _startDiscovery();
   }
 
@@ -191,6 +195,41 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
   }
 
   Widget _buildQrTab() {
+    if (!_isMobile) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.no_photography_outlined,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.outlineVariant),
+              const SizedBox(height: 16),
+              Text('QR-Scanner nicht verfügbar',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(
+                'Auf dem Desktop ist kein Kamera-Zugriff möglich.\n'
+                'Bitte den Tab "Manuell" verwenden und den Pairing-Token\n'
+                'aus dem QR-Code-Inhalt des Server-Geräts kopieren.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Theme.of(context).colorScheme.outline),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.tonal(
+                onPressed: () => _tabs.animateTo(2),
+                child: const Text('Zum Manuell-Tab'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
         const Padding(
