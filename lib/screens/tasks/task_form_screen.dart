@@ -8,6 +8,7 @@ import '../../providers/customers_provider.dart';
 import '../../providers/tasks_provider.dart';
 import '../../db/database.dart';
 import '../../services/notification_service.dart';
+import '../../providers/settings_provider.dart';
 import '../knowledge/knowledge_screen.dart' show knowledgeProvider;
 
 class TaskFormScreen extends ConsumerStatefulWidget {
@@ -22,6 +23,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _assignedToCtrl = TextEditingController();
   String? _customerId;
   String _priority = 'NORMAL';
   DateTime? _plannedDate;
@@ -50,6 +52,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     if (!mounted || task == null) return;
     _titleCtrl.text = task.title;
     _descCtrl.text = task.description ?? '';
+    _assignedToCtrl.text = task.assignedTo ?? '';
     setState(() {
       _customerId = task.customerId;
       _priority = task.priority;
@@ -86,6 +89,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _assignedToCtrl.dispose();
     _budgetCtrl.dispose();
     super.dispose();
   }
@@ -200,6 +204,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                       : null),
               estimatedMinutes: drift.Value(budget),
               reminderOffsetMinutes: drift.Value(_computeReminderOffsetMinutes()),
+              assignedTo: drift.Value(_assignedToCtrl.text.trim().isEmpty
+                  ? null
+                  : _assignedToCtrl.text.trim()),
               updatedAt: drift.Value(now),
             ));
       } else {
@@ -225,6 +232,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   : null),
           estimatedMinutes: drift.Value(budget),
           reminderOffsetMinutes: drift.Value(_computeReminderOffsetMinutes()),
+          assignedTo: drift.Value(_assignedToCtrl.text.trim().isEmpty
+              ? null
+              : _assignedToCtrl.text.trim()),
           updatedAt: drift.Value(now),
         ));
       }
@@ -449,6 +459,37 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // ── Zugewiesen an ──────────────────────────────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _assignedToCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Zugewiesen an',
+                      hintText: 'Techniker-Name',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Consumer(builder: (context, ref, _) {
+                  final techName = ref.watch(settingsProvider).valueOrNull?.technicianName ?? '';
+                  return Tooltip(
+                    message: 'Mir zuweisen ($techName)',
+                    child: IconButton(
+                      icon: const Icon(Icons.assignment_ind_outlined),
+                      onPressed: techName.isEmpty
+                          ? null
+                          : () => setState(() => _assignedToCtrl.text = techName),
+                    ),
+                  );
+                }),
               ],
             ),
             const SizedBox(height: 16),

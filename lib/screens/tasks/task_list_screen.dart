@@ -85,6 +85,8 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     // Each TaskCard uses its own Consumer that selects only TimerStatus? for
     // its task ID, so only start/stop/pause/resume events trigger rebuilds.
     final aeMinutes = ref.watch(settingsProvider).valueOrNull?.aeMinutes ?? 10;
+    final ownOnly = ref.watch(ownTasksOnlyProvider);
+    final techName = ref.watch(settingsProvider).valueOrNull?.technicianName ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -188,6 +190,9 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           child: _FilterBar(
             selected: _filter,
             onChanged: (v) => setState(() => _filter = v),
+            ownOnly: ownOnly,
+            onOwnOnlyChanged: (v) =>
+                ref.read(ownTasksOnlyProvider.notifier).state = v,
           ),
         ),
       ),
@@ -198,6 +203,12 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           var filtered = _filter == 'ALL'
               ? tasks
               : tasks.where((t) => t.task.status == _filter).toList();
+
+          filtered = filterByTechnician(
+            filtered,
+            techName.isEmpty ? null : techName,
+            ownOnly: ownOnly,
+          );
 
           if (_priorityFilter != 'ALL') {
             filtered = filtered
@@ -560,8 +571,15 @@ class _EmptyDetailPane extends StatelessWidget {
 class _FilterBar extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onChanged;
+  final bool ownOnly;
+  final ValueChanged<bool> onOwnOnlyChanged;
 
-  const _FilterBar({required this.selected, required this.onChanged});
+  const _FilterBar({
+    required this.selected,
+    required this.onChanged,
+    required this.ownOnly,
+    required this.onOwnOnlyChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -576,16 +594,25 @@ class _FilterBar extends StatelessWidget {
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        children: filters
-            .map((f) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(f.$2),
-                    selected: selected == f.$1,
-                    onSelected: (_) => onChanged(f.$1),
-                  ),
-                ))
-            .toList(),
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              avatar: const Icon(Icons.person_outline, size: 16),
+              label: const Text('Meine Tasks'),
+              selected: ownOnly,
+              onSelected: onOwnOnlyChanged,
+            ),
+          ),
+          ...filters.map((f) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(f.$2),
+                  selected: selected == f.$1,
+                  onSelected: (_) => onChanged(f.$1),
+                ),
+              )),
+        ],
       ),
     );
   }

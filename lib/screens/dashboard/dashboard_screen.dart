@@ -23,12 +23,19 @@ class DashboardScreen extends ConsumerWidget {
     final tasksAsync = ref.watch(tasksProvider);
     final settings = ref.watch(settingsProvider).valueOrNull;
     final timer = ref.watch(timerProvider);
+    final ownOnly = ref.watch(ownTasksOnlyProvider);
+    final techName = settings?.technicianName ?? '';
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(settings?.companyName ?? 'PomTechFlow'),
         actions: [
+          IconButton(
+            icon: Icon(ownOnly ? Icons.person : Icons.people_outline),
+            tooltip: ownOnly ? 'Meine Tasks (Alle anzeigen)' : 'Alle Tasks (Filtern)',
+            onPressed: () => ref.read(ownTasksOnlyProvider.notifier).state = !ownOnly,
+          ),
           IconButton(
             icon: const Icon(Icons.search_outlined),
             tooltip: 'Suche',
@@ -99,14 +106,18 @@ class DashboardScreen extends ConsumerWidget {
             final bDate = b.task.plannedDate ?? b.task.createdAt;
             return aDate.compareTo(bDate); // oldest first
           }
-          final active = tasks.where((t) => t.task.status == 'ACTIVE').toList()
+          final tech = techName.isEmpty ? null : techName;
+          final visibleTasks = filterByTechnician(tasks, tech, ownOnly: ownOnly);
+          final otherTasks = ownOnly ? otherTechnicianTasks(tasks, tech) : <TaskWithDetails>[];
+
+          final active = visibleTasks.where((t) => t.task.status == 'ACTIVE').toList()
             ..sort(sortByPriorityThenDate);
-          final completed = tasks.where((t) => t.task.status == 'COMPLETED').length;
-          final plannedTasks = tasks.where((t) => t.task.status == 'PLANNED').toList()
+          final completed = visibleTasks.where((t) => t.task.status == 'COMPLETED').length;
+          final plannedTasks = visibleTasks.where((t) => t.task.status == 'PLANNED').toList()
             ..sort(sortByPriorityThenDate);
           final planned = plannedTasks.length;
           final today = DateTime.now();
-          final todayTasks = tasks.where((t) {
+          final todayTasks = visibleTasks.where((t) {
             if (t.task.status == 'COMPLETED') return false;
             final d = t.task.plannedDate;
             if (d == null) return false;
@@ -116,17 +127,17 @@ class DashboardScreen extends ConsumerWidget {
           }).toList()
             ..sort(sortByPriorityThenDate);
           final todayStart = DateTime(today.year, today.month, today.day);
-          final todayDone = tasks
+          final todayDone = visibleTasks
               .where((t) =>
                   t.task.status == 'COMPLETED' &&
                   t.task.updatedAt.isAfter(
                       todayStart.subtract(const Duration(seconds: 1))))
               .toList()
             ..sort((a, b) => b.task.updatedAt.compareTo(a.task.updatedAt));
-          final totalMinutes = tasks.fold<int>(0, (s, t) => s + t.task.totalMinutes);
+          final totalMinutes = visibleTasks.fold<int>(0, (s, t) => s + t.task.totalMinutes);
           final aeMin = settings?.aeMinutes ?? 10;
           // Summe der aufgerundeten AE pro Task
-          final totalAE = tasks.fold<int>(0, (s, t) => s + t.aeCount(aeMin));
+          final totalAE = visibleTasks.fold<int>(0, (s, t) => s + t.aeCount(aeMin));
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(tasksProvider),
@@ -360,6 +371,43 @@ class DashboardScreen extends ConsumerWidget {
                           ),
                         );
                       }),
+                      const SizedBox(height: 8),
+                    ]),
+                  ),
+                ],
+
+                // ── Andere Techniker ───────────────────────────────────
+                if (otherTasks.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _CollapsibleSection(
+                    initiallyExpanded: false,
+                    header: _SectionHeader(
+                      title: 'Andere Techniker',
+                      icon: Icons.people_outline,
+                      count: otherTasks.length,
+                    ),
+                    child: Column(children: [
+                      const SizedBox(height: 8),
+                      ...otherTasks.map((t) => Card(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            child: ListTile(
+                              dense: true,
+                              leading: Icon(Icons.person_outline,
+                                  size: 18, color: cs.outline),
+                              title: Text(t.task.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
+                              subtitle: Text([
+                                if (t.task.assignedTo != null &&
+                                    t.task.assignedTo!.isNotEmpty)
+                                  t.task.assignedTo!,
+                                if (t.customer != null) t.customer!.name,
+                              ].join(' · ')),
+                              trailing: _StatusDot(status: t.task.status),
+                              onTap: () =>
+                                  context.push('/tasks/${t.task.id}'),
+                            ),
+                          )),
                       const SizedBox(height: 8),
                     ]),
                   ),

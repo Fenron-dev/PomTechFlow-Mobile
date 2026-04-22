@@ -687,7 +687,7 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _CustomerContactRow extends StatelessWidget {
-  final dynamic customer;
+  final Customer customer;
   const _CustomerContactRow({required this.customer});
 
   Future<void> _launch(String url) async {
@@ -695,12 +695,7 @@ class _CustomerContactRow extends StatelessWidget {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  /// Decodes "street||zip||city" and opens the native maps app.
-  Future<void> _openMaps(String rawAddress) async {
-    final parts = rawAddress.split('||');
-    final address = parts.length == 3
-        ? '${parts[0]} ${parts[1]} ${parts[2]}'.trim()
-        : rawAddress;
+  Future<void> _openMaps(String address) async {
     final encoded = Uri.encodeComponent(address);
     final nativeUri = Platform.isIOS
         ? Uri.parse('maps://?q=$encoded')
@@ -712,23 +707,23 @@ class _CustomerContactRow extends StatelessWidget {
     }
   }
 
-  /// Returns "Straße, PLZ Ort" from "street||zip||city" encoding.
-  static String _formatAddress(String rawAddress) {
-    final parts = rawAddress.split('||');
-    if (parts.length == 3) {
-      final street = parts[0].trim();
-      final zipCity = '${parts[1]} ${parts[2]}'.trim();
-      if (street.isNotEmpty && zipCity.trim().isNotEmpty) {
-        return '$street, $zipCity';
-      }
-      return (street.isNotEmpty ? street : zipCity).trim();
-    }
-    return rawAddress;
+  String? get _formattedAddress {
+    final street = [customer.street, customer.houseNumber]
+        .where((s) => s != null && s.isNotEmpty)
+        .join(' ')
+        .trim();
+    final zipCity = [customer.zipCode, customer.city]
+        .where((s) => s != null && s.isNotEmpty)
+        .join(' ')
+        .trim();
+    if (street.isEmpty && zipCity.isEmpty) return null;
+    return [street, zipCity].where((s) => s.isNotEmpty).join(', ');
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final address = _formattedAddress;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -753,8 +748,7 @@ class _CustomerContactRow extends StatelessWidget {
             ),
           ],
         ),
-        // Address row with "In Maps öffnen" button
-        if (customer.address != null) ...[
+        if (address != null) ...[
           const SizedBox(height: 6),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -763,7 +757,7 @@ class _CustomerContactRow extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  _formatAddress(customer.address!),
+                  address,
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
@@ -772,7 +766,7 @@ class _CustomerContactRow extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               FilledButton.tonalIcon(
-                onPressed: () => _openMaps(customer.address!),
+                onPressed: () => _openMaps(address),
                 icon: const Icon(Icons.map_outlined, size: 16),
                 label: const Text('In Maps öffnen'),
                 style: FilledButton.styleFrom(

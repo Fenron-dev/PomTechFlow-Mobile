@@ -1617,6 +1617,17 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _assignedToMeta = const VerificationMeta(
+    'assignedTo',
+  );
+  @override
+  late final GeneratedColumn<String> assignedTo = GeneratedColumn<String>(
+    'assigned_to',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1660,6 +1671,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     billedAt,
     archivedAt,
     reminderOffsetMinutes,
+    assignedTo,
     createdAt,
     updatedAt,
   ];
@@ -1803,6 +1815,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         ),
       );
     }
+    if (data.containsKey('assigned_to')) {
+      context.handle(
+        _assignedToMeta,
+        assignedTo.isAcceptableOrUnknown(data['assigned_to']!, _assignedToMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1892,6 +1910,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.int,
         data['${effectivePrefix}reminder_offset_minutes'],
       ),
+      assignedTo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assigned_to'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1927,6 +1949,7 @@ class Task extends DataClass implements Insertable<Task> {
   final DateTime? billedAt;
   final DateTime? archivedAt;
   final int? reminderOffsetMinutes;
+  final String? assignedTo;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Task({
@@ -1947,6 +1970,7 @@ class Task extends DataClass implements Insertable<Task> {
     this.billedAt,
     this.archivedAt,
     this.reminderOffsetMinutes,
+    this.assignedTo,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -1989,6 +2013,9 @@ class Task extends DataClass implements Insertable<Task> {
     }
     if (!nullToAbsent || reminderOffsetMinutes != null) {
       map['reminder_offset_minutes'] = Variable<int>(reminderOffsetMinutes);
+    }
+    if (!nullToAbsent || assignedTo != null) {
+      map['assigned_to'] = Variable<String>(assignedTo);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -2034,6 +2061,9 @@ class Task extends DataClass implements Insertable<Task> {
       reminderOffsetMinutes: reminderOffsetMinutes == null && nullToAbsent
           ? const Value.absent()
           : Value(reminderOffsetMinutes),
+      assignedTo: assignedTo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(assignedTo),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -2064,6 +2094,7 @@ class Task extends DataClass implements Insertable<Task> {
       reminderOffsetMinutes: serializer.fromJson<int?>(
         json['reminderOffsetMinutes'],
       ),
+      assignedTo: serializer.fromJson<String?>(json['assignedTo']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2089,6 +2120,7 @@ class Task extends DataClass implements Insertable<Task> {
       'billedAt': serializer.toJson<DateTime?>(billedAt),
       'archivedAt': serializer.toJson<DateTime?>(archivedAt),
       'reminderOffsetMinutes': serializer.toJson<int?>(reminderOffsetMinutes),
+      'assignedTo': serializer.toJson<String?>(assignedTo),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2112,6 +2144,7 @@ class Task extends DataClass implements Insertable<Task> {
     Value<DateTime?> billedAt = const Value.absent(),
     Value<DateTime?> archivedAt = const Value.absent(),
     Value<int?> reminderOffsetMinutes = const Value.absent(),
+    Value<String?> assignedTo = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Task(
@@ -2142,6 +2175,7 @@ class Task extends DataClass implements Insertable<Task> {
     reminderOffsetMinutes: reminderOffsetMinutes.present
         ? reminderOffsetMinutes.value
         : this.reminderOffsetMinutes,
+    assignedTo: assignedTo.present ? assignedTo.value : this.assignedTo,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -2186,6 +2220,9 @@ class Task extends DataClass implements Insertable<Task> {
       reminderOffsetMinutes: data.reminderOffsetMinutes.present
           ? data.reminderOffsetMinutes.value
           : this.reminderOffsetMinutes,
+      assignedTo: data.assignedTo.present
+          ? data.assignedTo.value
+          : this.assignedTo,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -2211,6 +2248,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('billedAt: $billedAt, ')
           ..write('archivedAt: $archivedAt, ')
           ..write('reminderOffsetMinutes: $reminderOffsetMinutes, ')
+          ..write('assignedTo: $assignedTo, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2236,6 +2274,7 @@ class Task extends DataClass implements Insertable<Task> {
     billedAt,
     archivedAt,
     reminderOffsetMinutes,
+    assignedTo,
     createdAt,
     updatedAt,
   );
@@ -2260,6 +2299,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.billedAt == this.billedAt &&
           other.archivedAt == this.archivedAt &&
           other.reminderOffsetMinutes == this.reminderOffsetMinutes &&
+          other.assignedTo == this.assignedTo &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -2282,6 +2322,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<DateTime?> billedAt;
   final Value<DateTime?> archivedAt;
   final Value<int?> reminderOffsetMinutes;
+  final Value<String?> assignedTo;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -2303,6 +2344,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.billedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
     this.reminderOffsetMinutes = const Value.absent(),
+    this.assignedTo = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2325,6 +2367,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.billedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
     this.reminderOffsetMinutes = const Value.absent(),
+    this.assignedTo = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2347,6 +2390,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<DateTime>? billedAt,
     Expression<DateTime>? archivedAt,
     Expression<int>? reminderOffsetMinutes,
+    Expression<String>? assignedTo,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -2371,6 +2415,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (archivedAt != null) 'archived_at': archivedAt,
       if (reminderOffsetMinutes != null)
         'reminder_offset_minutes': reminderOffsetMinutes,
+      if (assignedTo != null) 'assigned_to': assignedTo,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -2395,6 +2440,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<DateTime?>? billedAt,
     Value<DateTime?>? archivedAt,
     Value<int?>? reminderOffsetMinutes,
+    Value<String?>? assignedTo,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -2418,6 +2464,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       archivedAt: archivedAt ?? this.archivedAt,
       reminderOffsetMinutes:
           reminderOffsetMinutes ?? this.reminderOffsetMinutes,
+      assignedTo: assignedTo ?? this.assignedTo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -2480,6 +2527,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
         reminderOffsetMinutes.value,
       );
     }
+    if (assignedTo.present) {
+      map['assigned_to'] = Variable<String>(assignedTo.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2512,6 +2562,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('billedAt: $billedAt, ')
           ..write('archivedAt: $archivedAt, ')
           ..write('reminderOffsetMinutes: $reminderOffsetMinutes, ')
+          ..write('assignedTo: $assignedTo, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -12267,6 +12318,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<DateTime?> billedAt,
       Value<DateTime?> archivedAt,
       Value<int?> reminderOffsetMinutes,
+      Value<String?> assignedTo,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -12290,6 +12342,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<DateTime?> billedAt,
       Value<DateTime?> archivedAt,
       Value<int?> reminderOffsetMinutes,
+      Value<String?> assignedTo,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -12514,6 +12567,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<int> get reminderOffsetMinutes => $composableBuilder(
     column: $table.reminderOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assignedTo => $composableBuilder(
+    column: $table.assignedTo,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12790,6 +12848,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get assignedTo => $composableBuilder(
+    column: $table.assignedTo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -12898,6 +12961,11 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<int> get reminderOffsetMinutes => $composableBuilder(
     column: $table.reminderOffsetMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get assignedTo => $composableBuilder(
+    column: $table.assignedTo,
     builder: (column) => column,
   );
 
@@ -13134,6 +13202,7 @@ class $$TasksTableTableManager
                 Value<DateTime?> billedAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
                 Value<int?> reminderOffsetMinutes = const Value.absent(),
+                Value<String?> assignedTo = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -13155,6 +13224,7 @@ class $$TasksTableTableManager
                 billedAt: billedAt,
                 archivedAt: archivedAt,
                 reminderOffsetMinutes: reminderOffsetMinutes,
+                assignedTo: assignedTo,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -13178,6 +13248,7 @@ class $$TasksTableTableManager
                 Value<DateTime?> billedAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
                 Value<int?> reminderOffsetMinutes = const Value.absent(),
+                Value<String?> assignedTo = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -13199,6 +13270,7 @@ class $$TasksTableTableManager
                 billedAt: billedAt,
                 archivedAt: archivedAt,
                 reminderOffsetMinutes: reminderOffsetMinutes,
+                assignedTo: assignedTo,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

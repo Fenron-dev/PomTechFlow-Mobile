@@ -65,6 +65,7 @@ class Tasks extends Table {
   DateTimeColumn get billedAt => dateTime().nullable()(); // NEU v9: null=offen, gesetzt=abgerechnet am Datum
   DateTimeColumn get archivedAt => dateTime().nullable()(); // NEU v11: null=aktiv, gesetzt=archiviert
   IntColumn get reminderOffsetMinutes => integer().nullable()(); // NEU v13: Erinnerungsvorlauf in Minuten vor plannedDate
+  TextColumn get assignedTo => text().nullable()(); // v17: Zugewiesener Techniker
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -364,124 +365,149 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
+
+  // ── Migration helpers ────────────────────────────────────────────────────────
+
+  Future<bool> _hasColumn(String table, String column) async {
+    final rows = await customSelect('PRAGMA table_info("$table")').get();
+    return rows.any((r) => (r.data['name'] as String?) == column);
+  }
+
+  Future<bool> _hasTable(String table) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='$table'",
+    ).get();
+    return rows.isNotEmpty;
+  }
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
+      // Every step is guarded with _hasColumn/_hasTable to survive partial
+      // migrations caused by earlier crashes where user_version was not updated.
       if (from < 2) {
-        // v1 → v2: plannedDate, Photos, HardwareBundles, HardwareBundleItems
-        await m.addColumn(tasks, tasks.plannedDate);
-        await m.createTable(photos);
-        await m.createTable(hardwareBundles);
-        await m.createTable(hardwareBundleItems);
+        if (!await _hasColumn('tasks', 'planned_date'))
+          await m.addColumn(tasks, tasks.plannedDate);
+        if (!await _hasTable('photos')) await m.createTable(photos);
+        if (!await _hasTable('hardware_bundles'))
+          await m.createTable(hardwareBundles);
+        if (!await _hasTable('hardware_bundle_items'))
+          await m.createTable(hardwareBundleItems);
       }
       if (from < 3) {
-        // v2 → v3: DevicePresets (Geräte-Bibliothek)
-        await m.createTable(devicePresets);
+        if (!await _hasTable('device_presets'))
+          await m.createTable(devicePresets);
       }
       if (from < 4) {
-        // v3 → v4: Recurring Tasks + Task-Vorlagen
-        await m.addColumn(tasks, tasks.recurring);
-        await m.addColumn(tasks, tasks.recurrenceType);
-        await m.addColumn(tasks, tasks.recurrenceInterval);
-        await m.createTable(taskTemplates);
+        if (!await _hasColumn('tasks', 'recurring'))
+          await m.addColumn(tasks, tasks.recurring);
+        if (!await _hasColumn('tasks', 'recurrence_type'))
+          await m.addColumn(tasks, tasks.recurrenceType);
+        if (!await _hasColumn('tasks', 'recurrence_interval'))
+          await m.addColumn(tasks, tasks.recurrenceInterval);
+        if (!await _hasTable('task_templates'))
+          await m.createTable(taskTemplates);
       }
       if (from < 5) {
-        // v4 → v5: Session-Notiz
-        await m.addColumn(sessions, sessions.note);
+        if (!await _hasColumn('sessions', 'note'))
+          await m.addColumn(sessions, sessions.note);
       }
       if (from < 6) {
-        // v5 → v6: Task-Priorität
-        await m.addColumn(tasks, tasks.priority);
+        if (!await _hasColumn('tasks', 'priority'))
+          await m.addColumn(tasks, tasks.priority);
       }
       if (from < 7) {
-        // v6 → v7: Wochentag & Monatstag für Wiederholung
-        await m.addColumn(tasks, tasks.recurrenceWeekday);
-        await m.addColumn(tasks, tasks.recurrenceMonthDay);
+        if (!await _hasColumn('tasks', 'recurrence_weekday'))
+          await m.addColumn(tasks, tasks.recurrenceWeekday);
+        if (!await _hasColumn('tasks', 'recurrence_month_day'))
+          await m.addColumn(tasks, tasks.recurrenceMonthDay);
       }
       if (from < 8) {
-        // v7 → v8: Template multi-workflow + custom todos
-        await m.createTable(taskTemplateWorkflows);
-        await m.createTable(taskTemplateTodos);
+        if (!await _hasTable('task_template_workflows'))
+          await m.createTable(taskTemplateWorkflows);
+        if (!await _hasTable('task_template_todos'))
+          await m.createTable(taskTemplateTodos);
       }
       if (from < 9) {
-        // v8 → v9: Zeitbudget, Abrechnungsstatus, Task-Verknüpfungen
-        await m.addColumn(tasks, tasks.estimatedMinutes);
-        await m.addColumn(tasks, tasks.billedAt);
-        await m.createTable(taskLinks);
+        if (!await _hasColumn('tasks', 'estimated_minutes'))
+          await m.addColumn(tasks, tasks.estimatedMinutes);
+        if (!await _hasColumn('tasks', 'billed_at'))
+          await m.addColumn(tasks, tasks.billedAt);
+        if (!await _hasTable('task_links')) await m.createTable(taskLinks);
       }
       if (from < 10) {
-        // v9 → v10: Allgemeine Notizen mit Tags
-        await m.createTable(generalNotes);
+        if (!await _hasTable('general_notes'))
+          await m.createTable(generalNotes);
       }
       if (from < 11) {
-        // v10 → v11: Task-Archiv
-        await m.addColumn(tasks, tasks.archivedAt);
+        if (!await _hasColumn('tasks', 'archived_at'))
+          await m.addColumn(tasks, tasks.archivedAt);
       }
       if (from < 12) {
-        // v11 → v12: Notiz-Vorlagen
-        await m.createTable(noteTemplates);
+        if (!await _hasTable('note_templates'))
+          await m.createTable(noteTemplates);
       }
       if (from < 13) {
-        // v12 → v13: Erinnerungsvorlauf für Tasks
-        await m.addColumn(tasks, tasks.reminderOffsetMinutes);
+        if (!await _hasColumn('tasks', 'reminder_offset_minutes'))
+          await m.addColumn(tasks, tasks.reminderOffsetMinutes);
       }
       if (from < 14) {
-        // v13 → v14: Session-Standort, Geräte-Wartungsintervall, Wissensdatenbank
-        await m.addColumn(sessions, sessions.remote);
-        await m.addColumn(devicePresets, devicePresets.maintenanceIntervalDays);
-        await m.addColumn(devicePresets, devicePresets.lastMaintenanceDate);
-        await m.createTable(knowledgeEntries);
+        if (!await _hasColumn('sessions', 'remote'))
+          await m.addColumn(sessions, sessions.remote);
+        if (!await _hasColumn('device_presets', 'maintenance_interval_days'))
+          await m.addColumn(devicePresets, devicePresets.maintenanceIntervalDays);
+        if (!await _hasColumn('device_presets', 'last_maintenance_date'))
+          await m.addColumn(devicePresets, devicePresets.lastMaintenanceDate);
+        if (!await _hasTable('knowledge_entries'))
+          await m.createTable(knowledgeEntries);
       }
       if (from < 15) {
-        // v14 → v15: Strukturierte Adressfelder in Customers, isActive, modifiedAt
-        //            + neue Contacts-Tabelle (WaWi-Kompatibilität)
-        await m.addColumn(customers, customers.street);
-        await m.addColumn(customers, customers.houseNumber);
-        await m.addColumn(customers, customers.zipCode);
-        await m.addColumn(customers, customers.city);
-        await m.addColumn(customers, customers.isActive);
-        // modifiedAt: SQLite ALTER TABLE only accepts constant defaults — use 0 and backfill.
-        await customStatement('ALTER TABLE "customers" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        await customStatement('UPDATE "customers" SET "modified_at" = CAST(strftime(\'%s\', \'now\') AS INTEGER) * 1000');
-        await m.createTable(contacts);
-        // Alte address-Spalte (Format "street||zip||city") in neue Felder migrieren
+        if (!await _hasColumn('customers', 'street'))
+          await m.addColumn(customers, customers.street);
+        if (!await _hasColumn('customers', 'house_number'))
+          await m.addColumn(customers, customers.houseNumber);
+        if (!await _hasColumn('customers', 'zip_code'))
+          await m.addColumn(customers, customers.zipCode);
+        if (!await _hasColumn('customers', 'city'))
+          await m.addColumn(customers, customers.city);
+        if (!await _hasColumn('customers', 'is_active'))
+          await m.addColumn(customers, customers.isActive);
+        if (!await _hasColumn('customers', 'modified_at'))
+          await customStatement(
+              'ALTER TABLE "customers" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        if (!await _hasTable('contacts')) await m.createTable(contacts);
+        // Address migration: idempotent UPDATE — safe to repeat.
         await customStatement('''
           UPDATE customers
           SET
-            street   = CASE WHEN instr(address, '||') > 0
+            street   = CASE WHEN instr(COALESCE(address,''), '||') > 0
                             THEN substr(address, 1, instr(address,'||')-1)
                             ELSE address END,
-            zip_code = CASE WHEN length(address) - length(replace(address,'||','')) >= 2
+            zip_code = CASE WHEN length(COALESCE(address,'')) - length(replace(COALESCE(address,''),'||','')) >= 2
                             THEN trim(substr(
                               substr(address, instr(address,'||')+2),
                               1,
                               instr(substr(address, instr(address,'||')+2),'||')-1
                             ))
                             ELSE NULL END,
-            city     = CASE WHEN length(address) - length(replace(address,'||','')) >= 2
+            city     = CASE WHEN length(COALESCE(address,'')) - length(replace(COALESCE(address,''),'||','')) >= 2
                             THEN trim(substr(
                               address,
                               instr(address,'||') + 2 +
                               instr(substr(address, instr(address,'||')+2),'||')
                             ))
                             ELSE NULL END
-          WHERE address IS NOT NULL
+          WHERE address IS NOT NULL AND street IS NULL
         ''');
       }
       if (from < 16) {
-        // v15 → v16: Sync-Infrastruktur
-        //   Sessions: technicianName + modifiedAt
-        //   Weitere Tabellen: modifiedAt
-        //   Neue Tabellen: sync_deletions, sync_state
-
-        // Sessions
-        await m.addColumn(sessions, sessions.technicianName);
-        // modifiedAt: SQLite ALTER TABLE only accepts constant defaults — use 0 and backfill.
-        await customStatement('ALTER TABLE "sessions" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        // Backfill technicianName aus AppSettings
+        if (!await _hasColumn('sessions', 'technician_name'))
+          await m.addColumn(sessions, sessions.technicianName);
+        if (!await _hasColumn('sessions', 'modified_at'))
+          await customStatement(
+              'ALTER TABLE "sessions" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
         await customStatement('''
           UPDATE sessions
           SET technician_name = COALESCE(
@@ -489,30 +515,24 @@ class AppDatabase extends _$AppDatabase {
           )
           WHERE technician_name = ''
         ''');
-
-        // Todos, Hardware, Notes, Photos, WorkflowItems
-        await customStatement('ALTER TABLE "todos" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        await customStatement('ALTER TABLE "hardware" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        await customStatement('ALTER TABLE "notes" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        await customStatement('ALTER TABLE "photos" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        await customStatement('ALTER TABLE "workflows" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        await customStatement('ALTER TABLE "workflow_items" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-
-        // HardwareBundles, HardwareBundleItems
-        await customStatement('ALTER TABLE "hardware_bundles" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        await customStatement('ALTER TABLE "hardware_bundle_items" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-
-        // TaskTemplates, TaskTemplateTodos, TaskLinks
-        await customStatement('ALTER TABLE "task_templates" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        await customStatement('ALTER TABLE "task_template_todos" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-        await customStatement('ALTER TABLE "task_links" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-
-        // DevicePresets
-        await customStatement('ALTER TABLE "device_presets" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
-
-        // Neue Sync-Tabellen
-        await m.createTable(syncDeletions);
-        await m.createTable(syncState);
+        for (final t in [
+          'todos', 'hardware', 'notes', 'photos', 'workflows',
+          'workflow_items', 'hardware_bundles', 'hardware_bundle_items',
+          'task_templates', 'task_template_todos', 'task_links', 'device_presets',
+        ]) {
+          if (!await _hasColumn(t, 'modified_at'))
+            await customStatement(
+                'ALTER TABLE "$t" ADD COLUMN "modified_at" INTEGER NOT NULL DEFAULT 0');
+        }
+        if (!await _hasTable('sync_deletions'))
+          await m.createTable(syncDeletions);
+        if (!await _hasTable('sync_state'))
+          await m.createTable(syncState);
+      }
+      if (from < 17) {
+        // v16 → v17: Techniker-Zuweisung auf Tasks
+        if (!await _hasColumn('tasks', 'assigned_to'))
+          await m.addColumn(tasks, tasks.assignedTo);
       }
     },
   );

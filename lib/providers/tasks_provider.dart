@@ -140,3 +140,51 @@ final sessionsProvider =
         ..orderBy([(s) => drift.OrderingTerm.desc(s.startTime)]))
       .get();
 });
+
+// ── Techniker-Filter ──────────────────────────────────────────────────────────
+
+/// true = nur eigene Tasks + unzugewiesene; false = alle
+final ownTasksOnlyProvider = StateProvider<bool>((ref) => true);
+
+/// Alle bekannten Techniker-Namen aus Tasks (für Filter-Dropdown).
+final knownTechniciansProvider = FutureProvider<List<String>>((ref) async {
+  final tasks = await ref.watch(tasksProvider.future);
+  final names = tasks
+      .map((t) => t.task.assignedTo)
+      .whereType<String>()
+      .where((n) => n.isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort();
+  return names;
+});
+
+/// Gibt Tasks zurück, gefiltert nach Techniker.
+/// [technicianName] == null → zeigt unzugewiesene + eigene Tasks.
+List<TaskWithDetails> filterByTechnician(
+  List<TaskWithDetails> tasks,
+  String? technicianName, {
+  bool ownOnly = true,
+}) {
+  if (!ownOnly || technicianName == null || technicianName.isEmpty) return tasks;
+  return tasks
+      .where((t) =>
+          t.task.assignedTo == null ||
+          t.task.assignedTo!.isEmpty ||
+          t.task.assignedTo == technicianName)
+      .toList();
+}
+
+/// Tasks anderer Techniker (für Dashboard-Zusatzabschnitt).
+List<TaskWithDetails> otherTechnicianTasks(
+  List<TaskWithDetails> tasks,
+  String? technicianName,
+) {
+  if (technicianName == null || technicianName.isEmpty) return [];
+  return tasks
+      .where((t) =>
+          t.task.assignedTo != null &&
+          t.task.assignedTo!.isNotEmpty &&
+          t.task.assignedTo != technicianName)
+      .toList();
+}
