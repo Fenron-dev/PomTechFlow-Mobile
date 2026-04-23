@@ -1,6 +1,8 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/database_provider.dart';
 import '../providers/settings_provider.dart';
+import '../db/database.dart';
 import 'client/sync_service.dart';
 import 'server/sync_server.dart';
 
@@ -79,3 +81,13 @@ Future<void> triggerManualSync(WidgetRef ref) async {
 // ── Server Instance ───────────────────────────────────────────────────────────
 
 final syncServerProvider = Provider<SyncServer>((ref) => SyncServer());
+
+// ── Sync History ──────────────────────────────────────────────────────────────
+
+final syncLogsProvider = FutureProvider<List<SyncLog>>((ref) async {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.syncLogs)
+        ..orderBy([(t) => drift.OrderingTerm.desc(t.id)])
+        ..limit(50))
+      .get();
+});

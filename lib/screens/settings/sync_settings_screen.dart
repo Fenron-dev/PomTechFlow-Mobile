@@ -9,6 +9,7 @@ import '../../sync/client/sync_service.dart';
 import '../../sync/ui/pairing_qr_screen.dart';
 import '../../sync/ui/pairing_flow_screen.dart';
 import '../../sync/discovery/mdns_service.dart';
+import '../../db/database.dart';
 
 class SyncSettingsScreen extends ConsumerStatefulWidget {
   const SyncSettingsScreen({super.key});
@@ -140,6 +141,11 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
               title: const Text('Geräte-ID'),
               subtitle: Text(settings.deviceId, style: const TextStyle(fontSize: 11)),
             ),
+            const Divider(),
+
+            // ── Sync-Historie ─────────────────────────────────────────────
+            _SectionHeader('Sync-Protokoll'),
+            const _SyncHistorySection(),
             const Divider(),
 
             // ── Erweitert ─────────────────────────────────────────────────
@@ -374,6 +380,73 @@ class _ServerStatusCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SyncHistorySection extends ConsumerWidget {
+  const _SyncHistorySection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logsAsync = ref.watch(syncLogsProvider);
+    return logsAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (logs) {
+        if (logs.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: Text('Noch keine Sync-Vorgänge.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.outline)),
+          );
+        }
+        final fmt = DateFormat('dd.MM.yy HH:mm');
+        return Column(
+          children: logs.map((log) {
+            final isSuccess = log.status == 'success';
+            final isOffline = log.status == 'offline';
+            final color = isSuccess
+                ? Colors.green
+                : isOffline
+                    ? Colors.orange
+                    : Colors.red;
+            final icon = isSuccess
+                ? Icons.check_circle_outline
+                : isOffline
+                    ? Icons.wifi_off_outlined
+                    : Icons.error_outline;
+            return ListTile(
+              dense: true,
+              leading: Icon(icon, size: 18, color: color),
+              title: Text(
+                fmt.format(log.syncedAt),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              subtitle: Text(
+                [
+                  if (log.peerName != null) log.peerName!,
+                  if (isSuccess) '↓${log.pulledCount} ↑${log.pushedCount}',
+                  if (!isSuccess && log.errorMessage != null) log.errorMessage!,
+                ].join('  ·  '),
+                style: Theme.of(context)
+                    .textTheme
+                    .labelSmall
+                    ?.copyWith(color: Theme.of(context).colorScheme.outline),
+              ),
+              trailing: Text(log.deviceName,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: Theme.of(context).colorScheme.outline)),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }

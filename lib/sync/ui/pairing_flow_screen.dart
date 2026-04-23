@@ -25,6 +25,7 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
 
   // Manual / PIN tab
   final _hostCtrl = TextEditingController();
+  final _portCtrl = TextEditingController(text: '8765');
   final _pinCtrl = TextEditingController();
 
   // mDNS discovery
@@ -43,6 +44,7 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
   void dispose() {
     _tabs.dispose();
     _hostCtrl.dispose();
+    _portCtrl.dispose();
     _pinCtrl.dispose();
     _discovery?.stop();
     super.dispose();
@@ -75,23 +77,15 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
 
   Future<void> _claimWithPin({required DiscoveredServer? server}) async {
     final host = server?.host ?? _hostCtrl.text.trim();
-    final pin = _pinCtrl.text.trim();
+    final token = _pinCtrl.text.trim();
+    final port = int.tryParse(_portCtrl.text.trim()) ?? 8765;
 
-    if (host.isEmpty || pin.isEmpty) {
-      setState(() => _errorMsg = 'Bitte Server-Adresse und PIN eingeben');
+    if (host.isEmpty || token.isEmpty) {
+      setState(() => _errorMsg = 'Bitte Server-Adresse und Pairing-Token eingeben');
       return;
     }
     setState(() { _loading = true; _errorMsg = null; });
-
-    // Build a pseudo-token from PIN — server validates via tokenToPin match
-    // We send the raw PIN and the server maps it back to its pairing token.
-    // For simplicity: the PIN *is* the pairing token here.
-    // (A more robust implementation would do a /api/pairing/lookup?pin=... endpoint.)
-    // Instead we rely on the fact that we obtained the token via mDNS/manual entry + PIN.
-    // The PIN in this system is only useful when combined with the server's IP.
-    setState(() => _errorMsg = 'PIN-basiertes Pairing: Bitte stattdessen QR-Code verwenden oder '
-        'den Pairing-Token direkt eingeben (PIN-Validierung noch nicht implementiert).');
-    setState(() => _loading = false);
+    await _doClaim(host: host, port: port, token: token);
   }
 
   Future<void> _doClaim({required String host, required int port, required String token}) async {
@@ -282,33 +276,79 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
   }
 
   Widget _buildManualTab() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
-            controller: _hostCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Server-IP-Adresse',
-              hintText: '192.168.1.42',
-              prefixIcon: Icon(Icons.dns),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(8),
             ),
-            keyboardType: TextInputType.number,
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Den Pairing-Token am Server-Gerät anzeigen:\n'
+                    'Einstellungen → Synchronisation → QR anzeigen → "Token kopieren".',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(
+              flex: 3,
+              child: TextField(
+                controller: _hostCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Server-IP',
+                  hintText: '192.168.1.42',
+                  prefixIcon: Icon(Icons.dns),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 1,
+              child: TextField(
+                controller: _portCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Port',
+                  hintText: '8765',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ),
+          ]),
           const SizedBox(height: 16),
           TextField(
             controller: _pinCtrl,
             decoration: const InputDecoration(
-              labelText: 'Pairing-Token (aus QR-Code-Daten)',
+              labelText: 'Pairing-Token',
+              hintText: 'eyJ...',
               prefixIcon: Icon(Icons.key),
             ),
-            maxLength: 500,
+            maxLines: 3,
+            maxLength: 1000,
+            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
           ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => _claimWithPin(server: null),
-            icon: const Icon(Icons.link),
-            label: const Text('Verbinden'),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => _claimWithPin(server: null),
+              icon: const Icon(Icons.link),
+              label: const Text('Verbinden'),
+            ),
           ),
         ],
       ),

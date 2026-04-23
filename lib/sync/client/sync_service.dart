@@ -5,6 +5,10 @@ import '../sync_serializer.dart';
 import '../server/sync_auth.dart';
 import 'sync_api_client.dart';
 
+int _countRecords(Map<String, dynamic> tables) => (tables.values)
+    .whereType<List<dynamic>>()
+    .fold(0, (sum, list) => sum + list.length);
+
 enum SyncStatus { idle, syncing, success, error, offline, notConfigured }
 
 class SyncResult {
@@ -12,12 +16,16 @@ class SyncResult {
   final String? message;
   final List<Map<String, dynamic>> conflicts;
   final DateTime? completedAt;
+  final int pulledCount;
+  final int pushedCount;
 
   const SyncResult({
     required this.status,
     this.message,
     this.conflicts = const [],
     this.completedAt,
+    this.pulledCount = 0,
+    this.pushedCount = 0,
   });
 }
 
@@ -44,6 +52,7 @@ class SyncService {
     // Check connectivity first
     final health = await _client.checkHealth();
     if (health == null) {
+      await _log(settings, null, 0, 0, 'offline', 'Server nicht erreichbar');
       return const SyncResult(status: SyncStatus.offline, message: 'Server nicht erreichbar');
     }
 
@@ -59,14 +68,17 @@ class SyncService {
     // ── Pull ──────────────────────────────────────────────────────────────
     final pullData = await _client.pull(since: lastPullAt);
     if (pullData == null) {
+      await _log(settings, peerName, 0, 0, 'error', 'Pull fehlgeschlagen');
       return const SyncResult(status: SyncStatus.error, message: 'Pull fehlgeschlagen');
     }
 
     final now = DateTime.now();
+    int pulledCount = 0;
 
     await db.transaction(() async {
       final tables = pullData['tables'] as Map<String, dynamic>? ?? {};
       final deletions = pullData['deletions'] as List<dynamic>? ?? [];
+      pulledCount = _countRecords(tables) + deletions.length;
 
       // Apply tombstones first
       for (final d in deletions) {
@@ -88,21 +100,27 @@ class SyncService {
     final lastPushAt = syncStateRow?.lastPushAt;
     final pushPayload = await _buildPushPayload(lastPushAt);
     pushPayload['deviceId'] = settings.deviceId;
+    final pushTables = pushPayload['tables'] as Map<String, dynamic>? ?? {};
+    final pushDeletions = pushPayload['deletions'] as List<dynamic>? ?? [];
+    final pushedCount = _countRecords(pushTables) + pushDeletions.length;
 
     final conflicts = await _client.push(pushPayload) ?? [];
 
-    // Update sync state
+    // Update sync state + write log
     await db.into(db.syncState).insertOnConflictUpdate(SyncStateCompanion(
       peerId: Value(peerId),
       peerName: Value(peerName),
       lastPullAt: Value(now),
       lastPushAt: Value(now),
     ));
+    await _log(settings, peerName, pulledCount, pushedCount, 'success', null);
 
     return SyncResult(
       status: SyncStatus.success,
       conflicts: conflicts,
       completedAt: now,
+      pulledCount: pulledCount,
+      pushedCount: pushedCount,
     );
   }
 
@@ -248,7 +266,31 @@ class SyncService {
 
   Future<void> unpair() async {
     await SyncAuth.clearClientTokens();
-    // Clear sync state
     await db.delete(db.syncState).go();
+  }
+
+  Future<void> _log(
+    AppSettings settings,
+    String? peerName,
+    int pulled,
+    int pushed,
+    String status,
+    String? errorMessage,
+  ) async {
+    await db.into(db.syncLogs).insert(SyncLogsCompanion.insert(
+      syncedAt: Value(DateTime.now()),
+      deviceName: settings.effectiveDeviceName,
+      peerName: Value(peerName),
+      pulledCount: Value(pulled),
+      pushedCount: Value(pushed),
+      status: status,
+      errorMessage: Value(errorMessage),
+    ));
+    // Keep only the last 100 log entries
+    await db.customStatement('''
+      DELETE FROM sync_logs WHERE id NOT IN (
+        SELECT id FROM sync_logs ORDER BY id DESC LIMIT 100
+      )
+    ''');
   }
 }

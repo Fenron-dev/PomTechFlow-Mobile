@@ -232,6 +232,26 @@ class _PairingQrScreenState extends ConsumerState<PairingQrScreen> {
                     style: Theme.of(context).textTheme.bodySmall,
                     textAlign: TextAlign.center,
                   ),
+
+                  // ── Token für Desktop ──────────────────────────────────
+                  if (_qrData != null) ...[
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    Text('Token für Desktop (Manuell-Tab)',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Am Client-Gerät: Einstellungen → Synchronisation → Pairing → Manuell',
+                      style: Theme.of(context).textTheme.bodySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    _DesktopTokenCard(
+                      ip: _currentIp,
+                      qrData: _qrData!,
+                    ),
+                  ],
                   const SizedBox(height: 32),
                 ],
               ),
@@ -244,4 +264,106 @@ class _IpEntry {
   final String interfaceName;
   final String address;
   const _IpEntry(this.interfaceName, this.address);
+}
+
+class _DesktopTokenCard extends StatelessWidget {
+  final String ip;
+  final String qrData;
+  const _DesktopTokenCard({required this.ip, required this.qrData});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    Map<String, dynamic>? decoded;
+    try { decoded = jsonDecode(qrData) as Map<String, dynamic>?; } catch (_) {}
+    final token = decoded?['token'] as String? ?? '';
+    final port = decoded?['port'] as int? ?? 8765;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _TokenRow(label: 'IP', value: ip, context: context),
+          const SizedBox(height: 6),
+          _TokenRow(label: 'Port', value: '$port', context: context),
+          const SizedBox(height: 6),
+          _TokenRow(label: 'Token', value: token, context: context, mono: true, multiLine: true),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.copy, size: 16),
+              label: const Text('Alles kopieren'),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(
+                  text: 'IP: $ip\nPort: $port\nToken: $token',
+                ));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('In Zwischenablage kopiert'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TokenRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final BuildContext context;
+  final bool mono;
+  final bool multiLine;
+  const _TokenRow({
+    required this.label,
+    required this.value,
+    required this.context,
+    this.mono = false,
+    this.multiLine = false,
+  });
+
+  @override
+  Widget build(BuildContext _) {
+    return Row(
+      crossAxisAlignment: multiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 44,
+          child: Text('$label:',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelSmall
+                  ?.copyWith(color: Theme.of(context).colorScheme.outline)),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontFamily: mono ? 'monospace' : null,
+                  fontSize: 11,
+                ),
+            maxLines: multiLine ? 4 : 1,
+            overflow: multiLine ? TextOverflow.visible : TextOverflow.ellipsis,
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.copy, size: 16),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          onPressed: () => Clipboard.setData(ClipboardData(text: value)),
+        ),
+      ],
+    );
+  }
 }

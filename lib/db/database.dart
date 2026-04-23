@@ -333,6 +333,19 @@ class SyncState extends Table {
   Set<Column> get primaryKey => {peerId};
 }
 
+// v18: Sync-Protokoll — jeder Sync-Vorgang wird hier festgehalten
+class SyncLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get syncedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceName => text()();
+  TextColumn get peerName => text().nullable()();
+  IntColumn get pulledCount => integer().withDefault(const Constant(0))();
+  IntColumn get pushedCount => integer().withDefault(const Constant(0))();
+  // status: success | error | offline | notConfigured
+  TextColumn get status => text()();
+  TextColumn get errorMessage => text().nullable()();
+}
+
 // ─── Datenbank ────────────────────────────────────────────────────────────────
 
 @DriftDatabase(tables: [
@@ -360,12 +373,13 @@ class SyncState extends Table {
   KnowledgeEntries,
   SyncDeletions,
   SyncState,
+  SyncLogs,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   // ── Migration helpers ────────────────────────────────────────────────────────
 
@@ -530,9 +544,12 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(syncState);
       }
       if (from < 17) {
-        // v16 → v17: Techniker-Zuweisung auf Tasks
         if (!await _hasColumn('tasks', 'assigned_to'))
           await m.addColumn(tasks, tasks.assignedTo);
+      }
+      if (from < 18) {
+        if (!await _hasTable('sync_logs'))
+          await m.createTable(syncLogs);
       }
     },
   );

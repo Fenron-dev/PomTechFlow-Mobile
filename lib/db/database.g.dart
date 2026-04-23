@@ -11036,6 +11036,518 @@ class SyncStateCompanion extends UpdateCompanion<SyncStateData> {
   }
 }
 
+class $SyncLogsTable extends SyncLogs with TableInfo<$SyncLogsTable, SyncLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deviceNameMeta = const VerificationMeta(
+    'deviceName',
+  );
+  @override
+  late final GeneratedColumn<String> deviceName = GeneratedColumn<String>(
+    'device_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _peerNameMeta = const VerificationMeta(
+    'peerName',
+  );
+  @override
+  late final GeneratedColumn<String> peerName = GeneratedColumn<String>(
+    'peer_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pulledCountMeta = const VerificationMeta(
+    'pulledCount',
+  );
+  @override
+  late final GeneratedColumn<int> pulledCount = GeneratedColumn<int>(
+    'pulled_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _pushedCountMeta = const VerificationMeta(
+    'pushedCount',
+  );
+  @override
+  late final GeneratedColumn<int> pushedCount = GeneratedColumn<int>(
+    'pushed_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _errorMessageMeta = const VerificationMeta(
+    'errorMessage',
+  );
+  @override
+  late final GeneratedColumn<String> errorMessage = GeneratedColumn<String>(
+    'error_message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    syncedAt,
+    deviceName,
+    peerName,
+    pulledCount,
+    pushedCount,
+    status,
+    errorMessage,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncLog> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('device_name')) {
+      context.handle(
+        _deviceNameMeta,
+        deviceName.isAcceptableOrUnknown(data['device_name']!, _deviceNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceNameMeta);
+    }
+    if (data.containsKey('peer_name')) {
+      context.handle(
+        _peerNameMeta,
+        peerName.isAcceptableOrUnknown(data['peer_name']!, _peerNameMeta),
+      );
+    }
+    if (data.containsKey('pulled_count')) {
+      context.handle(
+        _pulledCountMeta,
+        pulledCount.isAcceptableOrUnknown(
+          data['pulled_count']!,
+          _pulledCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pushed_count')) {
+      context.handle(
+        _pushedCountMeta,
+        pushedCount.isAcceptableOrUnknown(
+          data['pushed_count']!,
+          _pushedCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('error_message')) {
+      context.handle(
+        _errorMessageMeta,
+        errorMessage.isAcceptableOrUnknown(
+          data['error_message']!,
+          _errorMessageMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncLog(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      )!,
+      deviceName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_name'],
+      )!,
+      peerName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}peer_name'],
+      ),
+      pulledCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pulled_count'],
+      )!,
+      pushedCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pushed_count'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      errorMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_message'],
+      ),
+    );
+  }
+
+  @override
+  $SyncLogsTable createAlias(String alias) {
+    return $SyncLogsTable(attachedDatabase, alias);
+  }
+}
+
+class SyncLog extends DataClass implements Insertable<SyncLog> {
+  final int id;
+  final DateTime syncedAt;
+  final String deviceName;
+  final String? peerName;
+  final int pulledCount;
+  final int pushedCount;
+  final String status;
+  final String? errorMessage;
+  const SyncLog({
+    required this.id,
+    required this.syncedAt,
+    required this.deviceName,
+    this.peerName,
+    required this.pulledCount,
+    required this.pushedCount,
+    required this.status,
+    this.errorMessage,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['synced_at'] = Variable<DateTime>(syncedAt);
+    map['device_name'] = Variable<String>(deviceName);
+    if (!nullToAbsent || peerName != null) {
+      map['peer_name'] = Variable<String>(peerName);
+    }
+    map['pulled_count'] = Variable<int>(pulledCount);
+    map['pushed_count'] = Variable<int>(pushedCount);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || errorMessage != null) {
+      map['error_message'] = Variable<String>(errorMessage);
+    }
+    return map;
+  }
+
+  SyncLogsCompanion toCompanion(bool nullToAbsent) {
+    return SyncLogsCompanion(
+      id: Value(id),
+      syncedAt: Value(syncedAt),
+      deviceName: Value(deviceName),
+      peerName: peerName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(peerName),
+      pulledCount: Value(pulledCount),
+      pushedCount: Value(pushedCount),
+      status: Value(status),
+      errorMessage: errorMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorMessage),
+    );
+  }
+
+  factory SyncLog.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncLog(
+      id: serializer.fromJson<int>(json['id']),
+      syncedAt: serializer.fromJson<DateTime>(json['syncedAt']),
+      deviceName: serializer.fromJson<String>(json['deviceName']),
+      peerName: serializer.fromJson<String?>(json['peerName']),
+      pulledCount: serializer.fromJson<int>(json['pulledCount']),
+      pushedCount: serializer.fromJson<int>(json['pushedCount']),
+      status: serializer.fromJson<String>(json['status']),
+      errorMessage: serializer.fromJson<String?>(json['errorMessage']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'syncedAt': serializer.toJson<DateTime>(syncedAt),
+      'deviceName': serializer.toJson<String>(deviceName),
+      'peerName': serializer.toJson<String?>(peerName),
+      'pulledCount': serializer.toJson<int>(pulledCount),
+      'pushedCount': serializer.toJson<int>(pushedCount),
+      'status': serializer.toJson<String>(status),
+      'errorMessage': serializer.toJson<String?>(errorMessage),
+    };
+  }
+
+  SyncLog copyWith({
+    int? id,
+    DateTime? syncedAt,
+    String? deviceName,
+    Value<String?> peerName = const Value.absent(),
+    int? pulledCount,
+    int? pushedCount,
+    String? status,
+    Value<String?> errorMessage = const Value.absent(),
+  }) => SyncLog(
+    id: id ?? this.id,
+    syncedAt: syncedAt ?? this.syncedAt,
+    deviceName: deviceName ?? this.deviceName,
+    peerName: peerName.present ? peerName.value : this.peerName,
+    pulledCount: pulledCount ?? this.pulledCount,
+    pushedCount: pushedCount ?? this.pushedCount,
+    status: status ?? this.status,
+    errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
+  );
+  SyncLog copyWithCompanion(SyncLogsCompanion data) {
+    return SyncLog(
+      id: data.id.present ? data.id.value : this.id,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deviceName: data.deviceName.present
+          ? data.deviceName.value
+          : this.deviceName,
+      peerName: data.peerName.present ? data.peerName.value : this.peerName,
+      pulledCount: data.pulledCount.present
+          ? data.pulledCount.value
+          : this.pulledCount,
+      pushedCount: data.pushedCount.present
+          ? data.pushedCount.value
+          : this.pushedCount,
+      status: data.status.present ? data.status.value : this.status,
+      errorMessage: data.errorMessage.present
+          ? data.errorMessage.value
+          : this.errorMessage,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncLog(')
+          ..write('id: $id, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deviceName: $deviceName, ')
+          ..write('peerName: $peerName, ')
+          ..write('pulledCount: $pulledCount, ')
+          ..write('pushedCount: $pushedCount, ')
+          ..write('status: $status, ')
+          ..write('errorMessage: $errorMessage')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    syncedAt,
+    deviceName,
+    peerName,
+    pulledCount,
+    pushedCount,
+    status,
+    errorMessage,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncLog &&
+          other.id == this.id &&
+          other.syncedAt == this.syncedAt &&
+          other.deviceName == this.deviceName &&
+          other.peerName == this.peerName &&
+          other.pulledCount == this.pulledCount &&
+          other.pushedCount == this.pushedCount &&
+          other.status == this.status &&
+          other.errorMessage == this.errorMessage);
+}
+
+class SyncLogsCompanion extends UpdateCompanion<SyncLog> {
+  final Value<int> id;
+  final Value<DateTime> syncedAt;
+  final Value<String> deviceName;
+  final Value<String?> peerName;
+  final Value<int> pulledCount;
+  final Value<int> pushedCount;
+  final Value<String> status;
+  final Value<String?> errorMessage;
+  const SyncLogsCompanion({
+    this.id = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deviceName = const Value.absent(),
+    this.peerName = const Value.absent(),
+    this.pulledCount = const Value.absent(),
+    this.pushedCount = const Value.absent(),
+    this.status = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+  });
+  SyncLogsCompanion.insert({
+    this.id = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    required String deviceName,
+    this.peerName = const Value.absent(),
+    this.pulledCount = const Value.absent(),
+    this.pushedCount = const Value.absent(),
+    required String status,
+    this.errorMessage = const Value.absent(),
+  }) : deviceName = Value(deviceName),
+       status = Value(status);
+  static Insertable<SyncLog> custom({
+    Expression<int>? id,
+    Expression<DateTime>? syncedAt,
+    Expression<String>? deviceName,
+    Expression<String>? peerName,
+    Expression<int>? pulledCount,
+    Expression<int>? pushedCount,
+    Expression<String>? status,
+    Expression<String>? errorMessage,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deviceName != null) 'device_name': deviceName,
+      if (peerName != null) 'peer_name': peerName,
+      if (pulledCount != null) 'pulled_count': pulledCount,
+      if (pushedCount != null) 'pushed_count': pushedCount,
+      if (status != null) 'status': status,
+      if (errorMessage != null) 'error_message': errorMessage,
+    });
+  }
+
+  SyncLogsCompanion copyWith({
+    Value<int>? id,
+    Value<DateTime>? syncedAt,
+    Value<String>? deviceName,
+    Value<String?>? peerName,
+    Value<int>? pulledCount,
+    Value<int>? pushedCount,
+    Value<String>? status,
+    Value<String?>? errorMessage,
+  }) {
+    return SyncLogsCompanion(
+      id: id ?? this.id,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deviceName: deviceName ?? this.deviceName,
+      peerName: peerName ?? this.peerName,
+      pulledCount: pulledCount ?? this.pulledCount,
+      pushedCount: pushedCount ?? this.pushedCount,
+      status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deviceName.present) {
+      map['device_name'] = Variable<String>(deviceName.value);
+    }
+    if (peerName.present) {
+      map['peer_name'] = Variable<String>(peerName.value);
+    }
+    if (pulledCount.present) {
+      map['pulled_count'] = Variable<int>(pulledCount.value);
+    }
+    if (pushedCount.present) {
+      map['pushed_count'] = Variable<int>(pushedCount.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (errorMessage.present) {
+      map['error_message'] = Variable<String>(errorMessage.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deviceName: $deviceName, ')
+          ..write('peerName: $peerName, ')
+          ..write('pulledCount: $pulledCount, ')
+          ..write('pushedCount: $pushedCount, ')
+          ..write('status: $status, ')
+          ..write('errorMessage: $errorMessage')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11071,6 +11583,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $SyncDeletionsTable syncDeletions = $SyncDeletionsTable(this);
   late final $SyncStateTable syncState = $SyncStateTable(this);
+  late final $SyncLogsTable syncLogs = $SyncLogsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11100,6 +11613,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     knowledgeEntries,
     syncDeletions,
     syncState,
+    syncLogs,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -20072,6 +20586,259 @@ typedef $$SyncStateTableProcessedTableManager =
       SyncStateData,
       PrefetchHooks Function()
     >;
+typedef $$SyncLogsTableCreateCompanionBuilder =
+    SyncLogsCompanion Function({
+      Value<int> id,
+      Value<DateTime> syncedAt,
+      required String deviceName,
+      Value<String?> peerName,
+      Value<int> pulledCount,
+      Value<int> pushedCount,
+      required String status,
+      Value<String?> errorMessage,
+    });
+typedef $$SyncLogsTableUpdateCompanionBuilder =
+    SyncLogsCompanion Function({
+      Value<int> id,
+      Value<DateTime> syncedAt,
+      Value<String> deviceName,
+      Value<String?> peerName,
+      Value<int> pulledCount,
+      Value<int> pushedCount,
+      Value<String> status,
+      Value<String?> errorMessage,
+    });
+
+class $$SyncLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncLogsTable> {
+  $$SyncLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get peerName => $composableBuilder(
+    column: $table.peerName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pulledCount => $composableBuilder(
+    column: $table.pulledCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pushedCount => $composableBuilder(
+    column: $table.pushedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncLogsTable> {
+  $$SyncLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get peerName => $composableBuilder(
+    column: $table.peerName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pulledCount => $composableBuilder(
+    column: $table.pulledCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pushedCount => $composableBuilder(
+    column: $table.pushedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncLogsTable> {
+  $$SyncLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get peerName =>
+      $composableBuilder(column: $table.peerName, builder: (column) => column);
+
+  GeneratedColumn<int> get pulledCount => $composableBuilder(
+    column: $table.pulledCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get pushedCount => $composableBuilder(
+    column: $table.pushedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => column,
+  );
+}
+
+class $$SyncLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncLogsTable,
+          SyncLog,
+          $$SyncLogsTableFilterComposer,
+          $$SyncLogsTableOrderingComposer,
+          $$SyncLogsTableAnnotationComposer,
+          $$SyncLogsTableCreateCompanionBuilder,
+          $$SyncLogsTableUpdateCompanionBuilder,
+          (SyncLog, BaseReferences<_$AppDatabase, $SyncLogsTable, SyncLog>),
+          SyncLog,
+          PrefetchHooks Function()
+        > {
+  $$SyncLogsTableTableManager(_$AppDatabase db, $SyncLogsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<DateTime> syncedAt = const Value.absent(),
+                Value<String> deviceName = const Value.absent(),
+                Value<String?> peerName = const Value.absent(),
+                Value<int> pulledCount = const Value.absent(),
+                Value<int> pushedCount = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> errorMessage = const Value.absent(),
+              }) => SyncLogsCompanion(
+                id: id,
+                syncedAt: syncedAt,
+                deviceName: deviceName,
+                peerName: peerName,
+                pulledCount: pulledCount,
+                pushedCount: pushedCount,
+                status: status,
+                errorMessage: errorMessage,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<DateTime> syncedAt = const Value.absent(),
+                required String deviceName,
+                Value<String?> peerName = const Value.absent(),
+                Value<int> pulledCount = const Value.absent(),
+                Value<int> pushedCount = const Value.absent(),
+                required String status,
+                Value<String?> errorMessage = const Value.absent(),
+              }) => SyncLogsCompanion.insert(
+                id: id,
+                syncedAt: syncedAt,
+                deviceName: deviceName,
+                peerName: peerName,
+                pulledCount: pulledCount,
+                pushedCount: pushedCount,
+                status: status,
+                errorMessage: errorMessage,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncLogsTable,
+      SyncLog,
+      $$SyncLogsTableFilterComposer,
+      $$SyncLogsTableOrderingComposer,
+      $$SyncLogsTableAnnotationComposer,
+      $$SyncLogsTableCreateCompanionBuilder,
+      $$SyncLogsTableUpdateCompanionBuilder,
+      (SyncLog, BaseReferences<_$AppDatabase, $SyncLogsTable, SyncLog>),
+      SyncLog,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -20124,4 +20891,6 @@ class $AppDatabaseManager {
       $$SyncDeletionsTableTableManager(_db, _db.syncDeletions);
   $$SyncStateTableTableManager get syncState =>
       $$SyncStateTableTableManager(_db, _db.syncState);
+  $$SyncLogsTableTableManager get syncLogs =>
+      $$SyncLogsTableTableManager(_db, _db.syncLogs);
 }
