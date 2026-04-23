@@ -9,7 +9,6 @@ import '../../sync/client/sync_service.dart';
 import '../../sync/ui/pairing_qr_screen.dart';
 import '../../sync/ui/pairing_flow_screen.dart';
 import '../../sync/discovery/mdns_service.dart';
-import '../../db/database.dart';
 
 class SyncSettingsScreen extends ConsumerStatefulWidget {
   const SyncSettingsScreen({super.key});
