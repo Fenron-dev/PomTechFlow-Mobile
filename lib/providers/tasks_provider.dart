@@ -174,6 +174,48 @@ Future<void> hideFromDashboard(AppDatabase db, String taskId) async {
   );
 }
 
+/// Markiert einen Task als erledigt und legt – falls wiederkehrend – die
+/// nächste Wiederholung an. Gemeinsame Logik für Task-Detail und Dashboard,
+/// damit die Recurrence nicht umgangen wird.
+Future<void> markTaskDone(AppDatabase db, String taskId) async {
+  final task = await (db.select(db.tasks)..where((t) => t.id.equals(taskId)))
+      .getSingleOrNull();
+  await (db.update(db.tasks)..where((t) => t.id.equals(taskId))).write(
+    TasksCompanion(
+      status: const drift.Value('COMPLETED'),
+      updatedAt: drift.Value(DateTime.now()),
+    ),
+  );
+
+  if (task != null && task.recurring && task.recurrenceType != null) {
+    final nextDate = nextRecurrenceDate(task.plannedDate ?? DateTime.now(),
+        task.recurrenceType!, task.recurrenceInterval);
+    await db.into(db.tasks).insert(TasksCompanion.insert(
+          title: task.title,
+          description: drift.Value(task.description),
+          customerId: drift.Value(task.customerId),
+          plannedDate: drift.Value(nextDate),
+          recurring: const drift.Value(true),
+          recurrenceType: drift.Value(task.recurrenceType),
+          recurrenceInterval: drift.Value(task.recurrenceInterval),
+          updatedAt: drift.Value(DateTime.now()),
+        ));
+  }
+}
+
+/// Nächstes Wiederholungsdatum für einen wiederkehrenden Task.
+DateTime nextRecurrenceDate(DateTime base, String type, int interval) {
+  return switch (type) {
+    'DAILY' => base.add(Duration(days: interval)),
+    'WEEKLY' => base.add(Duration(days: 7 * interval)),
+    'MONTHLY' =>
+      DateTime(base.year, base.month + interval, base.day, base.hour, base.minute),
+    'QUARTERLY' => DateTime(
+        base.year, base.month + (3 * interval), base.day, base.hour, base.minute),
+    _ => base.add(Duration(days: 7 * interval)),
+  };
+}
+
 // ── Techniker-Filter ──────────────────────────────────────────────────────────
 
 /// true = nur eigene Tasks + unzugewiesene; false = alle

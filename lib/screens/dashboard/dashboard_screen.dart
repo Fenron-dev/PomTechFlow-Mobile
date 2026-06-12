@@ -285,6 +285,22 @@ class DashboardScreen extends ConsumerWidget {
                                   ref.invalidate(tasksProvider);
                                 }
                               : null,
+                          onComplete: entry == null
+                              ? () async {
+                                  await markTaskDone(
+                                      ref.read(databaseProvider), t.task.id);
+                                  ref.invalidate(tasksProvider);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            '„${t.task.title}" erledigt'),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                }
+                              : null,
                         );
                       }),
                   ]),
@@ -570,6 +586,7 @@ class _FocusTaskRow extends StatelessWidget {
   final VoidCallback? onTimerResume;
   final VoidCallback? onTimerStop;
   final VoidCallback? onHide;
+  final VoidCallback? onComplete;
 
   const _FocusTaskRow({
     required this.task,
@@ -584,6 +601,7 @@ class _FocusTaskRow extends StatelessWidget {
     this.onTimerResume,
     this.onTimerStop,
     this.onHide,
+    this.onComplete,
   });
 
   @override
@@ -671,16 +689,29 @@ class _FocusTaskRow extends StatelessWidget {
                         child: Icon(Icons.stop_circle_outlined,
                             color: cs.error, size: 28),
                       ),
-                    ] else if (onHide != null) ...[
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: onHide,
-                        child: Tooltip(
-                          message: 'Aus „Im Blick" ausblenden',
-                          child: Icon(Icons.visibility_off_outlined,
-                              color: cs.outline, size: 24),
+                    ] else ...[
+                      if (onComplete != null) ...[
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: onComplete,
+                          child: Tooltip(
+                            message: 'Als erledigt markieren',
+                            child: Icon(Icons.check_circle_outline,
+                                color: Colors.green.shade600, size: 26),
+                          ),
                         ),
-                      ),
+                      ],
+                      if (onHide != null) ...[
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: onHide,
+                          child: Tooltip(
+                            message: 'Aus „Im Blick" ausblenden',
+                            child: Icon(Icons.visibility_off_outlined,
+                                color: cs.outline, size: 24),
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                 ),
