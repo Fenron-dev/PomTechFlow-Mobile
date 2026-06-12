@@ -106,6 +106,10 @@ class MultiTimerNotifier extends Notifier<Map<String, TimerEntry>> {
       TasksCompanion(
         status: const drift.Value('ACTIVE'),
         updatedAt: drift.Value(DateTime.now()),
+        // Beim Timer-Start ans Dashboard pinnen und ein evtl. „heute
+        // ausgeblendet" zurücksetzen, damit der Task wieder im Blick ist.
+        dashboardPinned: const drift.Value(true),
+        dashboardDismissedAt: const drift.Value(null),
       ),
     );
 

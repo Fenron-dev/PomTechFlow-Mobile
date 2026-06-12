@@ -141,6 +141,39 @@ final sessionsProvider =
       .get();
 });
 
+// ── Dashboard „Im Blick" ──────────────────────────────────────────────────────
+
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+/// Entscheidet, ob ein Task in der Dashboard-Sektion „Im Blick" erscheint.
+/// [hasActiveTimer] = laufender oder pausierter Timer für diesen Task.
+///
+/// Sichtbar wenn: aktiver Timer ODER ans Dashboard gepinnt ODER heute geplant.
+/// Bleibt sichtbar bis manuell abgewählt (`dashboardDismissedAt` = heute) oder
+/// erledigt/archiviert. Ein aktiver Timer hat immer Vorrang.
+bool isFocusTask(Task t, {required bool hasActiveTimer, DateTime? now}) {
+  if (t.status == 'COMPLETED' || t.archivedAt != null) return false;
+  if (hasActiveTimer) return true;
+  final ref = now ?? DateTime.now();
+  final dismissedToday =
+      t.dashboardDismissedAt != null && _sameDay(t.dashboardDismissedAt!, ref);
+  if (dismissedToday) return false;
+  if (t.dashboardPinned) return true;
+  if (t.plannedDate != null && _sameDay(t.plannedDate!, ref)) return true;
+  return false;
+}
+
+/// Blendet einen Task aus „Im Blick" aus (für heute) bzw. entfernt den Pin.
+Future<void> hideFromDashboard(AppDatabase db, String taskId) async {
+  await (db.update(db.tasks)..where((t) => t.id.equals(taskId))).write(
+    TasksCompanion(
+      dashboardPinned: const drift.Value(false),
+      dashboardDismissedAt: drift.Value(DateTime.now()),
+    ),
+  );
+}
+
 // ── Techniker-Filter ──────────────────────────────────────────────────────────
 
 /// true = nur eigene Tasks + unzugewiesene; false = alle

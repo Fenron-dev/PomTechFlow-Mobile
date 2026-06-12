@@ -66,6 +66,9 @@ class Tasks extends Table {
   DateTimeColumn get archivedAt => dateTime().nullable()(); // NEU v11: null=aktiv, gesetzt=archiviert
   IntColumn get reminderOffsetMinutes => integer().nullable()(); // NEU v13: Erinnerungsvorlauf in Minuten vor plannedDate
   TextColumn get assignedTo => text().nullable()(); // v17: Zugewiesener Techniker
+  // v19: Dashboard-„Im Blick"-Status (gerätelokal, wird NICHT synchronisiert)
+  BoolColumn get dashboardPinned => boolean().withDefault(const Constant(false))(); // beim Timer-Start true; bleibt bis abgewählt/erledigt
+  DateTimeColumn get dashboardDismissedAt => dateTime().nullable()(); // gesetzt = für diesen Tag aus „Im Blick" ausgeblendet
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -379,7 +382,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   // ── Migration helpers ────────────────────────────────────────────────────────
 
@@ -550,6 +553,17 @@ class AppDatabase extends _$AppDatabase {
       if (from < 18) {
         if (!await _hasTable('sync_logs'))
           await m.createTable(syncLogs);
+      }
+      if (from < 19) {
+        final added = !await _hasColumn('tasks', 'dashboard_pinned');
+        if (added) await m.addColumn(tasks, tasks.dashboardPinned);
+        if (!await _hasColumn('tasks', 'dashboard_dismissed_at'))
+          await m.addColumn(tasks, tasks.dashboardDismissedAt);
+        // Laufende Tasks sofort ins Dashboard-„Im Blick" übernehmen.
+        if (added) {
+          await customStatement(
+              "UPDATE tasks SET dashboard_pinned = 1 WHERE status = 'ACTIVE'");
+        }
       }
     },
   );

@@ -1628,6 +1628,32 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _dashboardPinnedMeta = const VerificationMeta(
+    'dashboardPinned',
+  );
+  @override
+  late final GeneratedColumn<bool> dashboardPinned = GeneratedColumn<bool>(
+    'dashboard_pinned',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dashboard_pinned" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _dashboardDismissedAtMeta =
+      const VerificationMeta('dashboardDismissedAt');
+  @override
+  late final GeneratedColumn<DateTime> dashboardDismissedAt =
+      GeneratedColumn<DateTime>(
+        'dashboard_dismissed_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1672,6 +1698,8 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     archivedAt,
     reminderOffsetMinutes,
     assignedTo,
+    dashboardPinned,
+    dashboardDismissedAt,
     createdAt,
     updatedAt,
   ];
@@ -1821,6 +1849,24 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         assignedTo.isAcceptableOrUnknown(data['assigned_to']!, _assignedToMeta),
       );
     }
+    if (data.containsKey('dashboard_pinned')) {
+      context.handle(
+        _dashboardPinnedMeta,
+        dashboardPinned.isAcceptableOrUnknown(
+          data['dashboard_pinned']!,
+          _dashboardPinnedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dashboard_dismissed_at')) {
+      context.handle(
+        _dashboardDismissedAtMeta,
+        dashboardDismissedAt.isAcceptableOrUnknown(
+          data['dashboard_dismissed_at']!,
+          _dashboardDismissedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1914,6 +1960,14 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.string,
         data['${effectivePrefix}assigned_to'],
       ),
+      dashboardPinned: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dashboard_pinned'],
+      )!,
+      dashboardDismissedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}dashboard_dismissed_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1950,6 +2004,8 @@ class Task extends DataClass implements Insertable<Task> {
   final DateTime? archivedAt;
   final int? reminderOffsetMinutes;
   final String? assignedTo;
+  final bool dashboardPinned;
+  final DateTime? dashboardDismissedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Task({
@@ -1971,6 +2027,8 @@ class Task extends DataClass implements Insertable<Task> {
     this.archivedAt,
     this.reminderOffsetMinutes,
     this.assignedTo,
+    required this.dashboardPinned,
+    this.dashboardDismissedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -2016,6 +2074,10 @@ class Task extends DataClass implements Insertable<Task> {
     }
     if (!nullToAbsent || assignedTo != null) {
       map['assigned_to'] = Variable<String>(assignedTo);
+    }
+    map['dashboard_pinned'] = Variable<bool>(dashboardPinned);
+    if (!nullToAbsent || dashboardDismissedAt != null) {
+      map['dashboard_dismissed_at'] = Variable<DateTime>(dashboardDismissedAt);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -2064,6 +2126,10 @@ class Task extends DataClass implements Insertable<Task> {
       assignedTo: assignedTo == null && nullToAbsent
           ? const Value.absent()
           : Value(assignedTo),
+      dashboardPinned: Value(dashboardPinned),
+      dashboardDismissedAt: dashboardDismissedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dashboardDismissedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -2095,6 +2161,10 @@ class Task extends DataClass implements Insertable<Task> {
         json['reminderOffsetMinutes'],
       ),
       assignedTo: serializer.fromJson<String?>(json['assignedTo']),
+      dashboardPinned: serializer.fromJson<bool>(json['dashboardPinned']),
+      dashboardDismissedAt: serializer.fromJson<DateTime?>(
+        json['dashboardDismissedAt'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2121,6 +2191,10 @@ class Task extends DataClass implements Insertable<Task> {
       'archivedAt': serializer.toJson<DateTime?>(archivedAt),
       'reminderOffsetMinutes': serializer.toJson<int?>(reminderOffsetMinutes),
       'assignedTo': serializer.toJson<String?>(assignedTo),
+      'dashboardPinned': serializer.toJson<bool>(dashboardPinned),
+      'dashboardDismissedAt': serializer.toJson<DateTime?>(
+        dashboardDismissedAt,
+      ),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2145,6 +2219,8 @@ class Task extends DataClass implements Insertable<Task> {
     Value<DateTime?> archivedAt = const Value.absent(),
     Value<int?> reminderOffsetMinutes = const Value.absent(),
     Value<String?> assignedTo = const Value.absent(),
+    bool? dashboardPinned,
+    Value<DateTime?> dashboardDismissedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Task(
@@ -2176,6 +2252,10 @@ class Task extends DataClass implements Insertable<Task> {
         ? reminderOffsetMinutes.value
         : this.reminderOffsetMinutes,
     assignedTo: assignedTo.present ? assignedTo.value : this.assignedTo,
+    dashboardPinned: dashboardPinned ?? this.dashboardPinned,
+    dashboardDismissedAt: dashboardDismissedAt.present
+        ? dashboardDismissedAt.value
+        : this.dashboardDismissedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -2223,6 +2303,12 @@ class Task extends DataClass implements Insertable<Task> {
       assignedTo: data.assignedTo.present
           ? data.assignedTo.value
           : this.assignedTo,
+      dashboardPinned: data.dashboardPinned.present
+          ? data.dashboardPinned.value
+          : this.dashboardPinned,
+      dashboardDismissedAt: data.dashboardDismissedAt.present
+          ? data.dashboardDismissedAt.value
+          : this.dashboardDismissedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -2249,6 +2335,8 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('archivedAt: $archivedAt, ')
           ..write('reminderOffsetMinutes: $reminderOffsetMinutes, ')
           ..write('assignedTo: $assignedTo, ')
+          ..write('dashboardPinned: $dashboardPinned, ')
+          ..write('dashboardDismissedAt: $dashboardDismissedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2256,7 +2344,7 @@ class Task extends DataClass implements Insertable<Task> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     title,
     description,
@@ -2275,9 +2363,11 @@ class Task extends DataClass implements Insertable<Task> {
     archivedAt,
     reminderOffsetMinutes,
     assignedTo,
+    dashboardPinned,
+    dashboardDismissedAt,
     createdAt,
     updatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2300,6 +2390,8 @@ class Task extends DataClass implements Insertable<Task> {
           other.archivedAt == this.archivedAt &&
           other.reminderOffsetMinutes == this.reminderOffsetMinutes &&
           other.assignedTo == this.assignedTo &&
+          other.dashboardPinned == this.dashboardPinned &&
+          other.dashboardDismissedAt == this.dashboardDismissedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -2323,6 +2415,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<DateTime?> archivedAt;
   final Value<int?> reminderOffsetMinutes;
   final Value<String?> assignedTo;
+  final Value<bool> dashboardPinned;
+  final Value<DateTime?> dashboardDismissedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -2345,6 +2439,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.archivedAt = const Value.absent(),
     this.reminderOffsetMinutes = const Value.absent(),
     this.assignedTo = const Value.absent(),
+    this.dashboardPinned = const Value.absent(),
+    this.dashboardDismissedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2368,6 +2464,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.archivedAt = const Value.absent(),
     this.reminderOffsetMinutes = const Value.absent(),
     this.assignedTo = const Value.absent(),
+    this.dashboardPinned = const Value.absent(),
+    this.dashboardDismissedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2391,6 +2489,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<DateTime>? archivedAt,
     Expression<int>? reminderOffsetMinutes,
     Expression<String>? assignedTo,
+    Expression<bool>? dashboardPinned,
+    Expression<DateTime>? dashboardDismissedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -2416,6 +2516,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (reminderOffsetMinutes != null)
         'reminder_offset_minutes': reminderOffsetMinutes,
       if (assignedTo != null) 'assigned_to': assignedTo,
+      if (dashboardPinned != null) 'dashboard_pinned': dashboardPinned,
+      if (dashboardDismissedAt != null)
+        'dashboard_dismissed_at': dashboardDismissedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -2441,6 +2544,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<DateTime?>? archivedAt,
     Value<int?>? reminderOffsetMinutes,
     Value<String?>? assignedTo,
+    Value<bool>? dashboardPinned,
+    Value<DateTime?>? dashboardDismissedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -2465,6 +2570,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       reminderOffsetMinutes:
           reminderOffsetMinutes ?? this.reminderOffsetMinutes,
       assignedTo: assignedTo ?? this.assignedTo,
+      dashboardPinned: dashboardPinned ?? this.dashboardPinned,
+      dashboardDismissedAt: dashboardDismissedAt ?? this.dashboardDismissedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -2530,6 +2637,14 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (assignedTo.present) {
       map['assigned_to'] = Variable<String>(assignedTo.value);
     }
+    if (dashboardPinned.present) {
+      map['dashboard_pinned'] = Variable<bool>(dashboardPinned.value);
+    }
+    if (dashboardDismissedAt.present) {
+      map['dashboard_dismissed_at'] = Variable<DateTime>(
+        dashboardDismissedAt.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2563,6 +2678,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('archivedAt: $archivedAt, ')
           ..write('reminderOffsetMinutes: $reminderOffsetMinutes, ')
           ..write('assignedTo: $assignedTo, ')
+          ..write('dashboardPinned: $dashboardPinned, ')
+          ..write('dashboardDismissedAt: $dashboardDismissedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -12833,6 +12950,8 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<DateTime?> archivedAt,
       Value<int?> reminderOffsetMinutes,
       Value<String?> assignedTo,
+      Value<bool> dashboardPinned,
+      Value<DateTime?> dashboardDismissedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -12857,6 +12976,8 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<DateTime?> archivedAt,
       Value<int?> reminderOffsetMinutes,
       Value<String?> assignedTo,
+      Value<bool> dashboardPinned,
+      Value<DateTime?> dashboardDismissedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -13086,6 +13207,16 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<String> get assignedTo => $composableBuilder(
     column: $table.assignedTo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dashboardPinned => $composableBuilder(
+    column: $table.dashboardPinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dashboardDismissedAt => $composableBuilder(
+    column: $table.dashboardDismissedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13367,6 +13498,16 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get dashboardPinned => $composableBuilder(
+    column: $table.dashboardPinned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dashboardDismissedAt => $composableBuilder(
+    column: $table.dashboardDismissedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -13480,6 +13621,16 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<String> get assignedTo => $composableBuilder(
     column: $table.assignedTo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get dashboardPinned => $composableBuilder(
+    column: $table.dashboardPinned,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get dashboardDismissedAt => $composableBuilder(
+    column: $table.dashboardDismissedAt,
     builder: (column) => column,
   );
 
@@ -13717,6 +13868,8 @@ class $$TasksTableTableManager
                 Value<DateTime?> archivedAt = const Value.absent(),
                 Value<int?> reminderOffsetMinutes = const Value.absent(),
                 Value<String?> assignedTo = const Value.absent(),
+                Value<bool> dashboardPinned = const Value.absent(),
+                Value<DateTime?> dashboardDismissedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -13739,6 +13892,8 @@ class $$TasksTableTableManager
                 archivedAt: archivedAt,
                 reminderOffsetMinutes: reminderOffsetMinutes,
                 assignedTo: assignedTo,
+                dashboardPinned: dashboardPinned,
+                dashboardDismissedAt: dashboardDismissedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -13763,6 +13918,8 @@ class $$TasksTableTableManager
                 Value<DateTime?> archivedAt = const Value.absent(),
                 Value<int?> reminderOffsetMinutes = const Value.absent(),
                 Value<String?> assignedTo = const Value.absent(),
+                Value<bool> dashboardPinned = const Value.absent(),
+                Value<DateTime?> dashboardDismissedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -13785,6 +13942,8 @@ class $$TasksTableTableManager
                 archivedAt: archivedAt,
                 reminderOffsetMinutes: reminderOffsetMinutes,
                 assignedTo: assignedTo,
+                dashboardPinned: dashboardPinned,
+                dashboardDismissedAt: dashboardDismissedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

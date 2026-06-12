@@ -110,22 +110,36 @@ class DashboardScreen extends ConsumerWidget {
           final visibleTasks = filterByTechnician(tasks, tech, ownOnly: ownOnly);
           final otherTasks = ownOnly ? otherTechnicianTasks(tasks, tech) : <TaskWithDetails>[];
 
-          final active = visibleTasks.where((t) => t.task.status == 'ACTIVE').toList()
-            ..sort(sortByPriorityThenDate);
+          final today = DateTime.now();
+          final active = visibleTasks.where((t) => t.task.status == 'ACTIVE').toList();
           final completed = visibleTasks.where((t) => t.task.status == 'COMPLETED').length;
-          final plannedTasks = visibleTasks.where((t) => t.task.status == 'PLANNED').toList()
+
+          // „Im Blick": laufende/pausierte Timer + gepinnte + heute geplante Tasks.
+          bool hasTimer(String id) => timer[id] != null;
+          int focusRank(TaskWithDetails t) {
+            final st = timer[t.task.id]?.status;
+            if (st == TimerStatus.running) return 0;
+            if (st == TimerStatus.paused) return 1;
+            return 2;
+          }
+          final focusTasks = visibleTasks
+              .where((t) => isFocusTask(t.task,
+                  hasActiveTimer: hasTimer(t.task.id), now: today))
+              .toList()
+            ..sort((a, b) {
+              final r = focusRank(a).compareTo(focusRank(b));
+              if (r != 0) return r;
+              return sortByPriorityThenDate(a, b);
+            });
+          final focusIds = focusTasks.map((t) => t.task.id).toSet();
+
+          // Geplant: zukünftige/undatierte PLANNED-Tasks, die nicht schon „Im Blick" sind.
+          final plannedTasks = visibleTasks
+              .where((t) =>
+                  t.task.status == 'PLANNED' && !focusIds.contains(t.task.id))
+              .toList()
             ..sort(sortByPriorityThenDate);
           final planned = plannedTasks.length;
-          final today = DateTime.now();
-          final todayTasks = visibleTasks.where((t) {
-            if (t.task.status == 'COMPLETED') return false;
-            final d = t.task.plannedDate;
-            if (d == null) return false;
-            return d.year == today.year &&
-                d.month == today.month &&
-                d.day == today.day;
-          }).toList()
-            ..sort(sortByPriorityThenDate);
           final todayStart = DateTime(today.year, today.month, today.day);
           final todayDone = visibleTasks
               .where((t) =>
@@ -199,54 +213,51 @@ class DashboardScreen extends ConsumerWidget {
                 }),
                 const SizedBox(height: 24),
 
-                // ── Heute geplant ───────────────────────────────────────
-                if (todayTasks.isNotEmpty) ...[
-                  _CollapsibleSection(
-                    header: _SectionHeader(
-                      title: 'Heute geplant',
-                      icon: Icons.today,
-                      count: todayTasks.length,
+                // ── Im Blick (laufend / heute / gepinnt) ────────────────
+                _CollapsibleSection(
+                  header: Row(children: [
+                    _SectionHeader(
+                        title: 'Im Blick',
+                        icon: Icons.visibility_outlined,
+                        count: focusTasks.length),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => _quickStart(context, ref),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Timer'),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
-                    child: Column(children: [
-                      const SizedBox(height: 8),
-                      ...todayTasks.map((t) => _PlannedTaskRow(
-                            task: t,
-                            aeMin: aeMin,
-                            onTap: () => context.push('/tasks/${t.task.id}'),
-                          )),
-                      const SizedBox(height: 8),
-                    ]),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Aktive Tasks
-                if (active.isNotEmpty) ...[
-                  _CollapsibleSection(
-                    header: Row(children: [
-                      _SectionHeader(
-                          title: 'Aktiv',
-                          icon: Icons.play_circle_outline,
-                          count: active.length),
-                      const Spacer(),
-                      TextButton(
-                          onPressed: () => context.go('/tasks'),
-                          child: const Text('Alle')),
-                    ]),
-                    child: Column(children: [
-                      const SizedBox(height: 8),
-                      ...active.take(3).map((t) {
-                        final isRunning =
-                            timer[t.task.id]?.status == TimerStatus.running;
-                        final isPaused =
-                            timer[t.task.id]?.status == TimerStatus.paused;
-                        return _TaskRow(
+                  ]),
+                  child: Column(children: [
+                    const SizedBox(height: 8),
+                    if (focusTasks.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 8),
+                        child: Text(
+                          'Nichts im Blick. Starte einen Timer oder plane einen Task für heute.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: cs.outline),
+                        ),
+                      )
+                    else
+                      ...focusTasks.map((t) {
+                        final entry = timer[t.task.id];
+                        final isRunning = entry?.status == TimerStatus.running;
+                        final isPaused = entry?.status == TimerStatus.paused;
+                        return _FocusTaskRow(
                           task: t,
+                          aeMin: aeMin,
+                          elapsed: entry?.timeString,
                           isTimerRunning: isRunning,
                           isTimerPaused: isPaused,
-                          aeMin: aeMin,
+                          today: today,
                           onTap: () => context.push('/tasks/${t.task.id}'),
-                          onTimerStart: !timer.containsKey(t.task.id)
+                          onTimerStart: entry == null
                               ? () async {
                                   await ref
                                       .read(timerProvider.notifier)
@@ -267,15 +278,21 @@ class DashboardScreen extends ConsumerWidget {
                           onTimerStop: (isRunning || isPaused)
                               ? () => handleTimerStop(context, ref, t.task.id)
                               : null,
+                          onHide: entry == null
+                              ? () async {
+                                  await hideFromDashboard(
+                                      ref.read(databaseProvider), t.task.id);
+                                  ref.invalidate(tasksProvider);
+                                }
+                              : null,
                         );
                       }),
-                    ]),
-                  ),
-                ],
+                  ]),
+                ),
+                const SizedBox(height: 16),
 
                 // Geplante Tasks
                 if (planned > 0) ...[
-                  const SizedBox(height: 16),
                   _CollapsibleSection(
                     header: Row(children: [
                       _SectionHeader(
@@ -538,25 +555,70 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
   }
 }
 
-class _PlannedTaskRow extends StatelessWidget {
+/// Zeile in der „Im Blick"-Sektion: großzügige Timer-Steuerung plus
+/// Ausblenden-Aktion (nur wenn kein Timer aktiv ist).
+class _FocusTaskRow extends StatelessWidget {
   final TaskWithDetails task;
   final int aeMin;
+  final String? elapsed; // formatierte Laufzeit, falls Timer aktiv
+  final bool isTimerRunning;
+  final bool isTimerPaused;
+  final DateTime today;
   final VoidCallback onTap;
-  const _PlannedTaskRow(
-      {required this.task, required this.aeMin, required this.onTap});
+  final VoidCallback? onTimerStart;
+  final VoidCallback? onTimerPause;
+  final VoidCallback? onTimerResume;
+  final VoidCallback? onTimerStop;
+  final VoidCallback? onHide;
+
+  const _FocusTaskRow({
+    required this.task,
+    required this.aeMin,
+    required this.elapsed,
+    required this.isTimerRunning,
+    required this.isTimerPaused,
+    required this.today,
+    required this.onTap,
+    this.onTimerStart,
+    this.onTimerPause,
+    this.onTimerResume,
+    this.onTimerStop,
+    this.onHide,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final d = task.task.plannedDate!;
-    final timeStr = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    final cs = Theme.of(context).colorScheme;
+    final isActive = isTimerRunning || isTimerPaused;
     final priorityColor = switch (task.task.priority) {
       'CRITICAL' => Colors.red,
       'HIGH' => Colors.orange,
       'LOW' => Colors.blueGrey.shade300,
       _ => Colors.transparent,
     };
+
+    final pd = task.task.plannedDate;
+    final plannedToday = pd != null &&
+        pd.year == today.year &&
+        pd.month == today.month &&
+        pd.day == today.day;
+
+    final subParts = <String>[
+      if (task.customer != null) task.customer!.name,
+      if (elapsed != null)
+        elapsed!
+      else if (plannedToday)
+        'Heute ${pd.hour.toString().padLeft(2, '0')}:${pd.minute.toString().padLeft(2, '0')}',
+    ];
+
+    final leadingIcon = isTimerRunning
+        ? Icon(Icons.timer, color: cs.primary)
+        : isTimerPaused
+            ? Icon(Icons.pause_circle_outline, color: cs.primary)
+            : Icon(Icons.radio_button_unchecked, color: cs.outline);
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 6),
+      margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.hardEdge,
       child: IntrinsicHeight(
         child: Row(
@@ -567,23 +629,61 @@ class _PlannedTaskRow extends StatelessWidget {
             Expanded(
               child: ListTile(
                 onTap: onTap,
-                leading: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(timeStr,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold)),
-                ),
+                leading: leadingIcon,
                 title: Text(task.task.title,
                     maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle:
-                    task.customer != null ? Text(task.customer!.name) : null,
-                trailing: _StatusDot(status: task.task.status),
+                subtitle: subParts.isEmpty
+                    ? null
+                    : Text(
+                        subParts.join('  ·  '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: isActive
+                            ? TextStyle(
+                                color: isTimerRunning ? cs.primary : cs.outline,
+                                fontWeight: FontWeight.w600,
+                              )
+                            : null,
+                      ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: isTimerRunning
+                          ? onTimerPause
+                          : isTimerPaused
+                              ? onTimerResume
+                              : onTimerStart,
+                      child: Icon(
+                        isTimerRunning
+                            ? Icons.pause_circle
+                            : isTimerPaused
+                                ? Icons.play_circle
+                                : Icons.play_circle_outline,
+                        color: isActive ? cs.primary : cs.outline,
+                        size: 30,
+                      ),
+                    ),
+                    if (isActive) ...[
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: onTimerStop,
+                        child: Icon(Icons.stop_circle_outlined,
+                            color: cs.error, size: 28),
+                      ),
+                    ] else if (onHide != null) ...[
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: onHide,
+                        child: Tooltip(
+                          message: 'Aus „Im Blick" ausblenden',
+                          child: Icon(Icons.visibility_off_outlined,
+                              color: cs.outline, size: 24),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ],
