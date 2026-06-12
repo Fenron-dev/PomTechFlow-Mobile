@@ -104,6 +104,12 @@ jobs:
 
       - name: Windows bauen
         run: flutter build windows --release
+        env:
+          # MSVC 14.51+ macht <experimental/coroutine> (genutzt von
+          # local_auth_windows) zu einem harten Fehler STL1011. Ueber die
+          # CL-Variable definieren wir das Suppress-Makro fuer alle
+          # Uebersetzungseinheiten.
+          CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
 
       - name: ZIP erstellen
         run: |
