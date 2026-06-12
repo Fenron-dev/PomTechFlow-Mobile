@@ -15,6 +15,7 @@ import '../../../services/email_service.dart';
 import '../../../services/zip_export_service.dart';
 import '../../../widgets/timer_session_dialogs.dart';
 import '../../../providers/task_links_provider.dart';
+import '../../customers/customer_detail_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -727,26 +728,36 @@ class _CustomerContactRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.business_outlined, size: 18, color: cs.outline),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Kunde',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelSmall
-                          ?.copyWith(color: cs.outline)),
-                  Text(customer.name,
-                      style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
+        InkWell(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => CustomerDetailScreen(customer: customer),
+          )),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.business_outlined, size: 18, color: cs.outline),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Kunde',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(color: cs.outline)),
+                      Text(customer.name,
+                          style: Theme.of(context).textTheme.bodyMedium),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, size: 18, color: cs.outline),
+              ],
             ),
-          ],
+          ),
         ),
         if (address != null) ...[
           const SizedBox(height: 6),

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:intl/intl.dart';
 import '../../db/database.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/customers_provider.dart';
+import '../../providers/settings_provider.dart';
+import '../tasks/task_detail_screen.dart';
+import '../tasks/task_form_screen.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -19,6 +23,16 @@ final contactsByCustomerProvider =
       .get();
 });
 
+/// Alle (nicht archivierten) Tasks eines Kunden – für das Kunden-Cockpit.
+final customerTasksProvider =
+    FutureProvider.family<List<Task>, String>((ref, customerId) async {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.tasks)
+        ..where((t) => t.customerId.equals(customerId) & t.archivedAt.isNull())
+        ..orderBy([(t) => drift.OrderingTerm.desc(t.updatedAt)]))
+      .get();
+});
+
 // ── Detail-Screen ─────────────────────────────────────────────────────────────
 
 class CustomerDetailScreen extends ConsumerWidget {
@@ -30,7 +44,7 @@ class CustomerDetailScreen extends ConsumerWidget {
     final contactsAsync = ref.watch(contactsByCustomerProvider(customer.id));
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Text(customer.name),
@@ -41,11 +55,14 @@ class CustomerDetailScreen extends ConsumerWidget {
             ),
           ],
           bottom: const TabBar(tabs: [
+            Tab(icon: Icon(Icons.work_outline), text: 'Aufträge'),
             Tab(icon: Icon(Icons.people_outline), text: 'Kontakte'),
             Tab(icon: Icon(Icons.info_outline), text: 'Details'),
           ]),
         ),
         body: TabBarView(children: [
+          // ── Tab: Aufträge & Zeiten ────────────────────────────────────────
+          _TasksTab(customer: customer),
           // ── Tab: Kontakte ─────────────────────────────────────────────────
           _ContactsTab(customer: customer, contactsAsync: contactsAsync, ref: ref),
           // ── Tab: Details ──────────────────────────────────────────────────
@@ -62,6 +79,166 @@ class CustomerDetailScreen extends ConsumerWidget {
       builder: (_) => _CustomerEditForm(customer: customer),
     );
     ref.invalidate(customersProvider);
+  }
+}
+
+// ── Aufträge & Zeiten-Tab (Kunden-Cockpit) ───────────────────────────────────
+
+class _TasksTab extends ConsumerWidget {
+  final Customer customer;
+  const _TasksTab({required this.customer});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksAsync = ref.watch(customerTasksProvider(customer.id));
+    final aeMin = ref.watch(settingsProvider).valueOrNull?.aeMinutes ?? 10;
+    final cs = Theme.of(context).colorScheme;
+    final fmt = DateFormat('dd.MM.yyyy');
+
+    int aeOf(Task t) =>
+        t.totalMinutes == 0 ? 0 : (t.totalMinutes / aeMin).ceil();
+
+    return Scaffold(
+      body: tasksAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Fehler: $e')),
+        data: (tasks) {
+          if (tasks.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.work_outline,
+                      size: 48, color: cs.outlineVariant),
+                  const SizedBox(height: 12),
+                  const Text('Noch keine Aufträge für diesen Kunden'),
+                ],
+              ),
+            );
+          }
+
+          final totalMin = tasks.fold<int>(0, (s, t) => s + t.totalMinutes);
+          final totalAe = tasks.fold<int>(0, (s, t) => s + aeOf(t));
+          final open = tasks.where((t) => t.status != 'COMPLETED').length;
+          final done = tasks.where((t) => t.status == 'COMPLETED').length;
+          final lastActive = tasks.map((t) => t.updatedAt).fold<DateTime?>(
+              null, (a, b) => a == null || b.isAfter(a) ? b : a);
+
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 20,
+                        runSpacing: 10,
+                        children: [
+                          _Stat(label: 'Aufträge', value: '${tasks.length}'),
+                          _Stat(label: 'Offen', value: '$open'),
+                          _Stat(label: 'Erledigt', value: '$done'),
+                          _Stat(label: 'Gesamt AE', value: '$totalAe'),
+                          _Stat(label: 'Minuten', value: '$totalMin'),
+                        ],
+                      ),
+                      if (lastActive != null) ...[
+                        const SizedBox(height: 10),
+                        Text('Zuletzt aktiv: ${fmt.format(lastActive)}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: cs.outline)),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...tasks.map((t) {
+                final dotColor = switch (t.status) {
+                  'ACTIVE' => Colors.blue,
+                  'COMPLETED' => Colors.green,
+                  _ => cs.outline,
+                };
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  child: ListTile(
+                    dense: true,
+                    leading: Container(
+                      width: 10,
+                      height: 10,
+                      decoration:
+                          BoxDecoration(color: dotColor, shape: BoxShape.circle),
+                    ),
+                    title: Text(
+                      t.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.status == 'COMPLETED'
+                          ? const TextStyle(
+                              decoration: TextDecoration.lineThrough)
+                          : null,
+                    ),
+                    subtitle: t.plannedDate != null
+                        ? Text(fmt.format(t.plannedDate!))
+                        : null,
+                    trailing: Text('${aeOf(t)} AE',
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelMedium
+                            ?.copyWith(color: cs.outline)),
+                    onTap: () async {
+                      await Navigator.of(context).push(MaterialPageRoute<void>(
+                        builder: (_) => TaskDetailScreen(taskId: t.id),
+                      ));
+                      ref.invalidate(customerTasksProvider(customer.id));
+                    },
+                  ),
+                );
+              }),
+              const SizedBox(height: 80),
+            ],
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => TaskFormScreen(initialCustomerId: customer.id),
+          ));
+          ref.invalidate(customerTasksProvider(customer.id));
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Neuer Task'),
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  final String label;
+  final String value;
+  const _Stat({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value,
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold)),
+        Text(label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline)),
+      ],
+    );
   }
 }
 

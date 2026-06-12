@@ -51,6 +51,8 @@ class DashboardScreen extends ConsumerWidget {
             tooltip: 'Menü',
             onSelected: (action) {
               switch (action) {
+                case _DashMenuAction.customers:
+                  context.push('/settings/customers');
                 case _DashMenuAction.settings:
                   context.push('/settings');
                 case _DashMenuAction.statistics:
@@ -60,6 +62,14 @@ class DashboardScreen extends ConsumerWidget {
               }
             },
             itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: _DashMenuAction.customers,
+                child: ListTile(
+                  leading: Icon(Icons.business_outlined),
+                  title: Text('Kunden'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
               PopupMenuItem(
                 value: _DashMenuAction.settings,
                 child: ListTile(
@@ -1249,7 +1259,7 @@ class _QuickNoteCardState extends ConsumerState<_QuickNoteCard> {
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-enum _DashMenuAction { settings, statistics, reports }
+enum _DashMenuAction { customers, settings, statistics, reports }
 
 // ─── Neuer Task – Optionen ────────────────────────────────────────────────────
 
