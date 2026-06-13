@@ -16,6 +16,7 @@ import '../../../services/zip_export_service.dart';
 import '../../../widgets/timer_session_dialogs.dart';
 import '../../../providers/task_links_provider.dart';
 import '../../customers/customer_detail_screen.dart';
+import '../../../widgets/quick_assign_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -383,7 +384,16 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
 
         // Kunde mit Kontakt-Buttons
         if (detail.customer != null)
-          _CustomerContactRow(customer: detail.customer!),
+          _CustomerContactRow(customer: detail.customer!)
+        else
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ActionChip(
+              avatar: const Icon(Icons.add_business_outlined, size: 16),
+              label: const Text('Kunde zuweisen'),
+              onPressed: () => showQuickAssignSheet(context, ref, task.id),
+            ),
+          ),
 
         // Beschreibung
         if (task.description != null && task.description!.isNotEmpty) ...[

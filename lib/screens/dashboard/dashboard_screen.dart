@@ -14,6 +14,7 @@ import '../../providers/task_templates_provider.dart';
 import '../../providers/quick_stopwatch_provider.dart';
 import '../../db/database.dart';
 import '../../widgets/timer_session_dialogs.dart';
+import '../../widgets/quick_assign_sheet.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -311,6 +312,8 @@ class DashboardScreen extends ConsumerWidget {
                                   }
                                 }
                               : null,
+                          onAssign: () =>
+                              showQuickAssignSheet(context, ref, t.task.id),
                         );
                       }),
                   ]),
@@ -597,6 +600,7 @@ class _FocusTaskRow extends StatelessWidget {
   final VoidCallback? onTimerStop;
   final VoidCallback? onHide;
   final VoidCallback? onComplete;
+  final VoidCallback? onAssign;
 
   const _FocusTaskRow({
     required this.task,
@@ -612,6 +616,7 @@ class _FocusTaskRow extends StatelessWidget {
     this.onTimerStop,
     this.onHide,
     this.onComplete,
+    this.onAssign,
   });
 
   @override
@@ -676,6 +681,17 @@ class _FocusTaskRow extends StatelessWidget {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (onAssign != null) ...[
+                      GestureDetector(
+                        onTap: onAssign,
+                        child: Tooltip(
+                          message: 'Kunde / Titel zuordnen',
+                          child: Icon(Icons.sell_outlined,
+                              color: cs.outline, size: 22),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                     GestureDetector(
                       onTap: isTimerRunning
                           ? onTimerPause
@@ -1450,10 +1466,12 @@ Future<void> _quickStart(BuildContext context, WidgetRef ref) async {
 
   final db = ref.read(databaseProvider);
   final taskId = _genUuid();
+  final tech = ref.read(settingsProvider).valueOrNull?.technicianName ?? '';
   await db.into(db.tasks).insert(
         TasksCompanion.insert(
           id: drift.Value(taskId),
           title: title,
+          assignedTo: drift.Value(tech.isEmpty ? null : tech),
         ),
       );
   await ref.read(timerProvider.notifier).start(taskId);
