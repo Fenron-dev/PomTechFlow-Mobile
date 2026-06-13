@@ -91,6 +91,22 @@ class NotificationService {
     _initialized = true;
   }
 
+  /// Wählt den Android-Scheduling-Modus: exakt wenn erlaubt, sonst inexakt.
+  /// Verhindert, dass `zonedSchedule` bei fehlender Exact-Alarm-Berechtigung
+  /// (Android 13/14) eine Exception wirft und die Erinnerung gar nicht geplant
+  /// wird – inexakt feuert dann zwar evtl. minutengenau verzögert, aber feuert.
+  static Future<AndroidScheduleMode> _androidMode() async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return AndroidScheduleMode.exactAllowWhileIdle;
+    }
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    final canExact = await android?.canScheduleExactNotifications() ?? false;
+    return canExact
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.inexactAllowWhileIdle;
+  }
+
   // ── Aktions-Handler ────────────────────────────────────────────────────────
 
   /// Verarbeitet eine Benachrichtigungs-Antwort (Tap oder Aktion).
@@ -146,6 +162,7 @@ class NotificationService {
 
     final scheduledDate = tz.TZDateTime.from(plannedDate, tz.local);
     final id = taskId.hashCode.abs() % 100000;
+    final mode = await _androidMode();
 
     try {
       await _plugin.zonedSchedule(
@@ -186,12 +203,12 @@ class NotificationService {
           ),
         ),
         payload: '$taskId$_kSep$title',
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: mode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
-    } catch (_) {
-      // Exakte Alarme können ohne SCHEDULE_EXACT_ALARM-Berechtigung fehlschlagen
+    } catch (e, st) {
+      debugPrint('NotificationService.scheduleTaskReminder fehlgeschlagen: $e\n$st');
     }
   }
 
@@ -209,6 +226,7 @@ class NotificationService {
 
     final scheduledDate = tz.TZDateTime.from(when, tz.local);
     final id = when.millisecondsSinceEpoch % 100000;
+    final mode = await _androidMode();
 
     try {
       await _plugin.zonedSchedule(
@@ -230,11 +248,13 @@ class NotificationService {
             presentSound: true,
           ),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: mode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('NotificationService.scheduleReminder fehlgeschlagen: $e\n$st');
+    }
   }
 
   // ── Hilfsfunktionen ────────────────────────────────────────────────────────

@@ -3,6 +3,9 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!-- USE_EXACT_ALARM: ab Android 13 automatisch erteilt (Reminder-Funktion),
+         damit Erinnerungen ohne manuelle Freigabe exakt ausgeloest werden. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
     <uses-permission android:name="android.permission.CAMERA"/>
