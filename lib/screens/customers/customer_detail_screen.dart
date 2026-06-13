@@ -8,6 +8,7 @@ import '../../providers/customers_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../tasks/task_detail_screen.dart';
 import '../tasks/task_form_screen.dart';
+import '../../widgets/address_search_field.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -738,6 +739,17 @@ class _CustomerEditFormState extends ConsumerState<_CustomerEditForm> {
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
                   labelText: 'Telefon', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            AddressSearchField(
+              onSelected: (sug) {
+                if (sug.street != null) _streetCtrl.text = sug.street!;
+                if (sug.houseNumber != null) {
+                  _houseNumberCtrl.text = sug.houseNumber!;
+                }
+                if (sug.zip != null) _zipCtrl.text = sug.zip!;
+                if (sug.city != null) _cityCtrl.text = sug.city!;
+              },
             ),
             const SizedBox(height: 12),
             Row(children: [

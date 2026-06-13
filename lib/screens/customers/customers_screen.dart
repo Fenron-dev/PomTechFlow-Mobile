@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/customers_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../db/database.dart';
+import '../../widgets/address_search_field.dart';
 import 'customer_detail_screen.dart';
 
 class CustomersScreen extends ConsumerWidget {
@@ -344,6 +345,14 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 12),
+            AddressSearchField(
+              onSelected: (sug) {
+                _streetCtrl.text = sug.streetLine;
+                if (sug.zip != null) _zipCtrl.text = sug.zip!;
+                if (sug.city != null) _cityCtrl.text = sug.city!;
+              },
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: _streetCtrl,
               decoration: const InputDecoration(labelText: 'Straße / Hausnummer'),
