@@ -644,13 +644,13 @@ class _FocusTaskRow extends StatelessWidget {
         pd.month == today.month &&
         pd.day == today.day;
 
-    final subParts = <String>[
-      if (task.customer != null) task.customer!.name,
-      if (elapsed != null)
-        elapsed!
-      else if (plannedToday)
-        'Heute ${pd.hour.toString().padLeft(2, '0')}:${pd.minute.toString().padLeft(2, '0')}',
-    ];
+    // Zeit (Laufzeit bzw. heutige Plan-Uhrzeit) und Kundenname getrennt halten,
+    // damit ein langer Kundenname die Zeit nicht abschneidet.
+    final timeText = elapsed ??
+        (plannedToday
+            ? 'Heute ${pd.hour.toString().padLeft(2, '0')}:${pd.minute.toString().padLeft(2, '0')}'
+            : null);
+    final customerName = task.customer?.name;
 
     final leadingIcon = isTimerRunning
         ? Icon(Icons.timer, color: cs.primary)
@@ -673,18 +673,32 @@ class _FocusTaskRow extends StatelessWidget {
                 leading: leadingIcon,
                 title: Text(task.task.title,
                     maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: subParts.isEmpty
+                subtitle: (timeText == null && customerName == null)
                     ? null
-                    : Text(
-                        subParts.join('  ·  '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: isActive
-                            ? TextStyle(
-                                color: isTimerRunning ? cs.primary : cs.outline,
+                    : Row(
+                        children: [
+                          if (timeText != null)
+                            Text(
+                              timeText,
+                              style: TextStyle(
+                                color:
+                                    isTimerRunning ? cs.primary : cs.outline,
                                 fontWeight: FontWeight.w600,
-                              )
-                            : null,
+                              ),
+                            ),
+                          if (timeText != null && customerName != null)
+                            Text('  ·  ',
+                                style: TextStyle(color: cs.outline)),
+                          if (customerName != null)
+                            Expanded(
+                              child: Text(
+                                customerName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: cs.outline),
+                              ),
+                            ),
+                        ],
                       ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
