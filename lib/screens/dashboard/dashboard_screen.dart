@@ -38,11 +38,6 @@ class DashboardScreen extends ConsumerWidget {
             onPressed: () => ref.read(ownTasksOnlyProvider.notifier).state = !ownOnly,
           ),
           IconButton(
-            icon: const Icon(Icons.search_outlined),
-            tooltip: 'Suche',
-            onPressed: () => context.push('/search'),
-          ),
-          IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Neuer Task',
             onPressed: () => _showNewTaskOptions(context, ref),
@@ -173,6 +168,19 @@ class DashboardScreen extends ConsumerWidget {
                 child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // Globale Suche (prominent)
+                GestureDetector(
+                  onTap: () => context.push('/search'),
+                  child: AbsorbPointer(
+                    child: SearchBar(
+                      hintText: 'Tasks & Kunden suchen…',
+                      leading: const Icon(Icons.search_outlined),
+                      padding: const WidgetStatePropertyAll(
+                          EdgeInsets.symmetric(horizontal: 16)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 // Schnellstoppuhr
                 const _QuickStopwatchCard(),
                 const SizedBox(height: 12),
@@ -233,7 +241,7 @@ class DashboardScreen extends ConsumerWidget {
                         count: focusTasks.length),
                     const Spacer(),
                     TextButton.icon(
-                      onPressed: () => _quickStart(context, ref),
+                      onPressed: () => _startTimerOptions(context, ref),
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Timer'),
                       style: TextButton.styleFrom(
@@ -1477,6 +1485,139 @@ Future<void> _quickStart(BuildContext context, WidgetRef ref) async {
   await ref.read(timerProvider.notifier).start(taskId);
   ref.invalidate(tasksProvider);
   if (context.mounted) context.push('/tasks/$taskId');
+}
+
+// ─── Timer starten: neu oder bestehender Task ─────────────────────────────────
+
+Future<void> _startTimerOptions(BuildContext context, WidgetRef ref) async {
+  final cs = Theme.of(context).colorScheme;
+  final choice = await showModalBottomSheet<String>(
+    context: context,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Timer starten',
+                  style: Theme.of(ctx).textTheme.titleMedium),
+            ),
+          ),
+          ListTile(
+            leading: Icon(Icons.bolt, color: cs.primary),
+            title: const Text('Neuer Task (Schnellstart)'),
+            subtitle: const Text('Sofort starten, Details später'),
+            onTap: () => Navigator.pop(ctx, 'new'),
+          ),
+          ListTile(
+            leading: Icon(Icons.playlist_play, color: cs.primary),
+            title: const Text('Bestehender Task…'),
+            subtitle: const Text('Timer für einen vorhandenen Task starten'),
+            onTap: () => Navigator.pop(ctx, 'existing'),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+  if (!context.mounted) return;
+  if (choice == 'new') {
+    await _quickStart(context, ref);
+  } else if (choice == 'existing') {
+    await _startExistingTask(context, ref);
+  }
+}
+
+Future<void> _startExistingTask(BuildContext context, WidgetRef ref) async {
+  final all = await ref.read(tasksProvider.future);
+  final timer = ref.read(timerProvider);
+  final candidates = all
+      .where((t) =>
+          t.task.status != 'COMPLETED' && !timer.containsKey(t.task.id))
+      .toList()
+    ..sort((a, b) => b.task.updatedAt.compareTo(a.task.updatedAt));
+  if (!context.mounted) return;
+  if (candidates.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Keine startbaren Tasks vorhanden')),
+    );
+    return;
+  }
+  final selected = await showModalBottomSheet<TaskWithDetails>(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => _ExistingTaskPicker(tasks: candidates),
+  );
+  if (selected == null || !context.mounted) return;
+  await ref.read(timerProvider.notifier).start(selected.task.id);
+  ref.invalidate(tasksProvider);
+  if (context.mounted) context.push('/tasks/${selected.task.id}');
+}
+
+class _ExistingTaskPicker extends StatefulWidget {
+  final List<TaskWithDetails> tasks;
+  const _ExistingTaskPicker({required this.tasks});
+
+  @override
+  State<_ExistingTaskPicker> createState() => _ExistingTaskPickerState();
+}
+
+class _ExistingTaskPickerState extends State<_ExistingTaskPicker> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.tasks.where((t) {
+      if (_q.isEmpty) return true;
+      final s = '${t.task.title} ${t.customer?.name ?? ''}'.toLowerCase();
+      return s.contains(_q);
+    }).toList();
+
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        builder: (ctx, scrollCtrl) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: TextField(
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Task suchen…',
+                  prefixIcon: Icon(Icons.search),
+                  isDense: true,
+                ),
+                onChanged: (v) => setState(() => _q = v.trim().toLowerCase()),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                controller: scrollCtrl,
+                itemCount: filtered.length,
+                itemBuilder: (_, i) {
+                  final t = filtered[i];
+                  return ListTile(
+                    leading: const Icon(Icons.radio_button_unchecked),
+                    title: Text(t.task.title,
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle:
+                        t.customer != null ? Text(t.customer!.name) : null,
+                    onTap: () => Navigator.pop(context, t),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 String _genUuid() {
