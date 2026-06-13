@@ -9,7 +9,7 @@ import '../../providers/tasks_provider.dart';
 import '../../db/database.dart';
 import '../../services/notification_service.dart';
 import '../../providers/settings_provider.dart';
-import '../../widgets/customer_quick_create.dart';
+import '../../widgets/customer_picker.dart';
 import '../knowledge/knowledge_screen.dart' show knowledgeProvider;
 
 class TaskFormScreen extends ConsumerStatefulWidget {
@@ -102,11 +102,6 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     _assignedToCtrl.dispose();
     _budgetCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _createCustomerQuick(BuildContext context) async {
-    final newId = await showQuickCreateCustomerDialog(context, ref);
-    if (newId != null && mounted) setState(() => _customerId = newId);
   }
 
   Future<void> _pickDate() async {
@@ -371,31 +366,39 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             customersAsync.when(
               loading: () => const LinearProgressIndicator(),
               error: (_, _) => const SizedBox(),
-              data: (customers) => Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _customerId,
-                      decoration: const InputDecoration(labelText: 'Kunde'),
-                      items: [
-                        const DropdownMenuItem(
-                            value: null, child: Text('Kein Kunde')),
-                        ...customers.map((c) => DropdownMenuItem(
-                              value: c.id,
-                              child: Text(c.name),
-                            )),
+              data: (customers) {
+                final sel = {for (final c in customers) c.id: c}[_customerId];
+                return InkWell(
+                  onTap: () async {
+                    final res = await showCustomerPicker(context, ref,
+                        selectedId: _customerId);
+                    if (res != null) {
+                      setState(() => _customerId = res.customerId);
+                    }
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Kunde',
+                      prefixIcon: Icon(Icons.business_outlined),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            sel?.name ?? 'Kein Kunde',
+                            style: sel == null
+                                ? TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.outline)
+                                : null,
+                          ),
+                        ),
+                        const Icon(Icons.arrow_drop_down),
                       ],
-                      onChanged: (v) => setState(() => _customerId = v),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.person_add_outlined),
-                    tooltip: 'Neuen Kunden anlegen',
-                    onPressed: () => _createCustomerQuick(context),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
             const SizedBox(height: 16),
 

@@ -6,7 +6,7 @@ import '../providers/database_provider.dart';
 import '../providers/customers_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/tasks_provider.dart';
-import 'customer_quick_create.dart';
+import 'customer_picker.dart';
 
 /// Leichtes Sheet zum schnellen Zuordnen von Titel / Kunde / Techniker an einen
 /// (ggf. laufenden) Task – ohne das volle Bearbeiten-Formular.
@@ -109,30 +109,38 @@ class _QuickAssignSheetState extends ConsumerState<_QuickAssignSheet> {
           customersAsync.when(
             loading: () => const LinearProgressIndicator(),
             error: (e, _) => Text('Fehler: $e'),
-            data: (customers) => Row(children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _customerId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Kunde'),
-                  items: [
-                    const DropdownMenuItem(
-                        value: null, child: Text('Kein Kunde')),
-                    ...customers.map((c) =>
-                        DropdownMenuItem(value: c.id, child: Text(c.name))),
-                  ],
-                  onChanged: (v) => setState(() => _customerId = v),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Neuer Kunde',
-                icon: const Icon(Icons.person_add_outlined),
-                onPressed: () async {
-                  final id = await showQuickCreateCustomerDialog(context, ref);
-                  if (id != null && mounted) setState(() => _customerId = id);
+            data: (customers) {
+              final sel = {for (final c in customers) c.id: c}[_customerId];
+              return InkWell(
+                onTap: () async {
+                  final res = await showCustomerPicker(context, ref,
+                      selectedId: _customerId);
+                  if (res != null) {
+                    setState(() => _customerId = res.customerId);
+                  }
                 },
-              ),
-            ]),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Kunde',
+                    prefixIcon: Icon(Icons.business_outlined),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          sel?.name ?? 'Kein Kunde',
+                          style: sel == null
+                              ? TextStyle(
+                                  color: Theme.of(context).colorScheme.outline)
+                              : null,
+                        ),
+                      ),
+                      const Icon(Icons.arrow_drop_down),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 12),
           TextField(
