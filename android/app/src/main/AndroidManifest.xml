@@ -57,15 +57,21 @@
                 android:resource="@xml/timer_widget_info" />
         </receiver>
 
+        <!-- flutter_local_notifications: Receiver für geplante Erinnerungen.
+             Die Plugin-AAR deklariert diese NICHT selbst – ohne sie hat der
+             AlarmManager-Broadcast keinen Empfänger und zonedSchedule feuert
+             nie (Permission vorhanden, aber kein Push). -->
         <receiver android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
         <receiver android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                <category android:name="android.intent.category.DEFAULT" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
     </application>
