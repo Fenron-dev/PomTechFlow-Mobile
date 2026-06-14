@@ -37,6 +37,7 @@ dependencies:
   image_picker: ^1.2.1
   flutter_local_notifications: ^17.2.4
   timezone: ^0.9.4
+  flutter_timezone: ^1.0.8        # lokale Zeitzone für zonedSchedule
   url_launcher: ^6.3.1
   archive: ^3.6.1
   app_badge_plus: ^1.0.0

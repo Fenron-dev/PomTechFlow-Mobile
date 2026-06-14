@@ -383,6 +383,18 @@ class _ReminderDialogState extends State<_ReminderDialog> {
         ],
       ),
       actions: [
+        TextButton.icon(
+          icon: const Icon(Icons.notifications_active_outlined),
+          label: const Text('Test'),
+          onPressed: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            await NotificationService.showTestNotification();
+            messenger.showSnackBar(const SnackBar(
+              content: Text(
+                  'Test gesendet. Erscheint sie nicht, liegt es an Anzeige/Berechtigung.'),
+            ));
+          },
+        ),
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Abbrechen'),
@@ -391,17 +403,19 @@ class _ReminderDialogState extends State<_ReminderDialog> {
           icon: const Icon(Icons.alarm_on),
           label: const Text('Setzen'),
           onPressed: () async {
-            Navigator.pop(context);
+            final messenger = ScaffoldMessenger.of(context);
             final when = DateTime.now().add(Duration(minutes: _totalMinutes));
             final text = _textCtrl.text.trim().isEmpty
                 ? 'Erinnerung'
                 : _textCtrl.text.trim();
-            await NotificationService.scheduleReminder(text, when);
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('Erinnerung in $_durationLabel: $text'),
-              ));
-            }
+            final label = _durationLabel;
+            Navigator.pop(context);
+            final ok = await NotificationService.scheduleReminder(text, when);
+            messenger.showSnackBar(SnackBar(
+              content: Text(ok
+                  ? 'Erinnerung in $label: $text'
+                  : 'Erinnerung konnte nicht gesetzt werden – Berechtigung prüfen'),
+            ));
           },
         ),
       ],

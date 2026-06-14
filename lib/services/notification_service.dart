@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tzdata;
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:drift/drift.dart' as drift;
 import '../db/database.dart';
 
@@ -43,6 +44,14 @@ class NotificationService {
   static Future<void> initialize() async {
     if (!_supported || _initialized) return;
     tzdata.initializeTimeZones();
+    // Lokale Zeitzone setzen – ohne dies bleibt tz.local UTC und zonedSchedule
+    // kann zur falschen Zeit (oder gar nicht erwartet) feuern.
+    try {
+      final localName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(localName));
+    } catch (e) {
+      debugPrint('NotificationService: Zeitzone nicht gesetzt: $e');
+    }
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -89,6 +98,43 @@ class NotificationService {
         ?.requestNotificationsPermission();
 
     _initialized = true;
+  }
+
+  /// Fordert – falls nötig – die Berechtigung für exakte Alarme an (Android 12+).
+  /// Öffnet ggf. die System-Einstellung. No-op wenn bereits erlaubt.
+  static Future<void> ensureExactAlarmPermission() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    final can = await android?.canScheduleExactNotifications() ?? true;
+    if (!can) await android?.requestExactAlarmsPermission();
+  }
+
+  /// Zeigt sofort eine Test-Benachrichtigung an (umgeht den Alarm-/Zeitplan-Pfad).
+  /// Dient zum Eingrenzen: erscheint sie, funktioniert die Anzeige – dann liegt
+  /// ein evtl. Problem am Scheduling (Exact-Alarm/Doze), nicht an der Berechtigung.
+  static Future<void> showTestNotification() async {
+    if (!_supported) return;
+    await initialize();
+    await _plugin.show(
+      99999,
+      'Test-Benachrichtigung',
+      'Wenn du das siehst, funktionieren Benachrichtigungen ✅',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _kChannelQuick,
+          'Schnell-Erinnerungen',
+          channelDescription: 'Manuelle Erinnerungen vom Timer',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: false,
+          presentSound: true,
+        ),
+      ),
+    );
   }
 
   /// Wählt den Android-Scheduling-Modus: exakt wenn erlaubt, sonst inexakt.
@@ -159,6 +205,7 @@ class NotificationService {
     if (!_supported) return;
     if (plannedDate.isBefore(DateTime.now())) return;
     await initialize();
+    await ensureExactAlarmPermission();
 
     final scheduledDate = tz.TZDateTime.from(plannedDate, tz.local);
     final id = taskId.hashCode.abs() % 100000;
@@ -219,10 +266,11 @@ class NotificationService {
 
   // ── Schnell-Erinnerung (Timer) ─────────────────────────────────────────────
 
-  static Future<void> scheduleReminder(String text, DateTime when) async {
-    if (!_supported) return;
-    if (when.isBefore(DateTime.now())) return;
+  static Future<bool> scheduleReminder(String text, DateTime when) async {
+    if (!_supported) return false;
+    if (when.isBefore(DateTime.now())) return false;
     await initialize();
+    await ensureExactAlarmPermission();
 
     final scheduledDate = tz.TZDateTime.from(when, tz.local);
     final id = when.millisecondsSinceEpoch % 100000;
@@ -252,8 +300,10 @@ class NotificationService {
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
+      return true;
     } catch (e, st) {
       debugPrint('NotificationService.scheduleReminder fehlgeschlagen: $e\n$st');
+      return false;
     }
   }
 
