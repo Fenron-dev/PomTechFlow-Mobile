@@ -3,7 +3,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tzdata;
-import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:drift/drift.dart' as drift;
 import '../db/database.dart';
 
@@ -45,12 +44,30 @@ class NotificationService {
     if (!_supported || _initialized) return;
     tzdata.initializeTimeZones();
     // Lokale Zeitzone setzen – ohne dies bleibt tz.local UTC und zonedSchedule
-    // kann zur falschen Zeit (oder gar nicht erwartet) feuern.
+    // plant zur falschen Zeit. Wir leiten die Zeitzone aus dem Offset von
+    // DateTime.now() ab (kein natives Plugin nötig).
     try {
-      final localName = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(localName));
+      final offset = DateTime.now().timeZoneOffset;
+      final offsetHours = offset.inHours;
+      final offsetMins = offset.inMinutes.abs() % 60;
+      final sign = offsetHours >= 0 ? '+' : '-';
+      final h = offsetHours.abs().toString().padLeft(2, '0');
+      final m = offsetMins.toString().padLeft(2, '0');
+      final etcName = 'Etc/GMT${sign == '+' ? '-' : '+'}${offsetHours.abs()}';
+      // Versuche zuerst den Etc/GMT-Namen (z.B. Etc/GMT-2 für UTC+2)
+      try {
+        tz.setLocalLocation(tz.getLocation(etcName));
+      } catch (_) {
+        // Fallback: ersten Treffer mit passendem UTC-Offset suchen
+        final match = tz.timeZoneDatabase.locations.values.firstWhere(
+          (loc) => loc.currentTimeZone.offset == offset.inMilliseconds,
+          orElse: () => tz.UTC,
+        );
+        tz.setLocalLocation(match);
+      }
+      debugPrint('NotificationService: Zeitzone gesetzt $sign$h:$m');
     } catch (e) {
-      debugPrint('NotificationService: Zeitzone nicht gesetzt: $e');
+      debugPrint('NotificationService: Zeitzone-Fallback UTC: $e');
     }
 
     const androidSettings =
