@@ -44,6 +44,7 @@ String _runPbkdf2(Map<String, dynamic> args) {
 class AppLockService {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    mOptions: MacOsOptions(useDataProtectionKeyChain: false),
   );
   static const _keyHash        = 'ptf_lock_hash';
   static const _keySalt        = 'ptf_lock_salt';

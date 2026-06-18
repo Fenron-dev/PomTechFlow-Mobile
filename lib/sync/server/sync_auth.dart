@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const _kStorage = FlutterSecureStorage(
   aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  mOptions: MacOsOptions(useDataProtectionKeyChain: false),
 );
 const _kSecretKey = 'sync_jwt_secret';
 const _kRefreshTokensKey = 'sync_refresh_tokens';

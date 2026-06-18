@@ -31,6 +31,7 @@ class WebDavFile {
 class WebDavService {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    mOptions: MacOsOptions(useDataProtectionKeyChain: false),
   );
 
   // ── Config persistence ──────────────────────────────────────────────────────
