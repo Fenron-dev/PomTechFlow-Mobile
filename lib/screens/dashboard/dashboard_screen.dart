@@ -188,14 +188,18 @@ class DashboardScreen extends ConsumerWidget {
                 // Schnellnotiz
                 const _QuickNoteCard(),
                 const SizedBox(height: 12),
-                // Stats – 2 Spalten, kompakte horizontale Karten
-                GridView.count(
+                // Stats – 2 Spalten, Ratio abhängig von verfügbarer Breite
+                LayoutBuilder(builder: (context, box) {
+                  // Mobile (~375px) → ~172px pro Karte → ratio 2.2 = ~78px Höhe
+                  // Tablet/Desktop (≥500px) → ~344px pro Karte → ratio 3.2 = ~107px Höhe
+                  final ratio = box.maxWidth >= 480 ? 3.2 : 2.2;
+                  return GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 3.2,
+                  childAspectRatio: ratio,
                   children: [
                     _StatCard(
                       label: 'Gesamt AE',
@@ -226,7 +230,8 @@ class DashboardScreen extends ConsumerWidget {
                       color: cs.surfaceContainerHighest,
                     ),
                   ],
-                ),
+                );
+                }),
                 const SizedBox(height: 24),
 
                 // ── Im Blick (laufend / heute / gepinnt) ────────────────

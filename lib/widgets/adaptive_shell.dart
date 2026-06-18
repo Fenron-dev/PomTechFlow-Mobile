@@ -1,9 +1,10 @@
 import 'dart:io' show Platform;
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:go_router/go_router.dart';
 import 'keyboard_shortcuts.dart';
+import '../screens/settings/device_library_screen.dart';
 
 class AdaptiveShell extends StatelessWidget {
   final StatefulNavigationShell shell;
@@ -18,7 +19,6 @@ class AdaptiveShell extends StatelessWidget {
   ];
 
   void _onDestination(BuildContext context, int i) {
-    // Gleichen Tab erneut antippen → immer zur Root-Ansicht zurück
     shell.goBranch(i, initialLocation: shell.currentIndex == i);
   }
 
@@ -27,7 +27,6 @@ class AdaptiveShell extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= 840;
     final isWide = width >= 1200;
-
     final showMenuBar = !kIsWeb &&
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
@@ -36,44 +35,26 @@ class AdaptiveShell extends StatelessWidget {
         body: Column(
           children: [
             if (showMenuBar) _AppMenuBar(shell: shell),
-            Expanded(child: Row(
-          children: [
-            NavigationRail(
-              extended: isWide,
-              selectedIndex: shell.currentIndex,
-              onDestinationSelected: (i) => _onDestination(context, i),
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: isWide
-                    ? Row(children: [
-                        const Icon(Icons.timer, size: 28),
-                        const SizedBox(width: 10),
-                        Text('PomTechFlow',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold)),
-                      ])
-                    : const Icon(Icons.timer, size: 28),
+            Expanded(
+              child: Row(
+                children: [
+                  _DesktopSidebar(
+                    shell: shell,
+                    destinations: _destinations,
+                    isWide: isWide,
+                    onBranch: (i) => _onDestination(context, i),
+                  ),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(child: shell),
+                ],
               ),
-              destinations: _destinations
-                  .map((d) => NavigationRailDestination(
-                        icon: Icon(d.icon),
-                        selectedIcon: Icon(d.selected),
-                        label: Text(d.label),
-                      ))
-                  .toList(),
             ),
-            const VerticalDivider(thickness: 1, width: 1),
-            Expanded(child: shell),
-          ],
-        )), // Row + Expanded
           ],
         ),
       );
     }
 
-    // Mobile: Bottom Navigation
+    // Mobile / Tablet: Bottom Navigation
     return Scaffold(
       body: shell,
       bottomNavigationBar: NavigationBar(
@@ -86,6 +67,210 @@ class AdaptiveShell extends StatelessWidget {
                   label: d.label,
                 ))
             .toList(),
+      ),
+    );
+  }
+}
+
+// ─── Desktop Sidebar ──────────────────────────────────────────────────────────
+
+class _DesktopSidebar extends StatelessWidget {
+  final StatefulNavigationShell shell;
+  final List<({IconData icon, IconData selected, String label})> destinations;
+  final bool isWide;
+  final void Function(int) onBranch;
+
+  const _DesktopSidebar({
+    required this.shell,
+    required this.destinations,
+    required this.isWide,
+    required this.onBranch,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: isWide ? 204 : 72,
+      child: Column(
+        children: [
+          // ── Logo ──────────────────────────────────────────────────────────
+          Padding(
+            padding: EdgeInsets.symmetric(
+                vertical: 18, horizontal: isWide ? 16 : 0),
+            child: isWide
+                ? Row(children: [
+                    Icon(Icons.timer, size: 28, color: cs.primary),
+                    const SizedBox(width: 10),
+                    Text('PomTechFlow',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: cs.onSurface)),
+                  ])
+                : Icon(Icons.timer, size: 28, color: cs.primary),
+          ),
+
+          // ── Haupt-Navigation (Shell-Branches) ─────────────────────────────
+          for (int i = 0; i < destinations.length; i++)
+            _SidebarItem(
+              icon: destinations[i].icon,
+              activeIcon: destinations[i].selected,
+              label: destinations[i].label,
+              selected: shell.currentIndex == i,
+              extended: isWide,
+              onTap: () => onBranch(i),
+            ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Divider(height: 1, color: cs.outlineVariant),
+          ),
+
+          // ── Extra-Links ───────────────────────────────────────────────────
+          _SidebarItem(
+            icon: Icons.business_outlined,
+            activeIcon: Icons.business,
+            label: 'Kunden',
+            selected: false,
+            extended: isWide,
+            onTap: () => context.push('/settings/customers'),
+          ),
+          _SidebarItem(
+            icon: Icons.devices_outlined,
+            activeIcon: Icons.devices,
+            label: 'Gerätebibliothek',
+            selected: false,
+            extended: isWide,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const DeviceLibraryScreen())),
+          ),
+          _SidebarItem(
+            icon: Icons.lightbulb_outline,
+            activeIcon: Icons.lightbulb,
+            label: 'Wissensdatenbank',
+            selected: false,
+            extended: isWide,
+            onTap: () => context.push('/knowledge'),
+          ),
+          _SidebarItem(
+            icon: Icons.bar_chart_outlined,
+            activeIcon: Icons.bar_chart,
+            label: 'Statistiken',
+            selected: false,
+            extended: isWide,
+            onTap: () => context.push('/statistics'),
+          ),
+          _SidebarItem(
+            icon: Icons.picture_as_pdf_outlined,
+            activeIcon: Icons.picture_as_pdf,
+            label: 'Alle Berichte',
+            selected: false,
+            extended: isWide,
+            onTap: () => context.push('/reports'),
+          ),
+
+          const Spacer(),
+
+          // ── Einstellungen unten ───────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Divider(height: 1, color: cs.outlineVariant),
+          ),
+          _SidebarItem(
+            icon: Icons.settings_outlined,
+            activeIcon: Icons.settings,
+            label: 'Einstellungen',
+            selected: false,
+            extended: isWide,
+            onTap: () => context.push('/settings'),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+class _SidebarItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool selected;
+  final bool extended;
+  final VoidCallback onTap;
+
+  const _SidebarItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.selected,
+    required this.extended,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final iconWidget = Icon(
+      selected ? activeIcon : icon,
+      size: 22,
+      color: selected ? cs.primary : cs.onSurfaceVariant,
+    );
+    final bg = selected
+        ? cs.primaryContainer.withValues(alpha: 0.6)
+        : Colors.transparent;
+
+    if (!extended) {
+      return Tooltip(
+        message: label,
+        preferBelow: false,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 56,
+            height: 44,
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(child: iconWidget),
+          ),
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            iconWidget,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: selected ? cs.primary : cs.onSurfaceVariant,
+                  fontSize: 14,
+                  fontWeight:
+                      selected ? FontWeight.w600 : FontWeight.normal,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -119,33 +304,24 @@ class _AppMenuBar extends StatelessWidget {
                 onPressed: () => context.push('/tasks/new'),
                 child: const Text('Neuer Task'),
               ),
-              MenuItemButton(
-                leadingIcon: const Icon(Icons.download_outlined, size: 16),
-                onPressed: () => context.push('/tasks'),
-                child: const Text('Task importieren (.ptf)'),
-              ),
               const Divider(height: 1),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.timer_outlined, size: 16),
                 shortcut: sc(LogicalKeyboardKey.keyT),
-                onPressed: () {}, // handled globally via Shortcuts widget
+                onPressed: () {},
                 child: const Text('Task-Timer starten/pausieren'),
               ),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.av_timer_outlined, size: 16),
                 shortcut: const SingleActivator(
-                    LogicalKeyboardKey.space,
-                    control: true,
-                    shift: true),
+                    LogicalKeyboardKey.space, control: true, shift: true),
                 onPressed: () {},
                 child: const Text('Stoppuhr Start/Pause'),
               ),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.stop_outlined, size: 16),
                 shortcut: const SingleActivator(
-                    LogicalKeyboardKey.enter,
-                    control: true,
-                    shift: true),
+                    LogicalKeyboardKey.enter, control: true, shift: true),
                 onPressed: () {},
                 child: const Text('Stoppuhr Stopp'),
               ),
@@ -156,8 +332,7 @@ class _AppMenuBar extends StatelessWidget {
                 child: const Text('Statistiken'),
               ),
               MenuItemButton(
-                leadingIcon:
-                    const Icon(Icons.picture_as_pdf_outlined, size: 16),
+                leadingIcon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
                 onPressed: () => context.push('/reports'),
                 child: const Text('Alle Berichte'),
               ),
