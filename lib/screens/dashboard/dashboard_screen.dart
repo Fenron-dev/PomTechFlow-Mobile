@@ -188,17 +188,14 @@ class DashboardScreen extends ConsumerWidget {
                 // Schnellnotiz
                 const _QuickNoteCard(),
                 const SizedBox(height: 12),
-                // Stats
-                LayoutBuilder(builder: (context, constraints) {
-                  final cols = constraints.maxWidth >= 500 ? 4 : 2;
-                  final ratio = cols == 4 ? 2.6 : 1.4;
-                  return GridView.count(
-                  crossAxisCount: cols,
+                // Stats – immer 2 Spalten für einheitliches Look&Feel auf allen Geräten
+                GridView.count(
+                  crossAxisCount: 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: ratio,
+                  childAspectRatio: 1.6,
                   children: [
                     _StatCard(
                       label: 'Gesamt AE',
@@ -229,8 +226,7 @@ class DashboardScreen extends ConsumerWidget {
                       color: cs.surfaceContainerHighest,
                     ),
                   ],
-                );
-                }),
+                ),
                 const SizedBox(height: 24),
 
                 // ── Im Blick (laufend / heute / gepinnt) ────────────────
@@ -659,6 +655,67 @@ class _FocusTaskRow extends StatelessWidget {
             ? Icon(Icons.pause_circle_outline, color: cs.primary)
             : Icon(Icons.radio_button_unchecked, color: cs.outline);
 
+    final trailingIcons = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (onAssign != null)
+          GestureDetector(
+            onTap: onAssign,
+            child: Tooltip(
+              message: 'Kunde / Titel zuordnen',
+              child: Icon(Icons.sell_outlined, color: cs.outline, size: 22),
+            ),
+          ),
+        const SizedBox(width: 4),
+        GestureDetector(
+          onTap: isTimerRunning
+              ? onTimerPause
+              : isTimerPaused
+                  ? onTimerResume
+                  : onTimerStart,
+          child: Icon(
+            isTimerRunning
+                ? Icons.pause_circle
+                : isTimerPaused
+                    ? Icons.play_circle
+                    : Icons.play_circle_outline,
+            color: isActive ? cs.primary : cs.outline,
+            size: 30,
+          ),
+        ),
+        if (isActive) ...[
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onTimerStop,
+            child: Icon(Icons.stop_circle_outlined, color: cs.error, size: 28),
+          ),
+        ] else ...[
+          if (onComplete != null) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onComplete,
+              child: Tooltip(
+                message: 'Als erledigt markieren',
+                child: Icon(Icons.check_circle_outline,
+                    color: Colors.green.shade600, size: 26),
+              ),
+            ),
+          ],
+          if (onHide != null) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onHide,
+              child: Tooltip(
+                message: 'Aus „Im Blick" ausblenden',
+                child: Icon(Icons.visibility_off_outlined,
+                    color: cs.outline, size: 24),
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.hardEdge,
@@ -669,100 +726,60 @@ class _FocusTaskRow extends StatelessWidget {
             if (task.task.priority != 'NORMAL')
               Container(width: 4, color: priorityColor),
             Expanded(
-              child: ListTile(
+              child: InkWell(
                 onTap: onTap,
-                leading: leadingIcon,
-                title: Text(task.task.title,
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: (timeText == null && customerName == null)
-                    ? null
-                    : Row(
-                        children: [
-                          if (timeText != null)
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      leadingIcon,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             Text(
-                              timeText,
-                              style: TextStyle(
-                                color:
-                                    isTimerRunning ? cs.primary : cs.outline,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              task.task.title,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          if (timeText != null && customerName != null)
-                            Text('  ·  ',
-                                style: TextStyle(color: cs.outline)),
-                          if (customerName != null)
-                            Expanded(
-                              child: Text(
-                                customerName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: cs.outline),
-                              ),
-                            ),
-                        ],
-                      ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (onAssign != null) ...[
-                      GestureDetector(
-                        onTap: onAssign,
-                        child: Tooltip(
-                          message: 'Kunde / Titel zuordnen',
-                          child: Icon(Icons.sell_outlined,
-                              color: cs.outline, size: 22),
+                            if (timeText != null || customerName != null) ...[
+                              const SizedBox(height: 2),
+                              if (timeText != null)
+                                Text(
+                                  timeText,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: isTimerRunning
+                                            ? cs.primary
+                                            : cs.outline,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              if (customerName != null)
+                                Text(
+                                  customerName,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: cs.outline),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
+                      trailingIcons,
                     ],
-                    GestureDetector(
-                      onTap: isTimerRunning
-                          ? onTimerPause
-                          : isTimerPaused
-                              ? onTimerResume
-                              : onTimerStart,
-                      child: Icon(
-                        isTimerRunning
-                            ? Icons.pause_circle
-                            : isTimerPaused
-                                ? Icons.play_circle
-                                : Icons.play_circle_outline,
-                        color: isActive ? cs.primary : cs.outline,
-                        size: 30,
-                      ),
-                    ),
-                    if (isActive) ...[
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: onTimerStop,
-                        child: Icon(Icons.stop_circle_outlined,
-                            color: cs.error, size: 28),
-                      ),
-                    ] else ...[
-                      if (onComplete != null) ...[
-                        const SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: onComplete,
-                          child: Tooltip(
-                            message: 'Als erledigt markieren',
-                            child: Icon(Icons.check_circle_outline,
-                                color: Colors.green.shade600, size: 26),
-                          ),
-                        ),
-                      ],
-                      if (onHide != null) ...[
-                        const SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: onHide,
-                          child: Tooltip(
-                            message: 'Aus „Im Blick" ausblenden',
-                            child: Icon(Icons.visibility_off_outlined,
-                                color: cs.outline, size: 24),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ),
