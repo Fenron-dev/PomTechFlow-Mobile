@@ -69,6 +69,8 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
         host: data['host'] as String? ?? '',
         port: data['port'] as int? ?? 8765,
         token: data['token'] as String? ?? '',
+        serverDeviceId: data['serverDeviceId'] as String? ?? '',
+        serverName: data['serverName'] as String? ?? '',
       );
     } catch (_) {
       setState(() { _errorMsg = 'Ungültiger QR-Code'; _loading = false; });
@@ -85,10 +87,21 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
       return;
     }
     setState(() { _loading = true; _errorMsg = null; });
-    await _doClaim(host: host, port: port, token: token);
+    await _doClaim(
+      host: host,
+      port: port,
+      token: token,
+      serverName: server?.name ?? '',
+    );
   }
 
-  Future<void> _doClaim({required String host, required int port, required String token}) async {
+  Future<void> _doClaim({
+    required String host,
+    required int port,
+    required String token,
+    String serverDeviceId = '',
+    String serverName = '',
+  }) async {
     final settings = ref.read(settingsProvider).valueOrNull;
     if (settings == null) return;
 
@@ -101,12 +114,14 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
 
     if (!mounted) return;
     if (ok) {
-      // Save server address in settings
+      // Save server address and identity in settings for mDNS rediscovery
       final notifier = ref.read(settingsProvider.notifier);
       await notifier.save(settings.copyWith(
         syncRole: 'CLIENT',
         syncServerHost: host,
         syncServerPort: port,
+        syncServerDeviceId: serverDeviceId,
+        syncServerName: serverName,
       ));
       setState(() { _success = true; _loading = false; });
     } else {

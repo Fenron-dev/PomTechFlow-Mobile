@@ -51,6 +51,12 @@ class AppSettings {
   /// device-specific keys like storagePath are always excluded).
   final bool syncAppSettings;
 
+  // ── mDNS Rediscovery ─────────────────────────────────────────────────────
+  /// Server deviceId stored after pairing — used for mDNS rediscovery.
+  final String syncServerDeviceId;
+  /// Server human-readable name stored after pairing.
+  final String syncServerName;
+
   // ── Bildschirm wach halten ────────────────────────────────────────────────
   /// Bildschirm bleibt aktiv, solange die App im Vordergrund ist.
   final bool keepScreenAwake;
@@ -84,6 +90,8 @@ class AppSettings {
     this.syncOnAppStart = true,
     this.syncOnResume = true,
     this.syncAppSettings = false,
+    this.syncServerDeviceId = '',
+    this.syncServerName = '',
     this.keepScreenAwake = false,
     this.keepScreenAwakeChargingOnly = false,
   });
@@ -115,6 +123,8 @@ class AppSettings {
     bool? syncOnAppStart,
     bool? syncOnResume,
     bool? syncAppSettings,
+    String? syncServerDeviceId,
+    String? syncServerName,
     bool? keepScreenAwake,
     bool? keepScreenAwakeChargingOnly,
   }) =>
@@ -144,6 +154,8 @@ class AppSettings {
         syncOnAppStart: syncOnAppStart ?? this.syncOnAppStart,
         syncOnResume: syncOnResume ?? this.syncOnResume,
         syncAppSettings: syncAppSettings ?? this.syncAppSettings,
+        syncServerDeviceId: syncServerDeviceId ?? this.syncServerDeviceId,
+        syncServerName: syncServerName ?? this.syncServerName,
         keepScreenAwake: keepScreenAwake ?? this.keepScreenAwake,
         keepScreenAwakeChargingOnly: keepScreenAwakeChargingOnly ?? this.keepScreenAwakeChargingOnly,
       );
@@ -197,6 +209,8 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       syncOnAppStart: (map['syncOnAppStart'] ?? 'true') == 'true',
       syncOnResume: (map['syncOnResume'] ?? 'true') == 'true',
       syncAppSettings: map['syncAppSettings'] == 'true',
+      syncServerDeviceId: map['syncServerDeviceId'] ?? '',
+      syncServerName: map['syncServerName'] ?? '',
       keepScreenAwake: map['keepScreenAwake'] == 'true',
       keepScreenAwakeChargingOnly: map['keepScreenAwakeChargingOnly'] == 'true',
     );
@@ -231,6 +245,8 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       'syncOnAppStart': settings.syncOnAppStart.toString(),
       'syncOnResume': settings.syncOnResume.toString(),
       'syncAppSettings': settings.syncAppSettings.toString(),
+      'syncServerDeviceId': settings.syncServerDeviceId,
+      'syncServerName': settings.syncServerName,
       'keepScreenAwake': settings.keepScreenAwake.toString(),
       'keepScreenAwakeChargingOnly': settings.keepScreenAwakeChargingOnly.toString(),
     };

@@ -59,8 +59,10 @@ Map<ShortcutActivator, Intent> get appShortcuts => {
       sc(LogicalKeyboardKey.keyF): const SearchIntent(),
       sc(LogicalKeyboardKey.comma): const SettingsIntent(),
       scCtrl(LogicalKeyboardKey.digit1): const NavIntent('/dashboard'),
-      scCtrl(LogicalKeyboardKey.digit2): const NavIntent('/tasks'),
-      scCtrl(LogicalKeyboardKey.digit3): const NavIntent('/notes'),
+      scCtrl(LogicalKeyboardKey.digit2): const NavIntent('/focus'),
+      scCtrl(LogicalKeyboardKey.digit3): const NavIntent('/tasks'),
+      scCtrl(LogicalKeyboardKey.digit4): const NavIntent('/notes'),
+      scCtrl(LogicalKeyboardKey.digit5): const NavIntent('/calendar'),
       // Schnell-Stoppuhr
       SingleActivator(LogicalKeyboardKey.space, control: true, shift: true):
           const StopwatchToggleIntent(),

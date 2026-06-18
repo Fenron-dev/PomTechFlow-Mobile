@@ -187,6 +187,7 @@ class _PairingQrScreenState extends ConsumerState<PairingQrScreen> {
                           data: _qrData!,
                           version: QrVersions.auto,
                           size: 240,
+                          backgroundColor: Colors.white,
                         ),
                       ),
                     ),

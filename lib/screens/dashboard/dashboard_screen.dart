@@ -190,7 +190,7 @@ class DashboardScreen extends ConsumerWidget {
                 // Stats
                 LayoutBuilder(builder: (context, constraints) {
                   final cols = constraints.maxWidth >= 500 ? 4 : 2;
-                  final ratio = cols == 4 ? 2.2 : 1.4;
+                  final ratio = cols == 4 ? 2.6 : 1.4;
                   return GridView.count(
                   crossAxisCount: cols,
                   shrinkWrap: true,

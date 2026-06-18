@@ -5,12 +5,22 @@ import 'package:shelf_router/shelf_router.dart';
 import '../../../db/database.dart';
 import '../../sync_serializer.dart';
 
-Router syncRouter(AppDatabase db, String serverDeviceId, bool syncAppSettings) {
+Router syncRouter(
+  AppDatabase db,
+  String serverDeviceId,
+  bool syncAppSettings, [
+  void Function(String deviceId, String deviceName)? onClientSeen,
+]) {
   final router = Router();
 
   // GET /api/v1/sync?since=<ISO8601>
   // Returns all rows modified after `since`, plus tombstones.
   router.get('/api/v1/sync', (Request req) async {
+    // Track client activity
+    final clientDeviceId = req.context['clientDeviceId'] as String? ?? '';
+    final clientDeviceName = req.url.queryParameters['deviceName'] ?? '';
+    onClientSeen?.call(clientDeviceId, clientDeviceName);
+
     final sinceStr = req.url.queryParameters['since'];
     final since = sinceStr != null ? DateTime.tryParse(sinceStr) : null;
 
@@ -93,6 +103,9 @@ Router syncRouter(AppDatabase db, String serverDeviceId, bool syncAppSettings) {
     final tables = body['tables'] as Map<String, dynamic>? ?? {};
     final deletions = body['deletions'] as List<dynamic>? ?? [];
     final clientDeviceId = body['deviceId'] as String? ?? '';
+    final clientDeviceName = body['deviceName'] as String? ?? '';
+    // Track client activity on push
+    onClientSeen?.call(clientDeviceId, clientDeviceName);
 
     final conflicts = <Map<String, dynamic>>[];
 

@@ -18,6 +18,7 @@ import 'screens/search/search_screen.dart';
 import 'screens/statistics/statistics_screen.dart';
 import 'screens/reports/all_reports_screen.dart';
 import 'screens/reports/monthly_report_screen.dart';
+import 'screens/focus/focus_screen.dart';
 import 'screens/notes/notes_screen.dart';
 import 'services/notification_service.dart';
 import 'services/badge_service.dart';
@@ -96,7 +97,13 @@ final _router = GoRouter(
               path: '/dashboard',
               builder: (_, _) => const DashboardScreen()),
         ]),
-        // 1 - Tasks
+        // 1 - Aktuell (Focus/Im Blick)
+        StatefulShellBranch(routes: [
+          GoRoute(
+              path: '/focus',
+              builder: (_, _) => const FocusScreen()),
+        ]),
+        // 2 - Tasks
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/tasks',
@@ -121,14 +128,14 @@ final _router = GoRouter(
             ],
           ),
         ]),
-        // 2 - Notizen
+        // 3 - Notizen
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/notes',
             builder: (_, _) => const NotesScreen(),
           ),
         ]),
-        // 3 - Kalender
+        // 4 - Kalender
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/calendar',
@@ -251,6 +258,15 @@ class _PomTechFlowAppState extends ConsumerState<PomTechFlowApp> {
           db: db,
           settings: settings,
           onResult: (result) => ref.read(syncStatusProvider.notifier).onResult(result),
+          onHostRefreshed: (newHost) {
+            // Persist the refreshed IP from mDNS discovery
+            final current = ref.read(settingsProvider).valueOrNull;
+            if (current != null && current.syncServerHost != newHost) {
+              ref.read(settingsProvider.notifier).save(
+                    current.copyWith(syncServerHost: newHost),
+                  );
+            }
+          },
         );
         _syncScheduler!.start();
 

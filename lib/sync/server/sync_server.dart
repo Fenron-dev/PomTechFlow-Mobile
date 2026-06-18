@@ -14,6 +14,28 @@ class SyncServer {
   HttpServer? _server;
   bool get isRunning => _server != null;
 
+  // ── Client tracking ───────────────────────────────────────────────────────
+  final Map<String, DateTime> _clientLastSeen = {};
+  final Map<String, String> _clientNames = {}; // deviceId → deviceName
+
+  Map<String, DateTime> get clientLastSeen => Map.unmodifiable(_clientLastSeen);
+  Map<String, String> get clientNames => Map.unmodifiable(_clientNames);
+
+  int get onlineClientCount {
+    final cutoff = DateTime.now().subtract(const Duration(minutes: 5));
+    return _clientLastSeen.values.where((t) => t.isAfter(cutoff)).length;
+  }
+
+  void updateClientSeen(String deviceId, String deviceName) {
+    _clientLastSeen[deviceId] = DateTime.now();
+    if (deviceName.isNotEmpty) _clientNames[deviceId] = deviceName;
+  }
+
+  // ── Nudge mechanism ───────────────────────────────────────────────────────
+  int _nudgeCounter = 0;
+  int get nudgeCounter => _nudgeCounter;
+  void nudge() => _nudgeCounter++;
+
   Future<void> start({
     required AppDatabase db,
     required String serverDeviceId,
@@ -26,11 +48,16 @@ class SyncServer {
     final jwtMiddleware = _jwtAuth();
 
     // Public routes
-    final health = healthRouter(serverName, serverDeviceId);
+    final health = healthRouter(
+      serverName,
+      serverDeviceId,
+      getNudgeCounter: () => _nudgeCounter,
+      doNudge: nudge,
+    );
     final pairing = pairingRouter(serverDeviceId, serverName);
 
     // Protected sync routes
-    final sync = syncRouter(db, serverDeviceId, syncAppSettings);
+    final sync = syncRouter(db, serverDeviceId, syncAppSettings, updateClientSeen);
 
     router.mount('/', health.call);
     router.mount('/', pairing.call);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -313,14 +314,47 @@ class _RoleSelector extends StatelessWidget {
   }
 }
 
-class _ServerStatusCard extends ConsumerWidget {
+class _ServerStatusCard extends ConsumerStatefulWidget {
   final AppSettings settings;
   final SyncServer server;
   const _ServerStatusCard({required this.settings, required this.server});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ServerStatusCard> createState() => _ServerStatusCardState();
+}
+
+class _ServerStatusCardState extends ConsumerState<_ServerStatusCard> {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshTimer =
+        Timer.periodic(const Duration(seconds: 10), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  String _formatLastSeen(DateTime t) {
+    final diff = DateTime.now().difference(t);
+    if (diff.inSeconds < 60) return 'gerade eben';
+    if (diff.inMinutes < 60) return 'vor ${diff.inMinutes} Min.';
+    return 'vor ${diff.inHours} Std.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final server = widget.server;
+    final settings = widget.settings;
     final isRunning = server.isRunning;
+    final clientCount = server.onlineClientCount;
+    final clientNames = server.clientNames;
+    final clientLastSeen = server.clientLastSeen;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
@@ -332,8 +366,13 @@ class _ServerStatusCard extends ConsumerWidget {
               Icon(isRunning ? Icons.circle : Icons.circle_outlined,
                   color: isRunning ? Colors.green : Colors.grey, size: 14),
               const SizedBox(width: 8),
-              Text(isRunning ? 'Server läuft' : 'Server gestoppt'),
-              const Spacer(),
+              Expanded(
+                child: Text(
+                  isRunning
+                      ? 'Server läuft · $clientCount Client${clientCount != 1 ? 's' : ''} verbunden'
+                      : 'Server gestoppt',
+                ),
+              ),
               if (isRunning)
                 TextButton.icon(
                   icon: const Icon(Icons.stop),
@@ -361,20 +400,88 @@ class _ServerStatusCard extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodySmall),
               Text('Gerätename: ${settings.effectiveDeviceName}',
                   style: Theme.of(context).textTheme.bodySmall),
+
+              if (clientLastSeen.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                const Divider(height: 1),
+                const SizedBox(height: 6),
+                Text('Verbundene Clients:',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.outline)),
+                const SizedBox(height: 4),
+                ...clientLastSeen.entries.map((e) {
+                  final deviceId = e.key;
+                  final lastSeen = e.value;
+                  final name = clientNames[deviceId] ?? deviceId;
+                  final isOnline =
+                      DateTime.now().difference(lastSeen).inMinutes < 5;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isOnline ? Icons.circle : Icons.circle_outlined,
+                          size: 8,
+                          color: isOnline ? Colors.green : Colors.grey,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(name,
+                              style: Theme.of(context).textTheme.bodySmall),
+                        ),
+                        Text(
+                          _formatLastSeen(lastSeen),
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outline),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+
               const SizedBox(height: 12),
               const Text(
                 'Hinweis: Der Server läuft nur solange die App geöffnet ist.',
                 style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
               const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(builder: (_) => const PairingQrScreen()),
+              Row(children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                          builder: (_) => const PairingQrScreen()),
+                    ),
+                    icon: const Icon(Icons.qr_code),
+                    label: const Text('Gerät pairen'),
+                  ),
                 ),
-                icon: const Icon(Icons.qr_code),
-                label: const Text('Gerät pairen (QR anzeigen)'),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: clientCount == 0
+                        ? null
+                        : () {
+                            server.nudge();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Sync-Signal gesendet'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                    icon: const Icon(Icons.sync),
+                    label: const Text('Jetzt sync.'),
+                  ),
+                ),
+              ]),
             ],
           ],
         ),

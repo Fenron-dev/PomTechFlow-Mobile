@@ -11,6 +11,7 @@ class AdaptiveShell extends StatelessWidget {
 
   static const _destinations = [
     (icon: Icons.dashboard_outlined, selected: Icons.dashboard, label: 'Dashboard'),
+    (icon: Icons.visibility_outlined, selected: Icons.visibility, label: 'Aktuell'),
     (icon: Icons.checklist_outlined, selected: Icons.checklist, label: 'Tasks'),
     (icon: Icons.note_outlined, selected: Icons.note, label: 'Notizen'),
     (icon: Icons.calendar_today_outlined, selected: Icons.calendar_today, label: 'Kalender'),
@@ -173,21 +174,27 @@ class _AppMenuBar extends StatelessWidget {
                 child: const Text('Dashboard'),
               ),
               MenuItemButton(
-                leadingIcon: const Icon(Icons.checklist_outlined, size: 16),
+                leadingIcon: const Icon(Icons.visibility_outlined, size: 16),
                 shortcut: scCtrl(LogicalKeyboardKey.digit2),
                 onPressed: () => shell.goBranch(1),
+                child: const Text('Aktuell'),
+              ),
+              MenuItemButton(
+                leadingIcon: const Icon(Icons.checklist_outlined, size: 16),
+                shortcut: scCtrl(LogicalKeyboardKey.digit3),
+                onPressed: () => shell.goBranch(2),
                 child: const Text('Tasks'),
               ),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.note_outlined, size: 16),
-                shortcut: scCtrl(LogicalKeyboardKey.digit3),
-                onPressed: () => shell.goBranch(2),
+                shortcut: scCtrl(LogicalKeyboardKey.digit4),
+                onPressed: () => shell.goBranch(3),
                 child: const Text('Notizen'),
               ),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.calendar_today_outlined, size: 16),
-                shortcut: scCtrl(LogicalKeyboardKey.digit4),
-                onPressed: () => shell.goBranch(3),
+                shortcut: scCtrl(LogicalKeyboardKey.digit5),
+                onPressed: () => shell.goBranch(4),
                 child: const Text('Kalender'),
               ),
               const Divider(height: 1),

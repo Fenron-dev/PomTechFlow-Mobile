@@ -10,6 +10,7 @@ import '../../db/database.dart';
 import '../../services/notification_service.dart';
 import '../../providers/settings_provider.dart';
 import '../../widgets/customer_picker.dart';
+import '../../sync/sync_provider.dart';
 import '../knowledge/knowledge_screen.dart' show knowledgeProvider;
 
 class TaskFormScreen extends ConsumerStatefulWidget {
@@ -227,6 +228,14 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         }
       } catch (_) {
         // Notification-Fehler (z.B. fehlende Berechtigung) blockieren das Speichern nicht
+      }
+
+      // Trigger sync if connected as CLIENT (fire and forget)
+      final settings = ref.read(settingsProvider).valueOrNull;
+      if (settings != null &&
+          settings.syncRole == 'CLIENT' &&
+          settings.syncServerHost.isNotEmpty) {
+        triggerManualSync(ref);
       }
 
       if (mounted) context.pop();
