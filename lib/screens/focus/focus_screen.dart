@@ -562,6 +562,7 @@ Future<void> _quickStart(BuildContext context, WidgetRef ref) async {
       );
   await ref.read(timerProvider.notifier).start(taskId);
   ref.invalidate(tasksProvider);
+  _triggerSync(ref);
   if (context.mounted) context.push('/tasks/$taskId');
 }
 
@@ -659,9 +660,25 @@ Future<void> _createFromTemplate(BuildContext context, WidgetRef ref) async {
   }
 
   ref.invalidate(tasksProvider);
+  _triggerSync(ref);
   if (!context.mounted) return;
   await context.push('/tasks/$newTaskId');
   ref.invalidate(tasksProvider);
+}
+
+// ── Sync: nudge clients (SERVER) or push to server (CLIENT) ──────────────────
+
+void _triggerSync(WidgetRef ref) {
+  final settings = ref.read(settingsProvider).valueOrNull;
+  if (settings == null) return;
+  if (settings.syncRole == 'SERVER') {
+    // Nudge all clients: they will detect this within 30 seconds and pull
+    ref.read(syncServerProvider).nudge();
+  } else if (settings.syncRole == 'CLIENT' &&
+      settings.syncServerHost.isNotEmpty) {
+    // Push new task to server immediately
+    triggerManualSync(ref);
+  }
 }
 
 String _genUuid() {

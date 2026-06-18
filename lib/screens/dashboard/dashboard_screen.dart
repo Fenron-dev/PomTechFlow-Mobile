@@ -13,6 +13,7 @@ import '../../providers/general_notes_provider.dart';
 import '../../providers/task_templates_provider.dart';
 import '../../providers/quick_stopwatch_provider.dart';
 import '../../db/database.dart';
+import '../../sync/sync_provider.dart';
 import '../../widgets/timer_session_dialogs.dart';
 import '../../widgets/quick_assign_sheet.dart';
 
@@ -1444,6 +1445,7 @@ Future<void> _createFromTemplate(BuildContext context, WidgetRef ref) async {
   }
 
   ref.invalidate(tasksProvider);
+  _dashTriggerSync(ref);
   if (!context.mounted) return;
   await context.push('/tasks/$newTaskId');
   ref.invalidate(tasksProvider);
@@ -1498,7 +1500,18 @@ Future<void> _quickStart(BuildContext context, WidgetRef ref) async {
       );
   await ref.read(timerProvider.notifier).start(taskId);
   ref.invalidate(tasksProvider);
+  _dashTriggerSync(ref);
   if (context.mounted) context.push('/tasks/$taskId');
+}
+
+void _dashTriggerSync(WidgetRef ref) {
+  final s = ref.read(settingsProvider).valueOrNull;
+  if (s == null) return;
+  if (s.syncRole == 'SERVER') {
+    ref.read(syncServerProvider).nudge();
+  } else if (s.syncRole == 'CLIENT' && s.syncServerHost.isNotEmpty) {
+    triggerManualSync(ref);
+  }
 }
 
 // ─── Timer starten: neu oder bestehender Task ─────────────────────────────────
