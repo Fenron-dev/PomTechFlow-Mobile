@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'secure_storage.dart';
 
 class WebDavConfig {
   final String url;
@@ -29,25 +29,20 @@ class WebDavFile {
 }
 
 class WebDavService {
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    mOptions: MacOsOptions(useDataProtectionKeyChain: false),
-  );
-
   // ── Config persistence ──────────────────────────────────────────────────────
 
   static Future<WebDavConfig> loadConfig() async {
     return WebDavConfig(
-      url: await _storage.read(key: 'webdav_url') ?? '',
-      username: await _storage.read(key: 'webdav_user') ?? '',
-      password: await _storage.read(key: 'webdav_password') ?? '',
+      url: await secureRead('webdav_url') ?? '',
+      username: await secureRead('webdav_user') ?? '',
+      password: await secureRead('webdav_password') ?? '',
     );
   }
 
   static Future<void> saveConfig(WebDavConfig config) async {
-    await _storage.write(key: 'webdav_url', value: config.url.trim());
-    await _storage.write(key: 'webdav_user', value: config.username.trim());
-    await _storage.write(key: 'webdav_password', value: config.password.trim());
+    await secureWrite('webdav_url', config.url.trim());
+    await secureWrite('webdav_user', config.username.trim());
+    await secureWrite('webdav_password', config.password.trim());
   }
 
   // ── Internal helpers ────────────────────────────────────────────────────────

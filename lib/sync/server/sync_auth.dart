@@ -1,12 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../services/secure_storage.dart';
 
-const _kStorage = FlutterSecureStorage(
-  aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  mOptions: MacOsOptions(useDataProtectionKeyChain: false),
-);
 const _kSecretKey = 'sync_jwt_secret';
 const _kRefreshTokensKey = 'sync_refresh_tokens';
 
@@ -17,12 +13,12 @@ const Duration _kPairingTtl = Duration(minutes: 5);
 
 class SyncAuth {
   static Future<String> _getOrCreateSecret() async {
-    String? secret = await _kStorage.read(key: _kSecretKey);
+    String? secret = await secureRead(_kSecretKey);
     if (secret == null || secret.isEmpty) {
       final rng = Random.secure();
       final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
       secret = base64Url.encode(bytes);
-      await _kStorage.write(key: _kSecretKey, value: secret);
+      await secureWrite(_kSecretKey, secret);
     }
     return secret;
   }
@@ -127,7 +123,7 @@ class SyncAuth {
   // ── Persist helpers ───────────────────────────────────────────────────────
 
   static Future<Map<String, String>> _loadRefreshTokens() async {
-    final raw = await _kStorage.read(key: _kRefreshTokensKey);
+    final raw = await secureRead(_kRefreshTokensKey);
     if (raw == null || raw.isEmpty) return {};
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -138,7 +134,7 @@ class SyncAuth {
   }
 
   static Future<void> _saveRefreshTokens(Map<String, String> tokens) async {
-    await _kStorage.write(key: _kRefreshTokensKey, value: jsonEncode(tokens));
+    await secureWrite(_kRefreshTokensKey, jsonEncode(tokens));
   }
 
   // ── Client-side token storage ─────────────────────────────────────────────
@@ -147,18 +143,18 @@ class SyncAuth {
   static const _kClientRefreshKey = 'sync_client_refresh';
 
   static Future<void> saveClientTokens(String access, String refresh) async {
-    await _kStorage.write(key: _kClientAccessKey, value: access);
-    await _kStorage.write(key: _kClientRefreshKey, value: refresh);
+    await secureWrite(_kClientAccessKey, access);
+    await secureWrite(_kClientRefreshKey, refresh);
   }
 
   static Future<String?> loadClientAccessToken() =>
-      _kStorage.read(key: _kClientAccessKey);
+      secureRead(_kClientAccessKey);
 
   static Future<String?> loadClientRefreshToken() =>
-      _kStorage.read(key: _kClientRefreshKey);
+      secureRead(_kClientRefreshKey);
 
   static Future<void> clearClientTokens() async {
-    await _kStorage.delete(key: _kClientAccessKey);
-    await _kStorage.delete(key: _kClientRefreshKey);
+    await secureDelete(_kClientAccessKey);
+    await secureDelete(_kClientRefreshKey);
   }
 }

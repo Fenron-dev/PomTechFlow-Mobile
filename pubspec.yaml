@@ -56,6 +56,7 @@ dependencies:
 
   # Sicherheit
   flutter_secure_storage: ^9.2.2   # Keychain/Keystore für PIN-Hash
+  shared_preferences: ^2.3.2       # macOS-Fallback statt Keychain (kein Prompt)
   local_auth: ^2.3.0               # Biometrie (Fingerabdruck, Face ID)
   encrypt: ^5.0.3                  # AES-256 für verschlüsselte Exporte
   crypto: ^3.0.6                   # PBKDF2 / HMAC-SHA256 (direkte Abhängigkeit)

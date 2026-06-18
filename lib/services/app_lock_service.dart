@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart' show compute;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'secure_storage.dart';
 
 // ── PBKDF2 top-level function (needed for compute() isolate) ─────────────────
 
@@ -42,10 +42,6 @@ String _runPbkdf2(Map<String, dynamic> args) {
 /// PIN hash + salt + recovery code are stored in the device's secure enclave
 /// (iOS Keychain, Android Keystore). No PIN data ever reaches the database.
 class AppLockService {
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    mOptions: MacOsOptions(useDataProtectionKeyChain: false),
-  );
   static const _keyHash        = 'ptf_lock_hash';
   static const _keySalt        = 'ptf_lock_salt';
   static const _keyRecovery    = 'ptf_lock_recovery';
@@ -63,7 +59,7 @@ class AppLockService {
 
   /// Returns true when a PIN has been configured.
   static Future<bool> isSetup() async {
-    final hash = await _storage.read(key: _keyHash);
+    final hash = await secureRead(_keyHash);
     return hash != null && hash.isNotEmpty;
   }
 
@@ -74,9 +70,9 @@ class AppLockService {
     final hash = await _hashPin(pin, salt);
     final recovery = _randomHex(4).toUpperCase(); // e.g. "A3F9B02C"
 
-    await _storage.write(key: _keySalt, value: salt);
-    await _storage.write(key: _keyHash, value: hash);
-    await _storage.write(key: _keyRecovery, value: recovery);
+    await secureWrite(_keySalt, salt);
+    await secureWrite(_keyHash, hash);
+    await secureWrite(_keyRecovery, recovery);
     return recovery;
   }
 
@@ -85,11 +81,11 @@ class AppLockService {
 
   /// Removes the PIN lock entirely.
   static Future<void> disable() async {
-    await _storage.delete(key: _keyHash);
-    await _storage.delete(key: _keySalt);
-    await _storage.delete(key: _keyRecovery);
-    await _storage.delete(key: _keyAttempts);
-    await _storage.delete(key: _keyLockedUntil);
+    await secureDelete(_keyHash);
+    await secureDelete(_keySalt);
+    await secureDelete(_keyRecovery);
+    await secureDelete(_keyAttempts);
+    await secureDelete(_keyLockedUntil);
   }
 
   // ── Rate Limiting ──────────────────────────────────────────────────────
@@ -105,7 +101,7 @@ class AppLockService {
 
   /// Returns the [DateTime] until which the PIN pad is locked, or null if not locked.
   static Future<DateTime?> getLockoutEnd() async {
-    final raw = await _storage.read(key: _keyLockedUntil);
+    final raw = await secureRead(_keyLockedUntil);
     if (raw == null) return null;
     final until = DateTime.tryParse(raw);
     if (until == null || until.isBefore(DateTime.now())) return null;
@@ -115,21 +111,21 @@ class AppLockService {
   /// Records a failed PIN attempt. Returns the new [DateTime] lockout end
   /// (or null if no lockout applies yet).
   static Future<DateTime?> recordFailedAttempt() async {
-    final raw = await _storage.read(key: _keyAttempts);
+    final raw = await secureRead(_keyAttempts);
     final attempts = (int.tryParse(raw ?? '') ?? 0) + 1;
-    await _storage.write(key: _keyAttempts, value: attempts.toString());
+    await secureWrite(_keyAttempts, attempts.toString());
 
     final duration = _lockoutFor(attempts);
     if (duration == Duration.zero) return null;
     final until = DateTime.now().add(duration);
-    await _storage.write(key: _keyLockedUntil, value: until.toIso8601String());
+    await secureWrite(_keyLockedUntil, until.toIso8601String());
     return until;
   }
 
   /// Clears the failed-attempt counter and any active lockout.
   static Future<void> resetFailedAttempts() async {
-    await _storage.delete(key: _keyAttempts);
-    await _storage.delete(key: _keyLockedUntil);
+    await secureDelete(_keyAttempts);
+    await secureDelete(_keyLockedUntil);
   }
 
   // ── Verification ──────────────────────────────────────────────────────
@@ -137,8 +133,8 @@ class AppLockService {
   /// Verifies the entered PIN. Returns true on match.
   /// Automatically upgrades legacy SHA-256 hashes to PBKDF2 on success.
   static Future<bool> verifyPIN(String pin) async {
-    final salt   = await _storage.read(key: _keySalt);
-    final stored = await _storage.read(key: _keyHash);
+    final salt   = await secureRead(_keySalt);
+    final stored = await secureRead(_keyHash);
     if (salt == null || stored == null) return false;
 
     // ── New PBKDF2 hash ──────────────────────────────────────────────────────
@@ -154,7 +150,7 @@ class AppLockService {
     final legacyMatch = _legacySha256(pin, salt) == stored;
     if (legacyMatch) {
       final newHash = await _hashPin(pin, salt);
-      await _storage.write(key: _keyHash, value: newHash);
+      await secureWrite(_keyHash, newHash);
       await resetFailedAttempts();
     }
     return legacyMatch;
@@ -162,7 +158,7 @@ class AppLockService {
 
   /// Verifies the recovery code (case-insensitive).
   static Future<bool> verifyRecoveryCode(String code) async {
-    final stored = await _storage.read(key: _keyRecovery);
+    final stored = await secureRead(_keyRecovery);
     if (stored == null) return false;
     return stored.toUpperCase() == code.trim().toUpperCase();
   }
