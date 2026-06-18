@@ -188,14 +188,14 @@ class DashboardScreen extends ConsumerWidget {
                 // Schnellnotiz
                 const _QuickNoteCard(),
                 const SizedBox(height: 12),
-                // Stats – immer 2 Spalten für einheitliches Look&Feel auf allen Geräten
+                // Stats – 2 Spalten, kompakte horizontale Karten
                 GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.6,
+                  childAspectRatio: 3.2,
                   children: [
                     _StatCard(
                       label: 'Gesamt AE',
@@ -825,27 +825,37 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final outline = Theme.of(context).colorScheme.outline;
     return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-            color: color, borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 20),
-            const Spacer(),
-            Text(value,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            Text(label,
-                style: Theme.of(context).textTheme.labelSmall),
-            Text(sub,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.outline)),
-          ],
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+          color: color, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Icon(icon, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(value,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold, height: 1.1)),
+                Text(label,
+                    style: Theme.of(context).textTheme.labelSmall),
+                Text(sub,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: outline)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
