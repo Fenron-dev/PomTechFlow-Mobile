@@ -60,6 +60,10 @@ dependencies:
   encrypt: ^5.0.3                  # AES-256 für verschlüsselte Exporte
   crypto: ^3.0.6                   # PBKDF2 / HMAC-SHA256 (direkte Abhängigkeit)
 
+  # Bildschirm wach halten
+  wakelock_plus: ^1.3.4             # FLAG_KEEP_SCREEN_ON / isIdleTimerDisabled
+  battery_plus: ^6.0.3              # Ladezustand-Erkennung (für "nur beim Laden"-Modus)
+
   # Lokale LAN-Synchronisation
   shelf: ^1.4.1                    # HTTP-Server (Server-Modus)
   shelf_router: ^1.1.4             # REST-Routing

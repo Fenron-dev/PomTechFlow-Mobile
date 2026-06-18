@@ -30,47 +30,57 @@ class _PairingQrScreenState extends ConsumerState<PairingQrScreen> {
 
   Future<void> _generate() async {
     setState(() => _loading = true);
-    final settings = ref.read(settingsProvider).valueOrNull;
-    if (settings == null) return;
-
-    final token = await SyncAuth.generatePairingToken(settings.deviceId);
-    final pin = SyncAuth.tokenToPin(token);
-
-    // Collect all non-loopback, non-link-local IPv4 addresses with interface names.
-    final ips = <_IpEntry>[];
     try {
-      final interfaces = await NetworkInterface.list(
-        type: InternetAddressType.IPv4,
-        includeLinkLocal: false,
-      );
-      for (final iface in interfaces) {
-        for (final addr in iface.addresses) {
-          if (addr.isLoopback) continue;
-          ips.add(_IpEntry(iface.name, addr.address));
+      final settings = ref.read(settingsProvider).valueOrNull;
+      if (settings == null) return;
+
+      final token = await SyncAuth.generatePairingToken(settings.deviceId);
+      final pin = SyncAuth.tokenToPin(token);
+
+      // Collect all non-loopback, non-link-local IPv4 addresses with interface names.
+      final ips = <_IpEntry>[];
+      try {
+        final interfaces = await NetworkInterface.list(
+          type: InternetAddressType.IPv4,
+          includeLinkLocal: false,
+        );
+        for (final iface in interfaces) {
+          for (final addr in iface.addresses) {
+            if (addr.isLoopback) continue;
+            ips.add(_IpEntry(iface.name, addr.address));
+          }
         }
+      } catch (_) {}
+
+      // Prefer LAN addresses (192.168.x.x, 10.x.x.x, 172.16-31.x.x).
+      final lanIndex = ips.indexWhere((e) => _isLan(e.address));
+      final selected = lanIndex >= 0 ? lanIndex : 0;
+
+      final localIp = ips.isNotEmpty ? ips[selected].address : '';
+      final qrData = jsonEncode({
+        'host': localIp,
+        'port': kSyncPort,
+        'token': token,
+        'serverDeviceId': settings.deviceId,
+        'serverName': settings.effectiveDeviceName,
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _pin = pin;
+        _qrData = qrData;
+        _allIps = ips;
+        _selectedIpIndex = selected;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Generieren: $e')),
+        );
       }
-    } catch (_) {}
-
-    // Prefer LAN addresses (192.168.x.x, 10.x.x.x, 172.16-31.x.x).
-    final lanIndex = ips.indexWhere((e) => _isLan(e.address));
-    final selected = lanIndex >= 0 ? lanIndex : 0;
-
-    final localIp = ips.isNotEmpty ? ips[selected].address : '';
-    final qrData = jsonEncode({
-      'host': localIp,
-      'port': kSyncPort,
-      'token': token,
-      'serverDeviceId': settings.deviceId,
-      'serverName': settings.effectiveDeviceName,
-    });
-
-    setState(() {
-      _pin = pin;
-      _qrData = qrData;
-      _allIps = ips;
-      _selectedIpIndex = selected;
-      _loading = false;
-    });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   void _selectIp(int index) {

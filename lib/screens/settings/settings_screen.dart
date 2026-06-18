@@ -65,6 +65,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late String _storageBasePath;
   late bool _autoBackupEnabled;
   late String _autoBackupPath;
+  late bool _keepScreenAwake;
+  late bool _keepScreenAwakeChargingOnly;
   bool _backupLoading = false;
   bool _lockSetup = false;
 
@@ -83,6 +85,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     _storageBasePath = widget.settings.storageBasePath;
     _autoBackupEnabled = widget.settings.autoBackupEnabled;
     _autoBackupPath = widget.settings.autoBackupPath;
+    _keepScreenAwake = widget.settings.keepScreenAwake;
+    _keepScreenAwakeChargingOnly = widget.settings.keepScreenAwakeChargingOnly;
     AppLockService.isSetup().then((v) {
       if (mounted) setState(() => _lockSetup = v);
     });
@@ -172,6 +176,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             storageBasePath: _storageBasePath,
             autoBackupEnabled: _autoBackupEnabled,
             autoBackupPath: _autoBackupPath,
+            keepScreenAwake: _keepScreenAwake,
+            keepScreenAwakeChargingOnly: _keepScreenAwakeChargingOnly,
           ),
         );
     if (mounted) {
@@ -634,9 +640,32 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   storageBasePath: _storageBasePath,
                   autoBackupEnabled: _autoBackupEnabled,
                   autoBackupPath: _autoBackupPath,
+                  keepScreenAwake: _keepScreenAwake,
+                  keepScreenAwakeChargingOnly: _keepScreenAwakeChargingOnly,
                 ));
           },
         ),
+        const SizedBox(height: 16),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.screen_lock_portrait_outlined),
+          title: const Text('Bildschirm aktiv halten'),
+          subtitle: const Text('Display schaltet nicht ab, solange die App im Vordergrund ist'),
+          value: _keepScreenAwake,
+          onChanged: (v) => setState(() {
+            _keepScreenAwake = v;
+            if (!v) _keepScreenAwakeChargingOnly = false;
+          }),
+        ),
+        if (_keepScreenAwake)
+          SwitchListTile.adaptive(
+            contentPadding: const EdgeInsets.only(left: 16),
+            secondary: const Icon(Icons.battery_charging_full_outlined),
+            title: const Text('Nur beim Laden'),
+            subtitle: const Text('Nur wenn Gerät mit Strom verbunden ist'),
+            value: _keepScreenAwakeChargingOnly,
+            onChanged: (v) => setState(() => _keepScreenAwakeChargingOnly = v),
+          ),
         const SizedBox(height: 32),
 
         FilledButton.icon(

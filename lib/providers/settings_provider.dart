@@ -51,6 +51,12 @@ class AppSettings {
   /// device-specific keys like storagePath are always excluded).
   final bool syncAppSettings;
 
+  // ── Bildschirm wach halten ────────────────────────────────────────────────
+  /// Bildschirm bleibt aktiv, solange die App im Vordergrund ist.
+  final bool keepScreenAwake;
+  /// keepScreenAwake gilt nur wenn das Gerät aufgeladen wird.
+  final bool keepScreenAwakeChargingOnly;
+
   const AppSettings({
     this.companyName = 'Meine IT-Firma',
     this.technicianName = '',
@@ -78,6 +84,8 @@ class AppSettings {
     this.syncOnAppStart = true,
     this.syncOnResume = true,
     this.syncAppSettings = false,
+    this.keepScreenAwake = false,
+    this.keepScreenAwakeChargingOnly = false,
   });
 
   AppSettings copyWith({
@@ -107,6 +115,8 @@ class AppSettings {
     bool? syncOnAppStart,
     bool? syncOnResume,
     bool? syncAppSettings,
+    bool? keepScreenAwake,
+    bool? keepScreenAwakeChargingOnly,
   }) =>
       AppSettings(
         companyName: companyName ?? this.companyName,
@@ -134,6 +144,8 @@ class AppSettings {
         syncOnAppStart: syncOnAppStart ?? this.syncOnAppStart,
         syncOnResume: syncOnResume ?? this.syncOnResume,
         syncAppSettings: syncAppSettings ?? this.syncAppSettings,
+        keepScreenAwake: keepScreenAwake ?? this.keepScreenAwake,
+        keepScreenAwakeChargingOnly: keepScreenAwakeChargingOnly ?? this.keepScreenAwakeChargingOnly,
       );
 
   /// Effective device name for display: falls back to technicianName then 'Dieses Gerät'.
@@ -185,6 +197,8 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       syncOnAppStart: (map['syncOnAppStart'] ?? 'true') == 'true',
       syncOnResume: (map['syncOnResume'] ?? 'true') == 'true',
       syncAppSettings: map['syncAppSettings'] == 'true',
+      keepScreenAwake: map['keepScreenAwake'] == 'true',
+      keepScreenAwakeChargingOnly: map['keepScreenAwakeChargingOnly'] == 'true',
     );
   }
 
@@ -217,6 +231,8 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       'syncOnAppStart': settings.syncOnAppStart.toString(),
       'syncOnResume': settings.syncOnResume.toString(),
       'syncAppSettings': settings.syncAppSettings.toString(),
+      'keepScreenAwake': settings.keepScreenAwake.toString(),
+      'keepScreenAwakeChargingOnly': settings.keepScreenAwakeChargingOnly.toString(),
     };
     // If logoPath was cleared (null), delete the key from DB
     if (settings.logoPath == null) {

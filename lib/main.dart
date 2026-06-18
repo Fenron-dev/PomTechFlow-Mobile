@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'theme/app_theme.dart';
 import 'providers/settings_provider.dart' hide AppSettings;
 import 'screens/dashboard/dashboard_screen.dart';
@@ -146,11 +149,40 @@ class PomTechFlowApp extends ConsumerStatefulWidget {
 
 class _PomTechFlowAppState extends ConsumerState<PomTechFlowApp> {
   SyncScheduler? _syncScheduler;
+  final _battery = Battery();
+  StreamSubscription<BatteryState>? _batterySubscription;
 
   @override
   void dispose() {
     _syncScheduler?.dispose();
+    _batterySubscription?.cancel();
+    WakelockPlus.disable();
     super.dispose();
+  }
+
+  Future<void> _updateWakelock(bool keepAwake, bool chargingOnly) async {
+    _batterySubscription?.cancel();
+    _batterySubscription = null;
+
+    if (!keepAwake) {
+      await WakelockPlus.disable();
+      return;
+    }
+
+    if (!chargingOnly) {
+      await WakelockPlus.enable();
+      return;
+    }
+
+    // Nur beim Laden: aktuellen Zustand prüfen und auf Änderungen reagieren
+    void apply(BatteryState state) {
+      final isCharging =
+          state == BatteryState.charging || state == BatteryState.full;
+      isCharging ? WakelockPlus.enable() : WakelockPlus.disable();
+    }
+
+    apply(await _battery.batteryState);
+    _batterySubscription = _battery.onBatteryStateChanged.listen(apply);
   }
 
   @override
@@ -200,6 +232,11 @@ class _PomTechFlowAppState extends ConsumerState<PomTechFlowApp> {
 
     // Auto-Backup und Sync-Init: einmalig beim ersten Build nach App-Start
     ref.listen(settingsProvider, (prev, next) {
+      if (next.hasValue) {
+        final s = next.value!;
+        _updateWakelock(s.keepScreenAwake, s.keepScreenAwakeChargingOnly);
+      }
+
       if (prev == null && next.hasValue) {
         final settings = next.value!;
         final db = ref.read(databaseProvider);
