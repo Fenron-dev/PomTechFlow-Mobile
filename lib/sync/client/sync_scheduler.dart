@@ -32,8 +32,14 @@ class SyncScheduler with WidgetsBindingObserver {
   }) : _settings = settings;
 
   void onSettingsChanged(AppSettings newSettings) {
+    final wasClient = _settings.syncRole == 'CLIENT' && _settings.syncServerHost.isNotEmpty;
+    final nowClient = newSettings.syncRole == 'CLIENT' && newSettings.syncServerHost.isNotEmpty;
     _settings = newSettings;
     _reschedule();
+    // Trigger immediate sync when first connecting as client
+    if (!wasClient && nowClient) {
+      _runSync();
+    }
   }
 
   void start() {

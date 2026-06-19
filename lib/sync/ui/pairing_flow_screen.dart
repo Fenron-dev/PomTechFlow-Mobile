@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../providers/settings_provider.dart';
 import '../client/sync_api_client.dart';
 import '../discovery/mdns_service.dart';
+import '../sync_provider.dart';
 
 bool get _isMobile => Platform.isAndroid || Platform.isIOS;
 
@@ -124,6 +125,9 @@ class _PairingFlowScreenState extends ConsumerState<PairingFlowScreen>
         syncServerName: serverName,
       ));
       setState(() { _success = true; _loading = false; });
+      // Trigger immediate sync after successful pairing
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) triggerManualSync(ref);
     } else {
       setState(() { _errorMsg = 'Pairing fehlgeschlagen. Token ungültig oder abgelaufen.'; _loading = false; });
     }

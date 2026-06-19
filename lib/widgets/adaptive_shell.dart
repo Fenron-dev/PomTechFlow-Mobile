@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:go_router/go_router.dart';
 import 'keyboard_shortcuts.dart';
-import '../screens/settings/device_library_screen.dart';
 
 class AdaptiveShell extends StatelessWidget {
   final StatefulNavigationShell shell;
@@ -133,42 +132,41 @@ class _DesktopSidebar extends StatelessWidget {
             icon: Icons.business_outlined,
             activeIcon: Icons.business,
             label: 'Kunden',
-            selected: false,
+            selected: shell.currentIndex == 5,
             extended: isWide,
-            onTap: () => context.push('/settings/customers'),
+            onTap: () => onBranch(5),
           ),
           _SidebarItem(
             icon: Icons.devices_outlined,
             activeIcon: Icons.devices,
             label: 'Gerätebibliothek',
-            selected: false,
+            selected: shell.currentIndex == 6,
             extended: isWide,
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const DeviceLibraryScreen())),
+            onTap: () => onBranch(6),
           ),
           _SidebarItem(
             icon: Icons.lightbulb_outline,
             activeIcon: Icons.lightbulb,
             label: 'Wissensdatenbank',
-            selected: false,
+            selected: shell.currentIndex == 7,
             extended: isWide,
-            onTap: () => context.push('/knowledge'),
+            onTap: () => onBranch(7),
           ),
           _SidebarItem(
             icon: Icons.bar_chart_outlined,
             activeIcon: Icons.bar_chart,
             label: 'Statistiken',
-            selected: false,
+            selected: shell.currentIndex == 8,
             extended: isWide,
-            onTap: () => context.push('/statistics'),
+            onTap: () => onBranch(8),
           ),
           _SidebarItem(
             icon: Icons.picture_as_pdf_outlined,
             activeIcon: Icons.picture_as_pdf,
             label: 'Alle Berichte',
-            selected: false,
+            selected: shell.currentIndex == 9,
             extended: isWide,
-            onTap: () => context.push('/reports'),
+            onTap: () => onBranch(9),
           ),
 
           const Spacer(),
@@ -182,9 +180,9 @@ class _DesktopSidebar extends StatelessWidget {
             icon: Icons.settings_outlined,
             activeIcon: Icons.settings,
             label: 'Einstellungen',
-            selected: false,
+            selected: shell.currentIndex == 10,
             extended: isWide,
-            onTap: () => context.push('/settings'),
+            onTap: () => onBranch(10),
           ),
           const SizedBox(height: 12),
         ],

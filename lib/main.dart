@@ -34,6 +34,7 @@ import 'screens/app_lock_screen.dart';
 import 'screens/tools/network_tools_screen.dart';
 import 'screens/knowledge/knowledge_screen.dart';
 import 'screens/calendar/calendar_screen.dart';
+import 'screens/settings/device_library_screen.dart';
 import 'services/device_maintenance_service.dart';
 import 'sync/sync_provider.dart';
 import 'sync/client/sync_scheduler.dart';
@@ -140,6 +141,48 @@ final _router = GoRouter(
           GoRoute(
             path: '/calendar',
             builder: (_, _) => const CalendarScreen(),
+          ),
+        ]),
+        // 5 - Kunden
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/shell/customers',
+            builder: (_, _) => const CustomersScreen(),
+          ),
+        ]),
+        // 6 - Gerätebibliothek
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/shell/device-library',
+            builder: (_, _) => const DeviceLibraryScreen(),
+          ),
+        ]),
+        // 7 - Wissensdatenbank
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/shell/knowledge',
+            builder: (_, _) => const KnowledgeScreen(),
+          ),
+        ]),
+        // 8 - Statistiken
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/shell/statistics',
+            builder: (_, _) => const StatisticsScreen(),
+          ),
+        ]),
+        // 9 - Alle Berichte
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/shell/reports',
+            builder: (_, _) => const AllReportsScreen(),
+          ),
+        ]),
+        // 10 - Einstellungen
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/shell/settings',
+            builder: (_, _) => const SettingsScreen(),
           ),
         ]),
       ],

@@ -57,30 +57,58 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final selectedTasks =
         _selectedDay != null ? (tasksByDay[_dayKey(_selectedDay!)] ?? []) : <TaskWithDetails>[];
 
-    return Column(
-      children: [
-        _MonthHeader(
-          month: _focusedMonth,
-          onPrev: () => setState(
-              () => _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1)),
-          onNext: () => setState(
-              () => _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1)),
-        ),
-        const _WeekdayRow(),
-        _CalendarGrid(
-          focusedMonth: _focusedMonth,
-          tasksByDay: tasksByDay,
-          selectedDay: _selectedDay,
-          onDaySelected: (day) => setState(() => _selectedDay = day),
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: _DayTaskList(
-            day: _selectedDay,
-            tasks: selectedTasks,
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 600;
+
+        final calendarPanel = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _MonthHeader(
+              month: _focusedMonth,
+              onPrev: () => setState(
+                  () => _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1)),
+              onNext: () => setState(
+                  () => _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1)),
+            ),
+            const _WeekdayRow(),
+            _CalendarGrid(
+              focusedMonth: _focusedMonth,
+              tasksByDay: tasksByDay,
+              selectedDay: _selectedDay,
+              onDaySelected: (day) => setState(() => _selectedDay = day),
+            ),
+          ],
+        );
+
+        final taskPanel = _DayTaskList(
+          day: _selectedDay,
+          tasks: selectedTasks,
+        );
+
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: constraints.maxWidth * 0.55,
+                child: calendarPanel,
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: taskPanel),
+            ],
+          );
+        }
+
+        // Mobile: vertical layout
+        return Column(
+          children: [
+            calendarPanel,
+            const Divider(height: 1),
+            Expanded(child: taskPanel),
+          ],
+        );
+      },
     );
   }
 
@@ -281,7 +309,7 @@ class _CalendarGrid extends StatelessWidget {
         crossAxisCount: 7,
         mainAxisSpacing: 2,
         crossAxisSpacing: 2,
-        childAspectRatio: 0.85,
+        childAspectRatio: 1.1,
       ),
       itemCount: days.length,
       itemBuilder: (context, i) {
