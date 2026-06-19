@@ -300,7 +300,13 @@ class _PomTechFlowAppState extends ConsumerState<PomTechFlowApp> {
         _syncScheduler = SyncScheduler(
           db: db,
           settings: settings,
-          onResult: (result) => ref.read(syncStatusProvider.notifier).onResult(result),
+          onResult: (result) {
+            ref.read(syncStatusProvider.notifier).onResult(result);
+            // Neu gezogene Daten sofort in der UI anzeigen
+            if (result.pulledCount > 0) {
+              ref.invalidate(tasksProvider);
+            }
+          },
           onHostRefreshed: (newHost) {
             // Persist the refreshed IP from mDNS discovery
             final current = ref.read(settingsProvider).valueOrNull;
