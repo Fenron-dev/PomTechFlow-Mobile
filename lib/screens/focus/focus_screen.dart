@@ -558,7 +558,8 @@ Future<void> _quickStart(BuildContext context, WidgetRef ref) async {
           id: drift.Value(taskId),
           title: title,
           assignedTo: drift.Value(tech.isEmpty ? null : tech),
-          updatedAt: drift.Value(DateTime.now()),
+          plannedDate: drift.Value(now),
+          updatedAt: drift.Value(now),
         ),
       );
   await ref.read(timerProvider.notifier).start(taskId);
